@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
+import Svg, { Circle, Line, Path, Polyline, Rect } from 'react-native-svg';
 import { Colors } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
@@ -25,23 +26,97 @@ type Props = CompositeScreenProps<
   NativeStackScreenProps<RootStackParamList>
 >;
 
-type MenuScreen = 'ProfileSetup' | 'MainTabs' | 'Referral';
+type MenuScreen = 'ProfileSetup' | 'MainTabs' | 'Referral' | 'Notifications' | 'PrivacySecurity';
+type MenuTab = 'Wallet';
 
 type MenuItem = {
-  icon: string;
+  icon: 'user' | 'verification' | 'wallet' | 'referral' | 'notification' | 'privacy' | 'language' | 'help';
   label: string;
   screen?: MenuScreen;
+  tab?: MenuTab;
 };
 
+type IconProps = {
+  color?: string;
+  size?: number;
+};
+
+const UserIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+    <Circle cx={12} cy={7} r={4} />
+  </Svg>
+);
+
+const BadgeCheckIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+    <Path d="m9 12 2 2 4-4" />
+  </Svg>
+);
+
+const WalletIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
+    <Path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
+  </Svg>
+);
+
+const GiftIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Rect x={3} y={8} width={18} height={4} rx={1} />
+    <Path d="M12 8v13" />
+    <Path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
+    <Path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />
+  </Svg>
+);
+
+const BellIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+    <Path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+  </Svg>
+);
+
+const ShieldIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+  </Svg>
+);
+
+const GlobeIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Circle cx={12} cy={12} r={10} />
+    <Path d="M2 12h20" />
+    <Path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </Svg>
+);
+
+const HelpIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Circle cx={12} cy={12} r={10} />
+    <Path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+    <Path d="M12 17h.01" />
+  </Svg>
+);
+
+const LogoutIcon: React.FC<IconProps> = ({ color = Colors.destructive, size = 18 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <Polyline points="16 17 21 12 16 7" />
+    <Line x1={21} x2={9} y1={12} y2={12} />
+  </Svg>
+);
+
 const menuItems: ReadonlyArray<MenuItem> = [
-  { icon: '👤', label: 'Edit Profile', screen: 'ProfileSetup' },
-  { icon: '✓', label: 'Verification' },
-  { icon: '💰', label: 'Wallet', screen: 'MainTabs' },
-  { icon: '🎁', label: 'Referral Program', screen: 'Referral' },
-  { icon: '🔔', label: 'Notification Settings' },
-  { icon: '🛡️', label: 'Privacy & Security' },
-  { icon: '🌐', label: 'Language' },
-  { icon: '❓', label: 'Help & Support' },
+  { icon: 'user', label: 'Edit Profile', screen: 'ProfileSetup' },
+  { icon: 'verification', label: 'Verification' },
+  { icon: 'wallet', label: 'Wallet', tab: 'Wallet' },
+  { icon: 'referral', label: 'Referral Program', screen: 'Referral' },
+  { icon: 'notification', label: 'Notification Settings', screen: 'Notifications' },
+  { icon: 'privacy', label: 'Privacy & Security', screen: 'PrivacySecurity' },
+  { icon: 'language', label: 'Language' },
+  { icon: 'help', label: 'Help & Support' },
 ];
 
 const SettingsScreen: React.FC<Props> = ({ navigation }) => {
@@ -53,6 +128,40 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     resetSession();
     if (rootNavigation) {
       rootNavigation.reset({ index: 0, routes: [{ name: 'Splash' }] });
+    }
+  };
+
+  const renderMenuIcon = (icon: MenuItem['icon']) => {
+    switch (icon) {
+      case 'user':
+        return <UserIcon />;
+      case 'verification':
+        return <BadgeCheckIcon />;
+      case 'wallet':
+        return <WalletIcon />;
+      case 'referral':
+        return <GiftIcon />;
+      case 'notification':
+        return <BellIcon />;
+      case 'privacy':
+        return <ShieldIcon />;
+      case 'language':
+        return <GlobeIcon />;
+      case 'help':
+        return <HelpIcon />;
+      default:
+        return <HelpIcon />;
+    }
+  };
+
+  const handleMenuPress = (item: MenuItem) => {
+    if (item.tab) {
+      navigation.navigate(item.tab);
+      return;
+    }
+
+    if (item.screen) {
+      navigation.navigate(item.screen);
     }
   };
 
@@ -105,16 +214,16 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Menu */}
       <View style={styles.menu}>
-        {menuItems.map(({ icon, label, screen }) => (
+        {menuItems.map(item => (
           <TouchableOpacity
-            key={label}
-            onPress={() => screen && navigation.navigate(screen)}
+            key={item.label}
+            onPress={() => handleMenuPress(item)}
             style={styles.menuItem}
             activeOpacity={0.7}>
             <View style={styles.menuIconBox}>
-              <Text style={{ fontSize: 18 }}>{icon}</Text>
+              {renderMenuIcon(item.icon)}
             </View>
-            <Text style={styles.menuLabel}>{label}</Text>
+            <Text style={styles.menuLabel}>{item.label}</Text>
             <Text style={{ fontSize: 14, color: Colors.mutedForeground }}>›</Text>
           </TouchableOpacity>
         ))}
@@ -123,7 +232,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       {/* Logout */}
       <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn} activeOpacity={0.7}>
         <View style={styles.logoutIcon}>
-          <Text style={{ fontSize: 18 }}>🚪</Text>
+          <LogoutIcon />
         </View>
         <Text style={styles.logoutText}>Log Out</Text>
       </TouchableOpacity>

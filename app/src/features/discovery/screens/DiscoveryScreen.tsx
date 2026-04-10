@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
@@ -32,6 +33,58 @@ const { width } = Dimensions.get('window');
 const cardWidth = (width - 48 - 12) / 2;
 
 const filters = ['All', 'Online', 'Premium', 'Verified', 'New'];
+
+const SEARCH_ICON_SIZE = 18;
+const ACTION_ICON_SIZE = 18;
+
+type IconProps = {
+  color?: string;
+  size?: number;
+};
+
+const SearchIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = SEARCH_ICON_SIZE }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Circle cx={11} cy={11} r={8} />
+    <Path d="m21 21-4.3-4.3" />
+  </Svg>
+);
+
+const BellIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = ACTION_ICON_SIZE }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+    <Path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+  </Svg>
+);
+
+const CallIcon: React.FC<IconProps> = ({ color = '#FFFFFF', size = 14 }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+  </Svg>
+);
 
 const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -59,12 +112,12 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
             <TouchableOpacity
               onPress={() => setShowSearch(!showSearch)}
               style={styles.headerBtn}>
-              <Text style={{ fontSize: 16 }}>🔍</Text>
+              <SearchIcon />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigation.navigate('Notifications')}
               style={styles.headerBtn}>
-              <Text style={{ fontSize: 16 }}>🔔</Text>
+              <BellIcon />
               <View style={styles.notifDot} />
             </TouchableOpacity>
           </View>
@@ -73,7 +126,7 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
         {showSearch && (
           <View style={styles.searchRow}>
             <View style={styles.searchBox}>
-              <Text style={{ fontSize: 14 }}>🔍</Text>
+              <SearchIcon size={16} />
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}

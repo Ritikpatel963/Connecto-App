@@ -10,6 +10,8 @@ export type RootStackParamList = {
   Conversation: { id: string };
   Notifications: undefined;
   Referral: undefined;
+  PrivacySecurity: undefined;
+  Recharge: undefined;
 };
 
 export type TabParamList = {

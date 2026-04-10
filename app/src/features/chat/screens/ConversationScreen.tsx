@@ -11,19 +11,78 @@ import {
   Platform,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
 import { mockChats } from '../../../shared/data/mockData';
 import ChatBubble from '../../../components/ChatBubble';
 import OnlineIndicator from '../../../components/OnlineIndicator';
+import BackArrowIcon from '../../../components/BackArrowIcon';
 import type { ChatMessage } from '../../../shared/types/app';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Conversation'>;
 
+type IconProps = {
+  color?: string;
+  size?: number;
+};
+
+const CHAT_CALL_ICON_SIZE = 14;
+const CHAT_EMOJI_ICON_SIZE = 18;
+const CHAT_SEND_ICON_SIZE = 16;
+
+const PhoneIcon: React.FC<IconProps> = ({ color = '#FFFFFF', size = CHAT_CALL_ICON_SIZE }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+  </Svg>
+);
+
+const SmileIcon: React.FC<IconProps> = ({ color = Colors.mutedForeground, size = CHAT_EMOJI_ICON_SIZE }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Circle cx={12} cy={12} r={10} />
+    <Path d="M8 14s1.5 2 4 2 4-2 4-2" />
+    <Line x1={9} x2={9.01} y1={9} y2={9} />
+    <Line x1={15} x2={15.01} y1={9} y2={9} />
+  </Svg>
+);
+
+const SendIcon: React.FC<IconProps> = ({ color = '#FFFFFF', size = CHAT_SEND_ICON_SIZE }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
+    <Path d="m21.854 2.147-10.94 10.939" />
+  </Svg>
+);
+
 const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
+  const insets = useSafeAreaInsets();
   const { id } = route.params;
   const chat = mockChats.find(c => c.id === id);
   const [input, setInput] = useState('');
@@ -59,9 +118,9 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={0}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={{ fontSize: 18, color: Colors.foreground }}>←</Text>
+          <BackArrowIcon color={Colors.foreground} size={20} />
         </TouchableOpacity>
         <Image source={{ uri: chat.user.avatar }} style={styles.avatar} />
         <View style={styles.headerInfo}>
@@ -81,7 +140,7 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.callBtn}>
-            <Text style={{ fontSize: 14 }}>📞</Text>
+            <PhoneIcon />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -90,14 +149,14 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
       <FlatList
         data={messages}
         keyExtractor={item => item.id}
-        contentContainerStyle={styles.messageList}
+        contentContainerStyle={[styles.messageList, { paddingBottom: insets.bottom + 16 }]}
         renderItem={({ item }) => (
           <ChatBubble message={item} isOwn={item.senderId === 'me'} />
         )}
       />
 
       {/* Input - text + emoji only */}
-      <View style={styles.inputBar}>
+      <View style={[styles.inputBar, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.inputRow}>
           <TextInput
             value={input}
@@ -109,7 +168,7 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
             returnKeyType="send"
           />
           <TouchableOpacity>
-            <Text style={{ fontSize: 18 }}>😊</Text>
+            <SmileIcon />
           </TouchableOpacity>
         </View>
         <TouchableOpacity onPress={handleSend} activeOpacity={0.8}>
@@ -118,7 +177,7 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.sendBtn}>
-            <Text style={{ fontSize: 14, color: '#FFF' }}>➤</Text>
+            <SendIcon />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -136,7 +195,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.background,

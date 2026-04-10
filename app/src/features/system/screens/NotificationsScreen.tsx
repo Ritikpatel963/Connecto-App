@@ -4,6 +4,7 @@ import { Colors } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { mockNotifications } from '../../../shared/data/mockData';
 import NotificationCard from '../../../components/NotificationCard';
+import BackArrowIcon from '../../../components/BackArrowIcon';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +17,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={{ fontSize: 18, color: Colors.foreground }}>←</Text>
+          <BackArrowIcon color={Colors.foreground} size={20} />
         </TouchableOpacity>
         <Text style={styles.title}>Notifications</Text>
       </View>

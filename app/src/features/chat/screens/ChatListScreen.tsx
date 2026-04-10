@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { Colors } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
@@ -36,13 +37,28 @@ const ChatListScreen: React.FC<Props> = ({ navigation }) => {
   );
   const onlineUsers = mockChats.filter(c => c.user.isOnline);
 
+  const SearchIcon = () => (
+    <Svg
+      width={16}
+      height={16}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={Colors.mutedForeground}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round">
+      <Circle cx={11} cy={11} r={8} />
+      <Path d="m21 21-4.3-4.3" />
+    </Svg>
+  );
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.title}>Chats</Text>
         <View style={styles.searchBox}>
-          <Text style={{ fontSize: 14 }}>🔍</Text>
+          <SearchIcon />
           <TextInput
             value={search}
             onChangeText={setSearch}

@@ -21,7 +21,7 @@ type Props = CompositeScreenProps<
 
 const rechargeAmounts = [100, 200, 500, 1000];
 
-const WalletScreen: React.FC<Props> = () => {
+const WalletScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { role, walletBalance, setWalletBalance } = useUser();
 
@@ -33,7 +33,7 @@ const WalletScreen: React.FC<Props> = () => {
         { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 92 },
       ]}>
       <Text style={styles.title}>Wallet</Text>
-      <WalletCard />
+      <WalletCard onRecharge={() => navigation.navigate('Recharge')} />
 
       {role === 'boy' && (
         <View style={styles.rechargeSection}>

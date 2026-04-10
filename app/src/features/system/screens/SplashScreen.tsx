@@ -4,12 +4,14 @@ import LinearGradient from 'react-native-linear-gradient';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
 const SplashScreen: React.FC<Props> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const scale = useRef(new Animated.Value(0.8)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const titleY = useRef(new Animated.Value(20)).current;
@@ -34,7 +36,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
   }, [dotsOpacity, navigation, opacity, scale, subtitleOpacity, titleY]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
       {/* Background glow */}
       <View style={styles.glowPrimary} />
       <View style={styles.glowSecondary} />

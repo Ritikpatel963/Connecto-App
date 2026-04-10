@@ -4,9 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Colors } from '../theme/colors';
 import { SplashScreen, OnboardingScreen, NotificationsScreen } from '../features/system/screens';
 import { LoginScreen, RoleSelectScreen, ProfileSetupScreen } from '../features/auth/screens';
-import { ProfileScreen } from '../features/profile/screens';
+import { ProfileScreen, PrivacySecurityScreen } from '../features/profile/screens';
 import { CallScreen, ConversationScreen } from '../features/chat/screens';
-import { ReferralScreen } from '../features/wallet/screens';
+import { ReferralScreen, RechargeScreen } from '../features/wallet/screens';
 import AppTabs from './AppTabs';
 import type { RootStackParamList } from './types';
 
@@ -31,6 +31,8 @@ const RootNavigator = () => (
       <Stack.Screen name="Conversation" component={ConversationScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Referral" component={ReferralScreen} />
+      <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
+      <Stack.Screen name="Recharge" component={RechargeScreen} />
     </Stack.Navigator>
   </NavigationContainer>
 );

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 import { Colors, Gradients } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Radius } from '../theme/spacing';
@@ -8,6 +9,44 @@ import type { UserProfile } from '../shared/types/app';
 import OnlineIndicator from './OnlineIndicator';
 import PremiumBadge from './PremiumBadge';
 import RatingStars from './RatingStars';
+
+type IconProps = {
+  color?: string;
+  size?: number;
+};
+
+const VERIFIED_ICON_SIZE = 14;
+const CALL_ICON_SMALL_SIZE = 14;
+const CALL_ICON_GRID_SIZE = 12;
+
+const BadgeCheckIcon: React.FC<IconProps> = ({ color = Colors.accent, size = VERIFIED_ICON_SIZE }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+    <Path d="m9 12 2 2 4-4" />
+  </Svg>
+);
+
+const PhoneIcon: React.FC<IconProps> = ({ color = '#FFFFFF', size = CALL_ICON_SMALL_SIZE }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+  </Svg>
+);
 
 interface ProfileCardProps {
   profile: UserProfile;
@@ -41,7 +80,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           <View style={styles.nameRow}>
             <Text style={styles.listName} numberOfLines={1}>{profile.name}</Text>
             {profile.isPremium && <PremiumBadge size="sm" />}
-            {profile.isVerified && <Text style={styles.verified}>✓</Text>}
+            {profile.isVerified && <BadgeCheckIcon />}
           </View>
           <Text style={styles.listBio} numberOfLines={1}>{profile.bio}</Text>
           <View style={styles.listMeta}>
@@ -56,7 +95,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.callBtnSmall}>
-              <Text style={styles.callIcon}>📞</Text>
+              <PhoneIcon size={CALL_ICON_SMALL_SIZE} />
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -84,7 +123,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           <Text style={styles.gridName}>
             {profile.name}, {profile.age}
           </Text>
-          {profile.isVerified && <Text style={styles.verifiedGrid}>✓</Text>}
+          {profile.isVerified && <BadgeCheckIcon />}
         </View>
         <Text style={styles.gridSub}>
           {profile.city} · ₹{profile.pricePerMinute}/min
@@ -98,7 +137,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.callBtnGrid}>
-                <Text style={{ fontSize: 12 }}>📞</Text>
+                <PhoneIcon size={CALL_ICON_GRID_SIZE} />
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -142,9 +181,8 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   verified: {
-    fontSize: 14,
-    color: Colors.accent,
-    fontWeight: '700',
+    width: VERIFIED_ICON_SIZE,
+    height: VERIFIED_ICON_SIZE,
   },
   listBio: {
     ...Typography.small,
@@ -168,10 +206,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  callIcon: {
-    fontSize: 18,
-  },
-
   // Grid variant
   gridCard: {
     borderRadius: Radius['2xl'],
@@ -203,11 +237,6 @@ const styles = StyleSheet.create({
   gridName: {
     ...Typography.bodyBold,
     color: Colors.foreground,
-  },
-  verifiedGrid: {
-    fontSize: 14,
-    color: Colors.accent,
-    fontWeight: '700',
   },
   gridSub: {
     ...Typography.caption,

@@ -12,12 +12,14 @@ import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
 import { useUser } from '../../../context/UserContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProfileSetup'>;
 
 const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const { role, setCurrentUser, setIsAuthenticated } = useUser();
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
@@ -51,7 +53,10 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 32 },
+      ]}
       keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Set up your profile</Text>
       <Text style={styles.subtitle}>Let people know who you are</Text>
@@ -165,8 +170,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 24,
-    paddingTop: 48,
-    paddingBottom: 32,
   },
   title: {
     ...Typography.h2,

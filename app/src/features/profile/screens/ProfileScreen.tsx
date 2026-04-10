@@ -9,14 +9,17 @@ import {
   Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
+import BackArrowIcon from '../../../components/BackArrowIcon';
 import { mockProfiles } from '../../../shared/data/mockData';
 import { useUser } from '../../../context/UserContext';
 import OnlineIndicator from '../../../components/OnlineIndicator';
 import PremiumBadge from '../../../components/PremiumBadge';
 import RatingStars from '../../../components/RatingStars';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 
@@ -24,7 +27,74 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
 const { height } = Dimensions.get('window');
 
+type IconProps = {
+  color?: string;
+  size?: number;
+};
+
+const VERIFIED_ICON_SIZE = 14;
+const ACTION_ICON_SIZE = 20;
+const CALL_ICON_SIZE = 14;
+
+const BadgeCheckIcon: React.FC<IconProps> = ({ color = Colors.accent, size = VERIFIED_ICON_SIZE }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+    <Path d="m9 12 2 2 4-4" />
+  </Svg>
+);
+
+const PhoneIcon: React.FC<IconProps> = ({ color = '#FFFFFF', size = CALL_ICON_SIZE }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+  </Svg>
+);
+
+const ChatIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = ACTION_ICON_SIZE }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </Svg>
+);
+
+const HeartIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = ACTION_ICON_SIZE }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+  </Svg>
+);
+
 const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
+  const insets = useSafeAreaInsets();
   const { id } = route.params;
   const { role } = useUser();
   const profile = mockProfiles.find(p => p.id === id);
@@ -38,7 +108,10 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   }
 
   return (
-    <ScrollView style={styles.container} bounces={false}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+      bounces={false}>
       {/* Hero image */}
       <View style={styles.hero}>
         <Image source={{ uri: profile.avatar }} style={styles.heroImage} />
@@ -47,8 +120,8 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           style={styles.heroOverlay}
         />
 
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={{ fontSize: 18, color: '#FFF' }}>←</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { top: insets.top + 16 }]}>
+          <BackArrowIcon color="#FFFFFF" size={20} />
         </TouchableOpacity>
 
         <View style={styles.heroBottom}>
@@ -61,7 +134,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={styles.nameRow}>
             <Text style={styles.heroName}>{profile.name}, {profile.age}</Text>
             {profile.isPremium && <PremiumBadge size="md" />}
-            {profile.isVerified && <Text style={styles.verified}>✓</Text>}
+            {profile.isVerified && <BadgeCheckIcon />}
           </View>
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>📍 {profile.city}</Text>
@@ -83,17 +156,20 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.callBtn}>
-                <Text style={styles.callBtnText}>📞 Call · ₹{profile.pricePerMinute}/min</Text>
+                <View style={styles.callBtnContent}>
+                  <PhoneIcon />
+                  <Text style={styles.callBtnText}>Call · ₹{profile.pricePerMinute}/min</Text>
+                </View>
               </LinearGradient>
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.iconBtn}>
-            <Text style={{ fontSize: 20 }}>♡</Text>
+            <HeartIcon />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => navigation.navigate('Conversation', { id: `chat-0` })}
             style={styles.iconBtn}>
-            <Text style={{ fontSize: 20 }}>💬</Text>
+            <ChatIcon />
           </TouchableOpacity>
         </View>
 
@@ -165,7 +241,6 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     position: 'absolute',
-    top: 16,
     left: 16,
     width: 40,
     height: 40,
@@ -202,11 +277,6 @@ const styles = StyleSheet.create({
     ...Typography.h2,
     color: Colors.foreground,
   },
-  verified: {
-    fontSize: 20,
-    color: Colors.accent,
-    fontWeight: '700',
-  },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -235,6 +305,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xl,
     alignItems: 'center',
     ...Elevation.glow,
+  },
+  callBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   callBtnText: {
     ...Typography.button,
