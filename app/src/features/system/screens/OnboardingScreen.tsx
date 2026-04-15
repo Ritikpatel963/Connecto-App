@@ -123,12 +123,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 const slides = [
   {
     icon: PhoneIcon,
-    title: 'Voice Calls That Connect',
+    title: 'Voice Calls & Chats That Connect',
     subtitle: 'Real conversations, real connections',
     features: [
       { icon: UsersIcon, text: 'Discover interesting people near you' },
+      { icon: HeartIcon, text: 'Chat With Your Loved Ones' },
       { icon: PhoneIcon, text: 'HD voice calls with one tap' },
-      { icon: HeartIcon, text: 'Save favorites & chat anytime' },
       { icon: StarIcon, text: 'Rate & review your experience' },
     ],
     gradientColors: Gradients.primary,

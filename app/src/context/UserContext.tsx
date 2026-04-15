@@ -7,6 +7,8 @@ import type { UserRole, UserProfile } from '../shared/types/app';
 interface UserContextType {
   role: UserRole | null;
   setRole: (role: UserRole | null) => void;
+  isOnline: boolean;
+  setIsOnline: (v: boolean) => void;
   currentUser: UserProfile | null;
   setCurrentUser: (user: UserProfile | null) => void;
   isAuthenticated: boolean;
@@ -19,6 +21,7 @@ interface UserContextType {
 
 const initialState = {
   role: null as UserRole | null,
+  isOnline: true,
   currentUser: null as UserProfile | null,
   isAuthenticated: false,
   walletBalance: 500,
@@ -30,6 +33,7 @@ const useUserStore = create<UserContextType>()(
     set => ({
       ...initialState,
       setRole: role => set({ role }),
+      setIsOnline: isOnline => set({ isOnline }),
       setCurrentUser: currentUser => set({ currentUser }),
       setIsAuthenticated: isAuthenticated => set({ isAuthenticated }),
       setWalletBalance: walletBalance => set({ walletBalance }),
@@ -44,6 +48,7 @@ const useUserStore = create<UserContextType>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: state => ({
         role: state.role,
+        isOnline: state.isOnline,
         currentUser: state.currentUser,
         isAuthenticated: state.isAuthenticated,
         walletBalance: state.walletBalance,

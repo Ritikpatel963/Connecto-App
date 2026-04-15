@@ -54,7 +54,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
           Connecto
         </Animated.Text>
         <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
-          Connect through voice
+          Enjoy and Connect Through Voice or Chats
         </Animated.Text>
       </Animated.View>
 

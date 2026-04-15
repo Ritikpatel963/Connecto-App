@@ -16,6 +16,7 @@ import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
 import { mockProfiles } from '../../../shared/data/mockData';
 import { useUser } from '../../../context/UserContext';
+import OnlineIndicator from '../../../components/OnlineIndicator';
 import ProfileCard from '../../../components/ProfileCard';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
@@ -88,7 +89,7 @@ const CallIcon: React.FC<IconProps> = ({ color = '#FFFFFF', size = 14 }) => (
 
 const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { role } = useUser();
+  const { role, isOnline, setIsOnline } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [activeFilter, setActiveFilter] = useState(0);
@@ -122,6 +123,56 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         </View>
+
+        {role === 'girl' && (
+          <View style={styles.availabilityCard}>
+            <View style={styles.availabilityInfo}>
+              <OnlineIndicator isOnline={isOnline} size="sm" />
+              <View>
+                <Text style={styles.availabilityTitle}>Availability</Text>
+                <Text style={styles.availabilityHint}>Go online to receive incoming calls</Text>
+              </View>
+            </View>
+            <View style={styles.availabilitySwitch}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => setIsOnline(true)}
+                style={styles.availabilityHalfPressable}>
+                {isOnline ? (
+                  <LinearGradient
+                    colors={[...Gradients.success]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[styles.availabilityHalf, styles.availabilityHalfActive]}>
+                    <Text style={styles.availabilityHalfTextActive}>Online</Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={styles.availabilityHalf}>
+                    <Text style={styles.availabilityHalfText}>Online</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => setIsOnline(false)}
+                style={styles.availabilityHalfPressable}>
+                {!isOnline ? (
+                  <LinearGradient
+                    colors={[...Gradients.primary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[styles.availabilityHalf, styles.availabilityHalfActive]}>
+                    <Text style={styles.availabilityHalfTextActive}>Offline</Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={styles.availabilityHalf}>
+                    <Text style={styles.availabilityHalfText}>Offline</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {showSearch && (
           <View style={styles.searchRow}>
@@ -200,15 +251,15 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingTop: 18,
+    paddingBottom: 14,
     backgroundColor: Colors.background,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    alignItems: 'center',
+    marginBottom: 14,
   },
   title: {
     ...Typography.h3,
@@ -245,7 +296,7 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   searchBox: {
     flex: 1,
@@ -270,6 +321,64 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  availabilityCard: {
+    marginBottom: 14,
+    backgroundColor: Colors.card,
+    borderRadius: Radius.xl,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  availabilityInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    flex: 1,
+  },
+  availabilityTitle: {
+    ...Typography.smallSemibold,
+    color: Colors.foreground,
+  },
+  availabilityHint: {
+    ...Typography.xs,
+    color: Colors.mutedForeground,
+  },
+  availabilitySwitch: {
+    backgroundColor: Colors.muted,
+    borderRadius: Radius.lg,
+    padding: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: 164,
+    gap: 3,
+  },
+  availabilityHalfPressable: {
+    flex: 1,
+  },
+  availabilityHalf: {
+    borderRadius: Radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 34,
+  },
+  availabilityHalfActive: {
+    minWidth: 76,
+  },
+  availabilityHalfText: {
+    ...Typography.smallSemibold,
+    color: Colors.mutedForeground,
+  },
+  availabilityHalfTextActive: {
+    ...Typography.smallSemibold,
+    color: '#FFFFFF',
   },
   filtersRow: {
     flexDirection: 'row',

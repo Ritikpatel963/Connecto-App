@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, TextInput, Alert, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Dimensions } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Svg, { Line, Path } from 'react-native-svg';
+import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
@@ -21,6 +21,8 @@ type IconProps = {
 
 const CONTROL_ICON_SIZE = 22;
 const END_CALL_ICON_SIZE = 24;
+const MENU_ICON_SIZE = 20;
+const TIP_CARD_WIDTH = Dimensions.get('window').width - 48;
 
 const MicIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = CONTROL_ICON_SIZE }) => (
   <Svg
@@ -104,16 +106,50 @@ const PhoneOffIcon: React.FC<IconProps> = ({ color = '#FFFFFF', size = END_CALL_
   </Svg>
 );
 
+const MoreVerticalIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = MENU_ICON_SIZE }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round">
+    <Circle cx={12} cy={5} r={1.5} fill={color} stroke={color} />
+    <Circle cx={12} cy={12} r={1.5} fill={color} stroke={color} />
+    <Circle cx={12} cy={19} r={1.5} fill={color} stroke={color} />
+  </Svg>
+);
+
+const callTips = [
+  {
+    title: 'Use earphones',
+    text: 'Earphones make your voice clearer and keep your call private.',
+  },
+  {
+    title: 'Be respectful',
+    text: 'Polite and friendly conversations help avoid reports.',
+  },
+  {
+    title: 'Reduce noise',
+    text: 'Speak in a quiet place to improve quality and ratings.',
+  },
+];
+
 const CallScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { id } = route.params;
-  const { walletBalance, setWalletBalance } = useUser();
+  const { role, walletBalance, setWalletBalance, setIsOnline } = useUser();
   const profile = mockProfiles.find(p => p.id === id);
   const [callState, setCallState] = useState<'ringing' | 'active' | 'ended'>('ringing');
   const [duration, setDuration] = useState(0);
   const [muted, setMuted] = useState(false);
   const [speaker, setSpeaker] = useState(false);
   const [rating, setRating] = useState(0);
+  const [review, setReview] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeTip, setActiveTip] = useState(0);
 
   const costPerMin = profile?.pricePerMinute || 10;
   const totalCost = Math.ceil(duration / 60) * costPerMin;
@@ -134,17 +170,74 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const endCall = useCallback(() => {
     setCallState('ended');
+    setMenuOpen(false);
     setWalletBalance(Math.max(0, walletBalance - totalCost));
   }, [totalCost, walletBalance, setWalletBalance]);
 
+  const reportUser = useCallback(() => {
+    setMenuOpen(false);
+    Alert.alert('Report submitted', 'Thanks for reporting. Our moderation team will review this call.');
+  }, []);
+
+  const goOffline = useCallback(() => {
+    setMenuOpen(false);
+    setIsOnline(false);
+    Alert.alert('Status updated', 'You are now offline and will not receive new calls.');
+  }, [setIsOnline]);
+
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+
+  const onTipScrollEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const next = Math.round(event.nativeEvent.contentOffset.x / event.nativeEvent.layoutMeasurement.width);
+    setActiveTip(Math.max(0, Math.min(callTips.length - 1, next)));
+  }, []);
 
   if (!profile) return null;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
-      <View style={styles.glow} />
+      <View style={styles.backgroundArt}>
+        <LinearGradient
+          colors={[Colors.primary, Colors.transparent]}
+          start={{ x: 0.2, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
+          style={[styles.ambientOrb, styles.ambientOrbTop]}
+        />
+        <LinearGradient
+          colors={[Colors.boy, Colors.transparent]}
+          start={{ x: 0, y: 0.2 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.ambientOrb, styles.ambientOrbBottom]}
+        />
+        <View style={[styles.arcLine, styles.arcLineOuter]} />
+        <View style={[styles.arcLine, styles.arcLineInner]} />
+      </View>
+      {menuOpen && <TouchableOpacity style={styles.menuBackdrop} activeOpacity={1} onPress={() => setMenuOpen(false)} />}
+
+      {callState !== 'ended' && (
+        <View style={[styles.topActions, { top: insets.top + 12 }]}> 
+          <TouchableOpacity
+            onPress={() => setMenuOpen(!menuOpen)}
+            activeOpacity={0.85}
+            style={styles.topActionBtn}>
+            <MoreVerticalIcon />
+          </TouchableOpacity>
+
+          {menuOpen && (
+            <View style={styles.menuCard}>
+              <TouchableOpacity onPress={reportUser} style={styles.menuItem} activeOpacity={0.8}>
+                <Text style={styles.menuItemText}>Report</Text>
+              </TouchableOpacity>
+              {role === 'girl' && (
+                <TouchableOpacity onPress={goOffline} style={styles.menuItem} activeOpacity={0.8}>
+                  <Text style={[styles.menuItemText, styles.menuDangerText]}>Go offline</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
+      )}
 
       <View style={styles.center}>
         {/* Avatar */}
@@ -184,6 +277,17 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
             <View style={styles.starsRow}>
               <RatingStars rating={rating} size={32} interactive onChange={setRating} />
             </View>
+            <TextInput
+              style={styles.reviewInput}
+              multiline
+              numberOfLines={4}
+              maxLength={240}
+              placeholder="Write your review..."
+              placeholderTextColor={Colors.mutedForeground}
+              value={review}
+              onChangeText={setReview}
+              textAlignVertical="top"
+            />
             <View style={styles.summaryBox}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Duration</Text>
@@ -225,6 +329,35 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         )}
       </View>
+
+      {callState !== 'ended' && (
+        <View style={[styles.tipsFooter, { bottom: insets.bottom + 10 }]}> 
+          <Text style={styles.tipsTitle}>Quick tips</Text>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={onTipScrollEnd}
+            contentContainerStyle={styles.tipsScrollerContent}>
+            {callTips.map(tip => (
+              <LinearGradient
+                key={tip.title}
+                colors={[Colors.card, Colors.surfaceElevated]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.tipCard}>
+                <Text style={styles.tipHeading}>{tip.title}</Text>
+                <Text style={styles.tipText}>{tip.text}</Text>
+              </LinearGradient>
+            ))}
+          </ScrollView>
+          <View style={styles.tipDotsRow}>
+            {callTips.map((_, index) => (
+              <View key={String(index)} style={[styles.tipDot, index === activeTip && styles.tipDotActive]} />
+            ))}
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -237,14 +370,148 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  glow: {
+  backgroundArt: {
     position: 'absolute',
-    top: '25%',
-    left: '25%',
-    width: 288,
-    height: 288,
-    borderRadius: 144,
-    backgroundColor: 'rgba(255,92,92,0.12)',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+  },
+  ambientOrb: {
+    position: 'absolute',
+    borderRadius: 999,
+    opacity: 0.22,
+  },
+  ambientOrbTop: {
+    width: 320,
+    height: 320,
+    top: -110,
+    right: -80,
+    transform: [{ rotate: '18deg' }],
+  },
+  ambientOrbBottom: {
+    width: 260,
+    height: 260,
+    bottom: 80,
+    left: -95,
+    transform: [{ rotate: '-20deg' }],
+  },
+  arcLine: {
+    position: 'absolute',
+    borderWidth: 1,
+    borderColor: Colors.white20,
+    borderRadius: 999,
+  },
+  arcLineOuter: {
+    width: 420,
+    height: 420,
+    top: 120,
+    left: -120,
+    transform: [{ rotate: '24deg' }],
+    opacity: 0.28,
+  },
+  arcLineInner: {
+    width: 280,
+    height: 280,
+    top: 184,
+    right: -70,
+    transform: [{ rotate: '-18deg' }],
+    opacity: 0.2,
+  },
+  menuBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.transparent,
+    zIndex: 20,
+  },
+  topActions: {
+    position: 'absolute',
+    right: 20,
+    zIndex: 30,
+    alignItems: 'flex-end',
+  },
+  topActionBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Elevation.md,
+  },
+  menuCard: {
+    marginTop: 8,
+    backgroundColor: Colors.card,
+    borderRadius: Radius.xl,
+    minWidth: 160,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Elevation.md,
+  },
+  menuItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  menuItemText: {
+    ...Typography.bodyMedium,
+    color: Colors.foreground,
+  },
+  menuDangerText: {
+    color: Colors.destructive,
+  },
+  tipsFooter: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    zIndex: 15,
+  },
+  tipsTitle: {
+    ...Typography.bodySemibold,
+    color: Colors.foreground,
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  tipsScrollerContent: {
+    alignItems: 'stretch',
+  },
+  tipCard: {
+    width: TIP_CARD_WIDTH,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    ...Elevation.md,
+  },
+  tipHeading: {
+    ...Typography.smallSemibold,
+    color: Colors.primary,
+    marginBottom: 6,
+  },
+  tipText: {
+    ...Typography.body,
+    color: Colors.foreground,
+    lineHeight: 21,
+  },
+  tipDotsRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  tipDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.mutedForeground,
+    opacity: 0.5,
+  },
+  tipDotActive: {
+    width: 18,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+    opacity: 1,
   },
   center: {
     alignItems: 'center',
@@ -344,6 +611,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   starsRow: {
+    marginBottom: 16,
+  },
+  reviewInput: {
+    width: '100%',
+    minHeight: 96,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.muted,
+    backgroundColor: Colors.background,
+    color: Colors.foreground,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    ...Typography.body,
     marginBottom: 16,
   },
   summaryBox: {
