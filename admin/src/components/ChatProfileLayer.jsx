@@ -7,7 +7,7 @@ const ChatProfileLayer = () => {
         <div className="chat-wrapper">
             <div className="chat-sidebar profile-setting card">
                 <div className="text-end">
-                    <Link to="/chat-message">
+                    <Link to="/chat">
                         <Icon icon="akar-icons:cross" />
                     </Link>
                 </div>

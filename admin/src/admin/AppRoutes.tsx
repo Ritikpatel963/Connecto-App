@@ -3,8 +3,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import AdminLayout from "./layout/AdminLayout";
 import AdminsPage from "./pages/AdminsPage";
 import CallsPage from "./pages/CallsPage";
-import ConversationDetailPage from "./pages/ConversationDetailPage";
-import ConversationsPage from "./pages/ConversationsPage";
+import ChatPage from "./pages/ChatPage";
+import ChatProfilePage from "./pages/ChatProfilePage";
 import DashboardPage from "./pages/DashboardPage";
 import ManualRechargePage from "./pages/ManualRechargePage";
 import PermissionsPage from "./pages/PermissionsPage";
@@ -28,8 +28,8 @@ const AppRoutes = () => (
       <Route path="/verifications/id" element={<VerificationsPage type="id" />} />
       <Route path="/verifications/voice" element={<VerificationsPage type="voice" />} />
       <Route path="/calls" element={<CallsPage />} />
-      <Route path="/chat/conversations" element={<ConversationsPage />} />
-      <Route path="/chat/conversations/:id" element={<ConversationDetailPage />} />
+      <Route path="/chat" element={<ChatPage />} />
+      <Route path="/chat/profile" element={<ChatProfilePage />} />
       <Route path="/ratings" element={<RatingsPage />} />
       <Route path="/wallet/transactions" element={<WalletTransactionsPage />} />
       <Route path="/wallet/manual-approvals" element={<ManualRechargePage />} />

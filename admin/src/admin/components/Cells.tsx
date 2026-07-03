@@ -15,14 +15,14 @@ export const PersonCell = ({ name, subtitle, online }: { name: unknown; subtitle
 
 export const MoneyCell = ({ value }: { value: unknown }) => {
   const amount = Number(value || 0);
-  return <span className={amount < 0 ? "fw-semibold text-danger-main text-nowrap" : "fw-semibold text-nowrap"}>{amount < 0 ? "-" : ""}Ã‚â‚¹{Math.abs(amount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>;
+  return <span className={amount < 0 ? "fw-semibold text-danger-main text-nowrap" : "fw-semibold text-nowrap"}>{amount < 0 ? "-" : ""}{"\u20B9"}{Math.abs(amount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>;
 };
 
-export const RatingCell = ({ value }: { value: unknown }) => <span className="d-inline-flex align-items-center gap-4 fw-semibold"><Icon icon="solar:star-bold" className="text-warning-main" />{String(value ?? "")}</span>;
+export const RatingCell = ({ value }: { value: unknown }) => <span className="d-inline-flex align-items-center gap-4 fw-semibold"><Icon icon="solar:star-bold" className="text-warning-main" />{String(value ?? "-")}</span>;
 
 export const BooleanBadge = ({ value, yes = "Yes", no = "No" }: { value: unknown; yes?: string; no?: string }) => <StatusBadge value={value ? yes : no} />;
 
-export const DateCell = ({ value }: { value: unknown }) => <span className="text-nowrap text-sm">{value ? String(value) : ""}</span>;
+export const DateCell = ({ value }: { value: unknown }) => <span className="text-nowrap text-sm">{value ? String(value) : "-"}</span>;
 
 export const IconButton = ({ icon, title, tone = "primary", onClick }: { icon: string; title: string; tone?: "primary" | "success" | "danger" | "warning"; onClick: () => void }) => (
   <button type="button" title={title} aria-label={title} onClick={onClick} className={`w-32-px h-32-px border-0 rounded-circle d-inline-flex align-items-center justify-content-center bg-${tone === "primary" ? "primary-50" : tone + "-focus"} text-${tone === "primary" ? "primary-600" : tone + "-main"}`}><Icon icon={icon} /></button>

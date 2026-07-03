@@ -28,7 +28,7 @@ const ChatMessageLayer = () => {
                             <ul className="dropdown-menu dropdown-menu-lg-end border">
                                 <li>
                                     <Link
-                                        to="/chat-profile"
+                                        to="/chat/profile"
                                         className="dropdown-item rounded text-secondary-light bg-hover-neutral-200 text-hover-neutral-900 d-flex align-items-center gap-2"
                                     >
                                         <Icon icon="fluent:person-32-regular" />
@@ -37,7 +37,7 @@ const ChatMessageLayer = () => {
                                 </li>
                                 <li>
                                     <Link
-                                        to="/chat-profile"
+                                        to="/chat/profile"
                                         className="dropdown-item rounded text-secondary-light bg-hover-neutral-200 text-hover-neutral-900 d-flex align-items-center gap-2"
                                     >
                                         <Icon icon="carbon:settings" />

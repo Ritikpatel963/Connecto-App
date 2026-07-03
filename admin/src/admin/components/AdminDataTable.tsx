@@ -17,7 +17,7 @@ interface Props<T extends BaseRecord> {
 
 const defaultCell = (value: unknown) => {
   if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (value === null || value === undefined || value === "") return "";
+  if (value === null || value === undefined || value === "") return "-";
   return String(value);
 };
 

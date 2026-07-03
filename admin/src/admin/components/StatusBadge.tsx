@@ -24,7 +24,7 @@ const tones: Record<string, string> = {
 };
 
 export const humanize = (value: unknown) =>
-  String(value ?? "").replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  String(value ?? "-").replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 const StatusBadge = ({ value }: { value: unknown }) => {
   const key = String(value ?? "").toLowerCase();

@@ -18,7 +18,7 @@ const DashboardPage = () => {
     ["Pending verifications", query.data.pending_verifications, "solar:shield-warning-bold", "warning"],
     ["Wallet approvals", query.data.pending_wallet_approvals, "solar:wallet-money-bold", "info"],
     ["Referral redemptions", query.data.pending_referral_redemptions, "solar:gift-bold", "danger"],
-    ["Revenue today", `₹${query.data.revenue_today.toLocaleString("en-IN")}`, "solar:chart-2-bold", "success"],
+    ["Revenue today", `\u20B9${query.data.revenue_today.toLocaleString("en-IN")}`, "solar:chart-2-bold", "success"],
   ];
 
   const chartOptions = {
