@@ -21,6 +21,8 @@ const groups: NavGroup[] = [
 
 const itemClass = ({ isActive }: { isActive: boolean }) => isActive ? "active-page" : "";
 
+const matchesPath = (pathname: string, to: string) => pathname === to || pathname.startsWith(to + '/');
+
 const AdminLayout = () => {
   const location = useLocation();
   const [sidebarActive, setSidebarActive] = useState(false);
@@ -28,10 +30,10 @@ const AdminLayout = () => {
   const currentAdmin = useQuery({ queryKey: ["current-admin"], queryFn: dashboardApi.currentAdmin });
 
   const visibleGroups = groups.filter((group) => !group.permission || currentAdmin.data?.permissions.includes(group.permission as never));
-  const matchingGroup = useMemo(() => visibleGroups.find((group) => group.items.some((item) => location.pathname.startsWith(item.to)))?.id, [location.pathname, visibleGroups]);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ users: true });
+  const matchingGroup = useMemo(() => visibleGroups.find((group) => group.items.some((item) => matchesPath(location.pathname, item.to)))?.id, [location.pathname, visibleGroups]);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
-  const toggle = (id: string) => setOpenGroups((current) => ({ ...current, [id]: !current[id] }));
+  const toggle = (id: string, isOpen: boolean) => setOpenGroups((current) => ({ ...current, [id]: !isOpen }));
   const closeMobile = () => setMobileMenu(false);
 
   return (
@@ -54,10 +56,11 @@ const AdminLayout = () => {
             </li>
 
             {visibleGroups.map((group) => {
-              const open = Boolean(openGroups[group.id] || matchingGroup === group.id);
+              const active = matchingGroup === group.id;
+              const open = openGroups[group.id] ?? active;
               return (
-                <li className={open ? "dropdown open" : "dropdown"} key={group.id}>
-                  <a href={`#${group.id}`} onClick={(event) => { event.preventDefault(); toggle(group.id); }} aria-expanded={open}>
+                <li className={`dropdown admin-navigation-group${open ? ' open' : ''}${active ? ' active-group' : ''}`} key={group.id}>
+                  <a href={`#${group.id}`} onClick={(event) => { event.preventDefault(); toggle(group.id, open); }} aria-expanded={open}>
                     <Icon icon={group.icon} className="menu-icon" /><span>{group.label}</span>
                   </a>
                   <ul className="sidebar-submenu" style={{ display: open ? "block" : "none", maxHeight: open ? `${group.items.length * 52}px` : 0 }}>
@@ -115,7 +118,7 @@ const AdminLayout = () => {
         </div>
 
         <div className="dashboard-main-body"><Outlet /></div>
-        <footer className="d-footer"><div className="d-flex justify-content-between"><p className="mb-0">Copyright 2026 Connecting People</p><p className="mb-0 text-secondary-light">Admin frontend</p></div></footer>
+        <footer className="d-footer"><div className="d-flex flex-wrap justify-content-between gap-2"><p className="mb-0">Copyright {new Date().getFullYear()} Connecto</p><p className="mb-0 text-secondary-light">Created by <a href="https://crescitasoftware.com/" target="_blank" rel="noopener noreferrer" className="text-primary-600 fw-semibold">Crescita Software</a></p></div></footer>
       </main>
     </section>
   );

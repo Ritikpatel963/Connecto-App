@@ -13,6 +13,7 @@ interface Props<T extends BaseRecord> {
   renderActions?: (row: T) => React.ReactNode;
   toolbar?: React.ReactNode;
   searchPlaceholder?: string;
+  defaultVisibleColumns?: Array<keyof T | string>;
 }
 
 const defaultCell = (value: unknown) => {
@@ -30,6 +31,7 @@ const AdminDataTable = <T extends BaseRecord>({
   renderActions,
   toolbar,
   searchPlaceholder = "Search records...",
+  defaultVisibleColumns,
 }: Props<T>) => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -39,7 +41,10 @@ const AdminDataTable = <T extends BaseRecord>({
   const [sortDirection, setSortDirection] = useState<SortDirection>(initialSort?.direction || "asc");
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [visible, setVisible] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(columns.map((column) => [String(column.key), true]))
+    () => {
+      const defaults = defaultVisibleColumns?.map(String);
+      return Object.fromEntries(columns.map((column) => [String(column.key), !defaults || defaults.includes(String(column.key))]));
+    }
   );
 
   const params = useMemo<ListParams>(() => ({
@@ -58,6 +63,10 @@ const AdminDataTable = <T extends BaseRecord>({
   });
 
   const visibleColumns = columns.filter((column) => visible[String(column.key)] !== false);
+  const resetColumns = () => {
+    const defaults = defaultVisibleColumns?.map(String);
+    setVisible(Object.fromEntries(columns.map((column) => [String(column.key), !defaults || defaults.includes(String(column.key))])));
+  };
   const total = query.data?.total || 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -78,9 +87,9 @@ const AdminDataTable = <T extends BaseRecord>({
   return (
     <div className="card">
       <div className="card-header border-bottom bg-base py-16 px-24">
-        <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
-          <div className="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
-            <div className="position-relative" style={{ minWidth: 260 }}>
+        <div className="admin-table-toolbar">
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div className="position-relative admin-table-search flex-grow-1">
               <Icon icon="solar:magnifer-linear" className="position-absolute top-50 start-0 translate-middle-y ms-14 text-secondary-light" />
               <input
                 value={search}
@@ -89,31 +98,37 @@ const AdminDataTable = <T extends BaseRecord>({
                 placeholder={searchPlaceholder}
               />
             </div>
+
+            <div className="d-flex align-items-center gap-2 flex-shrink-0">
+              {toolbar}
+              <div className="dropdown">
+                <button className="btn btn-outline-primary-600 d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                  <Icon icon="solar:eye-outline" /> Columns <span className="badge bg-primary-50 text-primary-600">{visibleColumns.length}</span>
+                </button>
+                <div className="dropdown-menu dropdown-menu-end p-16 admin-column-menu">
+                  <div className="d-flex align-items-center justify-content-between gap-3 mb-10">
+                    <p className="text-xs text-secondary-light mb-0">Choose table columns</p>
+                    <button type="button" className="btn btn-link btn-sm p-0 text-primary-600" onClick={resetColumns}>Reset</button>
+                  </div>
+                  {columns.filter((column) => column.hideable !== false).map((column) => (
+                    <label className="d-flex align-items-center gap-2 py-6 cursor-pointer" key={String(column.key)}>
+                      <input type="checkbox" className="form-check-input mt-0" checked={visible[String(column.key)] !== false} disabled={visibleColumns.length === 1 && visible[String(column.key)] !== false} onChange={() => setVisible((current) => ({ ...current, [String(column.key)]: current[String(column.key)] === false }))} />
+                      <span className="text-sm">{column.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {filters.length > 0 && <div className="admin-table-filters d-flex flex-wrap align-items-center gap-2 mt-12">
             {filters.map((filter) => (
-              <select key={filter.key} className="form-select w-auto" value={filterValues[filter.key] || ""} onChange={(event) => updateFilter(filter.key, event.target.value)}>
+              <select key={filter.key} className="form-select" value={filterValues[filter.key] || ""} onChange={(event) => updateFilter(filter.key, event.target.value)}>
                 <option value="">{filter.label}: All</option>
                 {filter.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             ))}
-          </div>
-
-          <div className="d-flex align-items-center gap-2">
-            {toolbar}
-            <div className="dropdown">
-              <button className="btn btn-outline-primary-600 d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
-                <Icon icon="solar:eye-outline" /> Columns
-              </button>
-              <div className="dropdown-menu dropdown-menu-end p-16" style={{ minWidth: 220 }}>
-                <p className="text-xs text-secondary-light mb-10">Show or hide columns</p>
-                {columns.filter((column) => column.hideable !== false).map((column) => (
-                  <label className="d-flex align-items-center gap-2 py-6 cursor-pointer" key={String(column.key)}>
-                    <input type="checkbox" className="form-check-input mt-0" checked={visible[String(column.key)] !== false} onChange={() => setVisible((current) => ({ ...current, [String(column.key)]: current[String(column.key)] === false }))} />
-                    <span className="text-sm">{column.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -166,7 +181,7 @@ const AdminDataTable = <T extends BaseRecord>({
             <select className="form-select form-select-sm w-auto" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}>
               {[10, 25, 50].map((size) => <option key={size} value={size}>{size}</option>)}
             </select>
-            <span>{total ? `${(page - 1) * pageSize + 1}${Math.min(page * pageSize, total)} of ${total}` : "0 records"}</span>
+            <span>{total ? `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total}` : "0 records"}</span>
           </div>
           <div className="d-flex align-items-center gap-2">
             <button className="btn btn-outline-secondary btn-sm" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}><Icon icon="solar:alt-arrow-left-linear" /></button>

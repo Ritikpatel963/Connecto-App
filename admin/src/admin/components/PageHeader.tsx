@@ -9,7 +9,7 @@ interface Props {
 }
 
 const PageHeader = ({ title, description, icon = "solar:document-text-outline", actions }: Props) => (
-  <div className="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-24">
+  <div className="admin-page-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
     <div className="d-flex align-items-start gap-12">
       <span className="w-44-px h-44-px rounded-circle bg-primary-50 text-primary-600 d-flex align-items-center justify-content-center flex-shrink-0">
         <Icon icon={icon} className="text-xl" />

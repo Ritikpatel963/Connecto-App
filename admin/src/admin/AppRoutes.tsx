@@ -14,7 +14,7 @@ import ReferralTiersPage from "./pages/ReferralTiersPage";
 import ReferralsPage from "./pages/ReferralsPage";
 import RolesPage from "./pages/RolesPage";
 import SettingsPage from "./pages/SettingsPage";
-import UserDetailPage from "./pages/UserDetailPage";
+import UserDetailPage from "./pages/UserProfilePage";
 import UsersPage from "./pages/UsersPage";
 import VerificationsPage from "./pages/VerificationsPage";
 import WalletTransactionsPage from "./pages/WalletTransactionsPage";

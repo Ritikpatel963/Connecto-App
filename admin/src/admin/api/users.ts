@@ -36,7 +36,7 @@ export const usersApi = {
         ratings: related("ratings", ["rater_user_id", "rated_user_id"]),
         calls: related("calls", ["caller_user_id", "receiver_user_id"]),
         wallet: mockStore.rows("wallets").find((row) => Number(row.user_id) === userId),
-        transactions: mockStore.rows("wallet-transactions"),
+        transactions: mockStore.rows("wallet-transactions").filter((row) => row.wallet_id === mockStore.rows("wallets").find((wallet) => Number(wallet.user_id) === userId)?.id),
         referrals: related("referrals", ["referrer_user_id", "referred_user_id"]),
         redemptions: related("referral-redemptions", ["user_id"]),
         idVerifications: related("id-verifications", ["user_id"]),
