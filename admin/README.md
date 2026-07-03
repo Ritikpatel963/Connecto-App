@@ -1,70 +1,64 @@
-# Getting Started with Create React App
+# Connecting People Admin Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A schema-driven administration frontend for the Connecting People voice-calling social platform.
 
-## Available Scripts
+## Stack
 
-In the project directory, you can run:
+- React 19 + React Router
+- TypeScript 4.9 (the latest version supported by the existing Create React App toolchain)
+- Existing WowDash Bootstrap theme for layout, cards, forms, badges, buttons, and modals
+- TanStack Query for server state, cache invalidation, loading/error states, and mutations
+- Axios for typed REST requests
+- Reusable server-mode `AdminDataTable` for pagination, search, sorting, filters, and column visibility
+- React Toastify for action feedback
+- ApexCharts for dashboard metrics
 
-### `npm start`
+## Run
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```powershell
+npm install
+npm start
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Production validation:
 
-### `npm test`
+```powershell
+npx tsc --noEmit
+npm run build
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## API mode
 
-### `npm run build`
+Mock mode is enabled by default:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```env
+REACT_APP_USE_MOCK_API=true
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Set it to `false` to call the live REST API at `/api/admin`.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+List endpoints receive `page`, `pageSize`, `search`, `sortBy`, `sortDirection`, and serialized `filters`.
 
-### `npm run eject`
+Standard CRUD follows:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- `GET /api/admin/<resource>`
+- `GET /api/admin/<resource>/:id`
+- `POST /api/admin/<resource>`
+- `PATCH /api/admin/<resource>/:id`
+- `DELETE /api/admin/<resource>/:id`
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Workflow actions include verification approve/reject, wallet recharge approve/reject, referral redemption approve/credit, and the bulk role-permission matrix PATCH.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Structure
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```text
+src/admin/
+  api/          typed REST clients and mock fallback
+  components/   data grid, modals, badges, cells, page states
+  layout/       permission-aware AdminLayout
+  pages/        module pages
+  AppRoutes.tsx
+  types.ts
+```
 
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Admin & Roles navigation is shown only when `GET /api/admin/me` returns the `manage_admins` permission.

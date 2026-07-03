@@ -1,0 +1,48 @@
+import React from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
+import AdminLayout from "./layout/AdminLayout";
+import AdminsPage from "./pages/AdminsPage";
+import CallsPage from "./pages/CallsPage";
+import ConversationDetailPage from "./pages/ConversationDetailPage";
+import ConversationsPage from "./pages/ConversationsPage";
+import DashboardPage from "./pages/DashboardPage";
+import ManualRechargePage from "./pages/ManualRechargePage";
+import PermissionsPage from "./pages/PermissionsPage";
+import RatingsPage from "./pages/RatingsPage";
+import RedemptionsPage from "./pages/RedemptionsPage";
+import ReferralTiersPage from "./pages/ReferralTiersPage";
+import ReferralsPage from "./pages/ReferralsPage";
+import RolesPage from "./pages/RolesPage";
+import SettingsPage from "./pages/SettingsPage";
+import UserDetailPage from "./pages/UserDetailPage";
+import UsersPage from "./pages/UsersPage";
+import VerificationsPage from "./pages/VerificationsPage";
+import WalletTransactionsPage from "./pages/WalletTransactionsPage";
+
+const AppRoutes = () => (
+  <Routes>
+    <Route element={<AdminLayout />}>
+      <Route index element={<DashboardPage />} />
+      <Route path="/users" element={<UsersPage />} />
+      <Route path="/users/:id" element={<UserDetailPage />} />
+      <Route path="/verifications/id" element={<VerificationsPage type="id" />} />
+      <Route path="/verifications/voice" element={<VerificationsPage type="voice" />} />
+      <Route path="/calls" element={<CallsPage />} />
+      <Route path="/chat/conversations" element={<ConversationsPage />} />
+      <Route path="/chat/conversations/:id" element={<ConversationDetailPage />} />
+      <Route path="/ratings" element={<RatingsPage />} />
+      <Route path="/wallet/transactions" element={<WalletTransactionsPage />} />
+      <Route path="/wallet/manual-approvals" element={<ManualRechargePage />} />
+      <Route path="/referrals" element={<ReferralsPage />} />
+      <Route path="/referrals/tiers" element={<ReferralTiersPage />} />
+      <Route path="/referrals/redemptions" element={<RedemptionsPage />} />
+      <Route path="/admin-access/admins" element={<AdminsPage />} />
+      <Route path="/admin-access/roles" element={<RolesPage />} />
+      <Route path="/admin-access/permissions" element={<PermissionsPage />} />
+      <Route path="/settings" element={<SettingsPage />} />
+    </Route>
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
+);
+
+export default AppRoutes;
