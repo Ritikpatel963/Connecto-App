@@ -44,6 +44,6 @@ export const usersApi = {
       };
     }
   ),
-  suspend: (id: string | number) => resourceAction<User>("users", id, "suspend", {}, { is_active: false, status: "suspended" }),
-  activate: (id: string | number) => resourceAction<User>("users", id, "activate", {}, { is_active: true, status: "active" }),
+  suspend: (id: string | number) => resourceAction<User>("users", id, "suspend", {}, { is_active: false }),
+  activate: (id: string | number) => resourceAction<User>("users", id, "activate", {}, { is_active: true }),
 };

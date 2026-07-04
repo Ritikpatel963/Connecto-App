@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import ThemeToggleButton from "../../helper/ThemeToggleButton";
-import { dashboardApi } from "../api/dashboard";
 import { AdminNotification, notificationsApi } from "../api/notifications";
+import { useAuth } from "../auth/AuthContext";
 
 interface NavItem { label: string; to: string; }
 interface NavGroup { id: string; label: string; icon: string; items: NavItem[]; permission?: string; }
@@ -26,19 +26,20 @@ const matchesPath = (pathname: string, to: string) => pathname === to || pathnam
 
 const AdminLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { admin: currentAdmin, signOut } = useAuth();
   const [sidebarActive, setSidebarActive] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
-  const currentAdmin = useQuery({ queryKey: ["current-admin"], queryFn: dashboardApi.currentAdmin });
   const notificationsQuery = useQuery<AdminNotification[]>({ queryKey: ["admin-notifications"], queryFn: notificationsApi.list });
   const markNotificationRead = useMutation({
     mutationFn: notificationsApi.markRead,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-notifications"] }),
   });
 
-  const visibleGroups = groups.filter((group) => !group.permission || currentAdmin.data?.permissions.includes(group.permission as never));
+  const visibleGroups = groups.filter((group) => !group.permission || currentAdmin?.permissions.includes(group.permission as never));
   const matchingGroup = useMemo(() => visibleGroups.find((group) => group.items.some((item) => matchesPath(location.pathname, item.to)))?.id, [location.pathname, visibleGroups]);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
@@ -63,6 +64,10 @@ const AdminLayout = () => {
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [notificationsOpen]);
+  const logout = async () => {
+    await signOut();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <section className={mobileMenu ? "overlay active" : "overlay"}>
@@ -166,12 +171,13 @@ const AdminLayout = () => {
                 <ThemeToggleButton />
                 <div className="d-flex align-items-center gap-10">
                   <span className="w-40-px h-40-px rounded-circle bg-primary-50 text-primary-600 d-flex align-items-center justify-content-center fw-bold">
-                    {currentAdmin.data?.name.split(" ").map((part: string) => part[0]).slice(0, 2).join("") || "AD"}
+                    {currentAdmin?.name.split(" ").map((part: string) => part[0]).slice(0, 2).join("") || "AD"}
                   </span>
                   <span className="d-none d-lg-block">
-                    <span className="d-block text-sm fw-semibold">{currentAdmin.data?.name || "Loading..."}</span>
-                    <span className="d-block text-xs text-secondary-light">{currentAdmin.data?.role || "Admin"}</span>
+                    <span className="d-block text-sm fw-semibold">{currentAdmin?.name || "Admin"}</span>
+                    <span className="d-block text-xs text-secondary-light">{currentAdmin?.role || "Admin"}</span>
                   </span>
+                  <button type="button" className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" onClick={logout} title="Sign out"><Icon icon="solar:logout-2-outline" /><span className="d-none d-xl-inline">Logout</span></button>
                 </div>
               </div>
             </div>

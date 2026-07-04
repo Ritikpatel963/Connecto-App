@@ -7,6 +7,7 @@ import "jsvectormap/dist/css/jsvectormap.css";
 import "react-toastify/dist/ReactToastify.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import AppRoutes from "./admin/AppRoutes";
+import { AuthProvider } from "./admin/auth/AuthContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,8 +20,10 @@ root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AppRoutes />
-        <ToastContainer position="top-right" autoClose={3200} newestOnTop theme="colored" />
+        <AuthProvider>
+          <AppRoutes />
+          <ToastContainer position="top-right" autoClose={3200} newestOnTop theme="colored" />
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.0",
     "@tanstack/react-query": "^5.101.2",
     "apexcharts": "^4.3.0",
     "axios": "^1.18.1",
