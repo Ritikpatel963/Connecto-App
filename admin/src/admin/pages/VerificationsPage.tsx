@@ -34,7 +34,7 @@ const VerificationsPage = ({ type }: { type: "id" | "voice" }) => {
     { key: "reviewed_at", label: "Reviewed at", render: (row: Verification) => <DateCell value={row.reviewed_at} /> },
   ];
 
-  return <>
+  return <div className="user-management-page verification-page">
     <PageHeader title={type === "id" ? "ID Verifications" : "Voice Verifications"} description={type === "id" ? "Review identity document submissions and audit completed decisions." : "Play submitted voice samples and approve or reject verification."} icon={type === "id" ? "solar:shield-user-outline" : "solar:microphone-3-outline"} />
     <AdminDataTable<Verification>
       queryKey={[key]}
@@ -47,12 +47,12 @@ const VerificationsPage = ({ type }: { type: "id" | "voice" }) => {
         {row.status === "pending" && <><IconButton icon="solar:check-circle-outline" title="Approve" tone="success" onClick={() => setAction({ row, mode: "approve" })} /><IconButton icon="solar:close-circle-outline" title="Reject" tone="danger" onClick={() => setAction({ row, mode: "reject" })} /></>}
       </>}
     />
-    <ActionModal open={Boolean(action)} title={action?.mode === "view" ? "Verification submission" : action?.mode === "approve" ? "Approve verification" : "Reject verification"} description={action ? `${action.row.id} · ${action.row.user}` : ""} confirmLabel={action?.mode === "view" ? "Close" : action?.mode === "approve" ? "Approve" : "Reject"} tone={action?.mode === "reject" ? "danger" : "success"} requireReason={action?.mode === "reject"} onClose={() => setAction(null)} onConfirm={(reason) => action?.mode === "view" ? setAction(null) : mutation.mutate(reason)} loading={mutation.isPending}>
+    <ActionModal open={Boolean(action)} title={action?.mode === "view" ? "Verification submission" : action?.mode === "approve" ? "Approve verification" : "Reject verification"} description={action ? `${action.row.id} \u00B7 ${action.row.user}` : ""} confirmLabel={action?.mode === "view" ? "Close" : action?.mode === "approve" ? "Approve" : "Reject"} tone={action?.mode === "reject" ? "danger" : "success"} requireReason={action?.mode === "reject"} onClose={() => setAction(null)} onConfirm={(reason) => action?.mode === "view" ? setAction(null) : mutation.mutate(reason)} loading={mutation.isPending}>
       {action && <div className="bg-neutral-50 radius-12 p-20">
         {type === "id" ? <div className="text-center py-32"><Icon icon="solar:gallery-wide-outline" className="text-5xl text-primary-600 mb-12" /><p className="fw-semibold mb-4">{action.row.document}</p><a href={action.row.id_image_url} className="text-primary-600">Open submitted image</a></div> : <div><audio controls className="w-100"><source src={action.row.voice_audio_url} /></audio><p className="text-sm text-secondary-light mt-12 mb-0">{action.row.sample}</p></div>}
         {action.row.rejection_reason && <div className="alert alert-danger mt-16 mb-0">{action.row.rejection_reason}</div>}
       </div>}
     </ActionModal>
-  </>;
+  </div>;
 };
 export default VerificationsPage;

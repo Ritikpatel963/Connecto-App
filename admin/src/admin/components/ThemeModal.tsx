@@ -1,5 +1,4 @@
 import React from "react";
-import { Icon } from "@iconify/react";
 
 interface Props {
   open: boolean;
@@ -20,9 +19,7 @@ const ThemeModal = ({ open, title, children, onClose, footer, size = "lg" }: Pro
           <div className="modal-content bg-base">
             <div className="modal-header border-bottom">
               <h5 className="modal-title">{title}</h5>
-              <button type="button" className="btn-close" onClick={onClose} aria-label="Close">
-                <Icon icon="radix-icons:cross-2" />
-              </button>
+              <button type="button" className="btn-close" onClick={onClose} aria-label="Close" />
             </div>
             <div className="modal-body p-24">{children}</div>
             {footer && <div className="modal-footer border-top">{footer}</div>}

@@ -20,6 +20,6 @@ const WalletTransactionsPage = () => {
     { key: "verification_status", label: "Verification", render: (row: WalletTransaction) => <StatusBadge value={row.verification_status} /> },
     { key: "created_at", label: "Created", render: (row: WalletTransaction) => <DateCell value={row.created_at} /> },
   ];
-  return <><PageHeader title="Wallet Transactions" description="All recharge, deduction, refund and referral reward movements." icon="solar:card-transfer-outline" /><AdminDataTable<WalletTransaction> queryKey={["wallet-transactions"]} queryFn={walletTransactionsApi.list} columns={columns} filters={filters} initialSort={{ key: "created_at", direction: "desc" }} /></>;
+  return <div className="user-management-page wallet-page"><PageHeader title="Wallet Transactions" description="All recharge, deduction, refund and referral reward movements." icon="solar:card-transfer-outline" /><AdminDataTable<WalletTransaction> queryKey={["wallet-transactions"]} queryFn={walletTransactionsApi.list} columns={columns} filters={filters} initialSort={{ key: "created_at", direction: "desc" }} /></div>;
 };
 export default WalletTransactionsPage;

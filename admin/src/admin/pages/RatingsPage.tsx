@@ -16,6 +16,6 @@ const RatingsPage = () => {
     { key: "review_text", label: "Review", className: "min-w-240-px" },
     { key: "created_at", label: "Date", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
   ];
-  return <><PageHeader title="Ratings & Reviews" description="Review post-call feedback and filter by rating." icon="solar:star-outline" /><AdminDataTable<BaseRecord> queryKey={["ratings"]} queryFn={ratingsApi.list} columns={columns} filters={ratingFilters} initialSort={{ key: "created_at", direction: "desc" }} /></>;
+  return <div className="user-management-page ratings-reviews-page"><PageHeader title="Ratings & Reviews" description="Review post-call feedback and filter by rating." icon="solar:star-outline" /><AdminDataTable<BaseRecord> queryKey={["ratings"]} queryFn={ratingsApi.list} columns={columns} filters={ratingFilters} initialSort={{ key: "created_at", direction: "desc" }} /></div>;
 };
 export default RatingsPage;

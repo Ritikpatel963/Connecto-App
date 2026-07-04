@@ -7,7 +7,7 @@ import ChatPage from "./pages/ChatPage";
 import ChatProfilePage from "./pages/ChatProfilePage";
 import DashboardPage from "./pages/DashboardPage";
 import ManualRechargePage from "./pages/ManualRechargePage";
-import PermissionsPage from "./pages/PermissionsPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import RatingsPage from "./pages/RatingsPage";
 import RedemptionsPage from "./pages/RedemptionsPage";
 import ReferralTiersPage from "./pages/ReferralTiersPage";
@@ -31,6 +31,7 @@ const AppRoutes = () => (
       <Route path="/chat" element={<ChatPage />} />
       <Route path="/chat/profile" element={<ChatProfilePage />} />
       <Route path="/ratings" element={<RatingsPage />} />
+      <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/wallet/transactions" element={<WalletTransactionsPage />} />
       <Route path="/wallet/manual-approvals" element={<ManualRechargePage />} />
       <Route path="/referrals" element={<ReferralsPage />} />
@@ -38,7 +39,6 @@ const AppRoutes = () => (
       <Route path="/referrals/redemptions" element={<RedemptionsPage />} />
       <Route path="/admin-access/admins" element={<AdminsPage />} />
       <Route path="/admin-access/roles" element={<RolesPage />} />
-      <Route path="/admin-access/permissions" element={<PermissionsPage />} />
       <Route path="/settings" element={<SettingsPage />} />
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />
@@ -46,3 +46,4 @@ const AppRoutes = () => (
 );
 
 export default AppRoutes;
+

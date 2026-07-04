@@ -90,7 +90,7 @@ const AdminDataTable = <T extends BaseRecord>({
         <div className="admin-table-toolbar">
           <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div className="position-relative admin-table-search flex-grow-1">
-              <Icon icon="solar:magnifer-linear" className="position-absolute top-50 start-0 translate-middle-y ms-14 text-secondary-light" />
+              <Icon icon="solar:magnifer-linear" className="admin-table-search-icon text-secondary-light" />
               <input
                 value={search}
                 onChange={(event) => { setSearch(event.target.value); setPage(1); }}

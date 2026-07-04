@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import ThemeToggleButton from "../../helper/ThemeToggleButton";
 import { dashboardApi } from "../api/dashboard";
+import { AdminNotification, notificationsApi } from "../api/notifications";
 
 interface NavItem { label: string; to: string; }
 interface NavGroup { id: string; label: string; icon: string; items: NavItem[]; permission?: string; }
@@ -16,7 +17,7 @@ const groups: NavGroup[] = [
   { id: "ratings", label: "Ratings & Reviews", icon: "solar:star-outline", items: [{ label: "All Reviews", to: "/ratings" }] },
   { id: "wallet", label: "Wallet", icon: "solar:wallet-2-outline", items: [{ label: "Transactions", to: "/wallet/transactions" }, { label: "Manual Approvals", to: "/wallet/manual-approvals" }] },
   { id: "referrals", label: "Referral Program", icon: "solar:share-circle-outline", items: [{ label: "Referrals", to: "/referrals" }, { label: "Referral Tiers", to: "/referrals/tiers" }, { label: "Redemptions", to: "/referrals/redemptions" }] },
-  { id: "rbac", label: "Admin & Roles", icon: "solar:user-shield-outline", permission: "manage_admins", items: [{ label: "Admins", to: "/admin-access/admins" }, { label: "Roles", to: "/admin-access/roles" }, { label: "Permissions", to: "/admin-access/permissions" }] },
+  { id: "rbac", label: "Admin & Roles", icon: "solar:user-shield-outline", permission: "manage_admins", items: [{ label: "Admins", to: "/admin-access/admins" }, { label: "Roles", to: "/admin-access/roles" }] },
 ];
 
 const itemClass = ({ isActive }: { isActive: boolean }) => isActive ? "active-page" : "";
@@ -27,7 +28,15 @@ const AdminLayout = () => {
   const location = useLocation();
   const [sidebarActive, setSidebarActive] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
   const currentAdmin = useQuery({ queryKey: ["current-admin"], queryFn: dashboardApi.currentAdmin });
+  const notificationsQuery = useQuery<AdminNotification[]>({ queryKey: ["admin-notifications"], queryFn: notificationsApi.list });
+  const markNotificationRead = useMutation({
+    mutationFn: notificationsApi.markRead,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-notifications"] }),
+  });
 
   const visibleGroups = groups.filter((group) => !group.permission || currentAdmin.data?.permissions.includes(group.permission as never));
   const matchingGroup = useMemo(() => visibleGroups.find((group) => group.items.some((item) => matchesPath(location.pathname, item.to)))?.id, [location.pathname, visibleGroups]);
@@ -35,6 +44,25 @@ const AdminLayout = () => {
 
   const toggle = (id: string, isOpen: boolean) => setOpenGroups((current) => ({ ...current, [id]: !isOpen }));
   const closeMobile = () => setMobileMenu(false);
+  const allNotifications: AdminNotification[] = notificationsQuery.data || [];
+  const notifications = allNotifications.slice(0, 5);
+  const notificationCount = allNotifications.filter((item) => !item.is_read).length;
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!notificationRef.current?.contains(event.target as Node)) setNotificationsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNotificationsOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [notificationsOpen]);
 
   return (
     <section className={mobileMenu ? "overlay active" : "overlay"}>
@@ -99,9 +127,42 @@ const AdminLayout = () => {
             </div>
             <div className="col-auto">
               <div className="d-flex align-items-center gap-3">
-                <Link to="/verifications/id" className="position-relative w-40-px h-40-px rounded-circle bg-warning-focus text-warning-main d-flex align-items-center justify-content-center">
-                  <Icon icon="solar:inbox-unread-outline" className="text-xl" /><span className="position-absolute top-0 end-0 w-16-px h-16-px rounded-circle bg-danger-main text-white text-xxs d-flex align-items-center justify-content-center">8</span>
-                </Link>
+                <div className="admin-notification-wrap" ref={notificationRef}>
+                  <button
+                    type="button"
+                    className="admin-notification-trigger position-relative w-40-px h-40-px rounded-circle bg-warning-focus text-warning-main d-flex align-items-center justify-content-center border-0"
+                    aria-label="Notifications"
+                    aria-expanded={notificationsOpen}
+                    onClick={() => setNotificationsOpen((value) => !value)}
+                  >
+                    <Icon icon="solar:inbox-unread-outline" className="text-xl" />
+                    {notificationCount > 0 && <span className="admin-notification-count position-absolute top-0 end-0 rounded-circle bg-danger-main text-white text-xxs d-flex align-items-center justify-content-center">{notificationCount > 99 ? "99+" : notificationCount}</span>}
+                  </button>
+
+                  {notificationsOpen && (
+                    <div className="admin-notification-popover card" role="dialog" aria-label="Notifications">
+                      <div className="admin-notification-header d-flex align-items-center justify-content-between gap-3">
+                        <div><h6 className="mb-2">Notifications</h6><p className="mb-0 text-secondary-light">Recent admin activity</p></div>
+                        <span className="bg-danger-focus text-danger-main rounded-pill px-10 py-4 text-xs fw-bold">{notificationCount}</span>
+                      </div>
+                      <div className="admin-notification-list">
+                        {notificationsQuery.isLoading && <div className="admin-notification-state text-secondary-light">Loading notifications...</div>}
+                        {!notificationsQuery.isLoading && notifications.length === 0 && <div className="admin-notification-state text-secondary-light">No notifications yet.</div>}
+                        {notifications.map((item) => (
+                          <Link key={item.id} to={item.to} className={`admin-notification-item d-flex align-items-center gap-12 text-decoration-none ${item.is_read ? "read" : "unread"}`} onClick={() => { setNotificationsOpen(false); if (!item.is_read) markNotificationRead.mutate(item.id); }}>
+                            <span className={`admin-notification-icon rounded-circle bg-${item.tone}-focus text-${item.tone}-main d-flex align-items-center justify-content-center flex-shrink-0`}><Icon icon={item.icon} /></span>
+                            <span className="min-w-0 flex-grow-1">
+                              <span className="d-flex align-items-center gap-2"><span className="d-block fw-semibold text-primary-light text-truncate">{item.title}</span>{!item.is_read && <span className="admin-notification-unread-dot flex-shrink-0" />}</span>
+                              <span className="d-block text-xs text-secondary-light text-truncate">{item.message}</span>
+                              <span className="d-block admin-notification-time">{item.time}</span>
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                      <Link to="/notifications" className="admin-notification-view-more btn btn-primary-600" onClick={() => setNotificationsOpen(false)}>View more</Link>
+                    </div>
+                  )}
+                </div>
                 <ThemeToggleButton />
                 <div className="d-flex align-items-center gap-10">
                   <span className="w-40-px h-40-px rounded-circle bg-primary-50 text-primary-600 d-flex align-items-center justify-content-center fw-bold">
@@ -125,3 +186,4 @@ const AdminLayout = () => {
 };
 
 export default AdminLayout;
+

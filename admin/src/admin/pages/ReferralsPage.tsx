@@ -16,6 +16,6 @@ const ReferralsPage = () => {
     { key: "created_at", label: "Joined", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
   ];
   const filters: SelectFilter[] = [{ key: "status", label: "Status", options: ["pending", "qualified", "rejected"].map((value) => ({ label: value, value })) }];
-  return <><PageHeader title="Referrals" description="Track invited users from signup through ID-qualified status." icon="solar:share-circle-outline" /><AdminDataTable<BaseRecord> queryKey={["referrals"]} queryFn={referralsApi.list} columns={columns} filters={filters} initialSort={{ key: "created_at", direction: "desc" }} /></>;
+  return <div className="user-management-page referral-program-page"><PageHeader title="Referrals" description="Track invited users from signup through ID-qualified status." icon="solar:share-circle-outline" /><AdminDataTable<BaseRecord> queryKey={["referrals"]} queryFn={referralsApi.list} columns={columns} filters={filters} initialSort={{ key: "created_at", direction: "desc" }} /></div>;
 };
 export default ReferralsPage;
