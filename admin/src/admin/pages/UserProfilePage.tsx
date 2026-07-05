@@ -51,7 +51,7 @@ const localList = <T extends BaseRecord>(source: T[]) => async (params: ListPara
 
 interface ProfileForm {
   name: string;
-  email: string;
+  phone_number: string;
   age: number;
   gender: User["gender"];
   country: string;
@@ -62,7 +62,7 @@ interface ProfileForm {
 
 const formFromUser = (user: User): ProfileForm => ({
   name: user.name,
-  email: user.email || "",
+  phone_number: user.phone_number || "",
   age: user.age,
   gender: user.gender,
   country: user.country,
@@ -70,6 +70,13 @@ const formFromUser = (user: User): ProfileForm => ({
   city: user.city,
   call_rate: user.call_rate,
 });
+
+const normalizePhoneNumber = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  return digits.length === 10 ? `+91${digits}` : `+${digits}`;
+};
+
+const isValidPhoneNumber = (value: string) => /^\+[1-9]\d{7,14}$/.test(normalizePhoneNumber(value));
 
 const initials = (name: string) => name.split(" ").filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
 
@@ -102,7 +109,7 @@ const UserProfilePage = () => {
   const query = useQuery({ queryKey: ["user-detail", id], queryFn: () => usersApi.detail(id) });
 
   const save = useMutation({
-    mutationFn: () => usersApi.update(id, { ...form! }),
+    mutationFn: () => usersApi.update(id, { ...form!, phone_number: normalizePhoneNumber(form!.phone_number) }),
     onSuccess: () => {
       toast.success("Profile updated");
       setEditing(false);
@@ -167,7 +174,7 @@ const UserProfilePage = () => {
       <section className="profile-section-card h-100">
         <div className="profile-section-heading"><span><Icon icon="solar:user-id-outline" /></span><div><h5 className="mb-2">Personal information</h5><p className="mb-0 text-sm text-secondary-light">Member identity and account details</p></div></div>
         <div className="profile-info-grid">
-          <InfoItem icon="solar:letter-outline" label="Email address" value={user.email} />
+          <InfoItem icon="solar:phone-outline" label="Phone number" value={user.phone_number} />
           <InfoItem icon="solar:calendar-outline" label="Age" value={`${user.age} years`} />
           <InfoItem icon="solar:user-outline" label="Gender" value={humanize(user.gender)} />
           <InfoItem icon="solar:map-point-outline" label="Location" value={fullLocation} />
@@ -205,7 +212,7 @@ const UserProfilePage = () => {
 
     <section className="card profile-hero-card">
       <div className="profile-avatar">{initials(user.name)}<span className={user.is_online ? "online" : ""} /></div>
-      <div className="profile-hero-content flex-grow-1 min-w-0"><div className="d-flex flex-wrap align-items-center gap-2 mb-6"><h2 className="mb-0">{user.name}</h2><StatusBadge value={user.is_active ? "active" : "inactive"} /></div><p className="mb-6 text-secondary-light"><Icon icon="solar:letter-outline" /> {user.email || "No email address"}</p><p className="mb-0 text-secondary-light"><Icon icon="solar:map-point-outline" /> {fullLocation || "Location not added"} · User #{user.id}</p></div>
+      <div className="profile-hero-content flex-grow-1 min-w-0"><div className="d-flex flex-wrap align-items-center gap-2 mb-6"><h2 className="mb-0">{user.name}</h2><StatusBadge value={user.is_active ? "active" : "inactive"} /></div><p className="mb-6 text-secondary-light"><Icon icon="solar:phone-outline" /> {user.phone_number}</p><p className="mb-0 text-secondary-light"><Icon icon="solar:map-point-outline" /> {fullLocation || "Location not added"} · User #{user.id}</p></div>
       <button className="btn btn-primary-600 profile-edit-button d-inline-flex align-items-center gap-2" onClick={openEditor}><Icon icon="solar:pen-outline" /> Edit profile</button>
     </section>
 
@@ -221,10 +228,10 @@ const UserProfilePage = () => {
       <div className="card-body profile-tab-body">{tabContent[tab]}</div>
     </section>
 
-    <ThemeModal open={editing && Boolean(form)} title="Edit user profile" onClose={() => setEditing(false)} size="lg" footer={<><button className="btn btn-outline-secondary" onClick={() => setEditing(false)}>Cancel</button><button className="btn btn-primary-600" disabled={!form?.name.trim() || save.isPending} onClick={() => save.mutate()}>{save.isPending ? "Saving..." : "Save changes"}</button></>}>
+    <ThemeModal open={editing && Boolean(form)} title="Edit user profile" onClose={() => setEditing(false)} size="lg" footer={<><button className="btn btn-outline-secondary" onClick={() => setEditing(false)}>Cancel</button><button className="btn btn-primary-600" disabled={!form?.name.trim() || !isValidPhoneNumber(form?.phone_number || "") || save.isPending} onClick={() => save.mutate()}>{save.isPending ? "Saving..." : "Save changes"}</button></>}>
       {form && <div className="row gy-3">
         <div className="col-md-6"><label className="form-label">Full name</label><input className="form-control" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
-        <div className="col-md-6"><label className="form-label">Email</label><input type="email" className="form-control" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></div>
+        <div className="col-md-6"><label className="form-label">Phone number <span className="text-danger">*</span></label><input type="tel" className="form-control" value={form.phone_number} onChange={(event) => setForm({ ...form, phone_number: event.target.value.replace(/[^\d+]/g, "") })} placeholder="+919876543210" maxLength={16} required /></div>
         <div className="col-md-4"><label className="form-label">Age</label><input type="number" min={18} className="form-control" value={form.age} onChange={(event) => setForm({ ...form, age: Number(event.target.value) })} /></div>
         <div className="col-md-4"><label className="form-label">Gender</label><select className="form-select" value={form.gender} onChange={(event) => setForm({ ...form, gender: event.target.value as User["gender"] })}><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>
         <div className="col-md-4"><label className="form-label">Call rate</label><input type="number" min={0} className="form-control" value={form.call_rate} onChange={(event) => setForm({ ...form, call_rate: Number(event.target.value) })} /></div>

@@ -14,11 +14,13 @@ import { Radius, Elevation } from '../../../theme/spacing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import { useUser } from '../../../context/UserContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { setPhoneNumber } = useUser();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '']);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
@@ -39,6 +41,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     if (otp.every(d => d !== '')) {
       setLoading(true);
       setTimeout(() => {
+        setPhoneNumber(`+91${phone}`);
         setLoading(false);
         navigation.replace('RoleSelect');
       }, 1000);

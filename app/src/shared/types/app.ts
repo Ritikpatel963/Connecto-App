@@ -3,6 +3,7 @@ export type UserRole = 'boy' | 'girl';
 export interface UserProfile {
   id: string;
   name: string;
+  phoneNumber?: string;
   age: number;
   avatar: string;
   role: UserRole;

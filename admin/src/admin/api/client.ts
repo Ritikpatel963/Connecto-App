@@ -17,7 +17,7 @@ const tableNames: Record<string, string> = {
 };
 
 const searchColumns: Record<string, string[]> = {
-  users: ["name", "email", "country", "state", "city", "bio"],
+  users: ["name", "phone_number", "country", "state", "city", "bio"],
   calls: ["agora_channel_name", "status"],
   ratings: ["review_text"],
   conversations: ["status"],

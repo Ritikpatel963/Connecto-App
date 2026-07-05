@@ -22,7 +22,7 @@ const filters: SelectFilter[] = [
 
 interface UserForm {
   name: string;
-  email: string;
+  phone_number: string;
   age: number;
   gender: User["gender"];
   country: string;
@@ -34,10 +34,17 @@ interface UserForm {
   is_voice_verified: boolean;
 }
 
-const emptyUser: UserForm = { name: "", email: "", age: 18, gender: "male", country: "India", state: "", city: "", call_rate: 0, is_active: true, is_id_verified: false, is_voice_verified: false };
+const emptyUser: UserForm = { name: "", phone_number: "", age: 18, gender: "male", country: "India", state: "", city: "", call_rate: 0, is_active: true, is_id_verified: false, is_voice_verified: false };
+
+const normalizePhoneNumber = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  return digits.length === 10 ? `+91${digits}` : `+${digits}`;
+};
+
+const isValidPhoneNumber = (value: string) => /^\+[1-9]\d{7,14}$/.test(normalizePhoneNumber(value));
 
 const formFromUser = (user: User): UserForm => ({
-  name: user.name, email: user.email || "", age: user.age, gender: user.gender,
+  name: user.name, phone_number: user.phone_number || "", age: user.age, gender: user.gender,
   country: user.country, state: user.state, city: user.city, call_rate: user.call_rate,
   is_active: user.is_active, is_id_verified: user.is_id_verified, is_voice_verified: user.is_voice_verified,
 });
@@ -56,9 +63,12 @@ const UsersPage = () => {
   };
 
   const save = useMutation({
-    mutationFn: () => editing === "new"
-      ? usersApi.create({ ...form, is_online: false, average_rating: 0, created_at: new Date().toISOString() })
-      : usersApi.update(editing!.id, { ...form }),
+    mutationFn: () => {
+      const payload = { ...form, phone_number: normalizePhoneNumber(form.phone_number) };
+      return editing === "new"
+        ? usersApi.create({ ...payload, is_online: false, average_rating: 0, created_at: new Date().toISOString() })
+        : usersApi.update(editing!.id, payload);
+    },
     onSuccess: () => {
       toast.success(editing === "new" ? "User created" : "User updated");
       setEditing(null);
@@ -78,7 +88,8 @@ const UsersPage = () => {
   });
 
   const columns = [
-    { key: "name", label: "User", hideable: false, render: (row: User) => <PersonCell name={row.name} subtitle={row.email || `User #${row.id}`} online={row.is_online} /> },
+    { key: "name", label: "User", hideable: false, render: (row: User) => <PersonCell name={row.name} subtitle={row.phone_number} online={row.is_online} /> },
+    { key: "phone_number", label: "Phone number" },
     { key: "age", label: "Age" }, { key: "gender", label: "Gender" },
     { key: "country", label: "Country" }, { key: "state", label: "State" }, { key: "city", label: "City" },
     { key: "location", label: "Location", sortable: false, render: (row: User) => <><span className="d-block fw-medium">{row.city || "-"}</span><span className="text-xs text-secondary-light">{[row.state, row.country].filter(Boolean).join(", ")}</span></> },
@@ -91,7 +102,7 @@ const UsersPage = () => {
     { key: "created_at", label: "Joined", render: (row: User) => <DateCell value={row.created_at} /> },
   ];
 
-  const canSave = Boolean(form.name.trim() && form.email.trim() && form.age >= 18 && form.country.trim() && form.city.trim() && form.call_rate >= 0);
+  const canSave = Boolean(form.name.trim() && isValidPhoneNumber(form.phone_number) && form.age >= 18 && form.country.trim() && form.city.trim() && form.call_rate >= 0);
 
   return <div className="user-management-page">
     <PageHeader title="All Users" description="Create, review and manage member accounts. Choose extra table fields from Columns." icon="solar:users-group-rounded-outline" actions={<button className="btn btn-primary-600 d-inline-flex align-items-center gap-2" onClick={() => openEditor()}><Icon icon="solar:user-plus-outline" /> Add user</button>} />
@@ -99,7 +110,7 @@ const UsersPage = () => {
       queryKey={["users"]}
       queryFn={usersApi.list}
       columns={columns}
-      defaultVisibleColumns={["name", "location", "is_online", "average_rating", "is_active", "created_at"]}
+      defaultVisibleColumns={["name", "phone_number", "location", "is_online", "average_rating", "is_active", "created_at"]}
       filters={filters}
       initialSort={{ key: "created_at", direction: "desc" }}
       searchPlaceholder="Search by name, city or referral code..."
@@ -114,7 +125,7 @@ const UsersPage = () => {
     <ThemeModal open={Boolean(editing)} title={editing === "new" ? "Add user" : "Edit user"} onClose={() => setEditing(null)} size="xl" footer={<><button className="btn btn-outline-secondary" onClick={() => setEditing(null)}>Cancel</button><button className="btn btn-primary-600" disabled={!canSave || save.isPending} onClick={() => save.mutate()}>{save.isPending ? "Saving..." : editing === "new" ? "Create user" : "Save changes"}</button></>}>
       <div className="row gy-3">
         <div className="col-md-6"><label className="form-label">Full name</label><input className="form-control" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Enter full name" /></div>
-        <div className="col-md-6"><label className="form-label">Email address</label><input type="email" className="form-control" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="name@example.com" /></div>
+        <div className="col-md-6"><label className="form-label">Phone number <span className="text-danger">*</span></label><input type="tel" className="form-control" value={form.phone_number} onChange={(event) => setForm({ ...form, phone_number: event.target.value.replace(/[^\d+]/g, "") })} placeholder="+919876543210" maxLength={16} required /></div>
         <div className="col-md-3"><label className="form-label">Age</label><input type="number" min={18} className="form-control" value={form.age} onChange={(event) => setForm({ ...form, age: Number(event.target.value) })} /></div>
         <div className="col-md-3"><label className="form-label">Gender</label><select className="form-select" value={form.gender} onChange={(event) => setForm({ ...form, gender: event.target.value as User["gender"] })}><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>
         <div className="col-md-3"><label className="form-label">Call rate / minute</label><input type="number" min={0} step="0.01" className="form-control" value={form.call_rate} onChange={(event) => setForm({ ...form, call_rate: Number(event.target.value) })} /></div>

@@ -46,7 +46,7 @@ export interface CurrentAdmin {
 export interface User extends BaseRecord {
   id: number;
   name: string;
-  email?: string;
+  phone_number: string;
   age: number;
   gender: "male" | "female" | "other";
   country: string;

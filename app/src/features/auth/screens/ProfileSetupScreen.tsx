@@ -20,17 +20,18 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ProfileSetup'>;
 
 const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { role, setCurrentUser, setIsAuthenticated } = useUser();
+  const { role, phoneNumber, setCurrentUser, setIsAuthenticated } = useUser();
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [bio, setBio] = useState('');
   const [city, setCity] = useState('');
 
   const handleComplete = () => {
-    if (name && age) {
+    if (name && age && phoneNumber) {
       setCurrentUser({
         id: 'me',
         name,
+        phoneNumber: phoneNumber!,
         age: parseInt(age),
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
         role: role!,
@@ -149,13 +150,13 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
 
       <TouchableOpacity
         onPress={handleComplete}
-        disabled={!name || !age}
+        disabled={!name || !age || !phoneNumber}
         activeOpacity={0.8}>
         <LinearGradient
           colors={[...Gradients.primary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.submitBtn, (!name || !age) && styles.disabled]}>
+          style={[styles.submitBtn, (!name || !age || !phoneNumber) && styles.disabled]}>
           <Text style={styles.submitText}>Complete Setup →</Text>
         </LinearGradient>
       </TouchableOpacity>
