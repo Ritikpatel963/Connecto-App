@@ -35,7 +35,7 @@ Mock mode is enabled by default:
 REACT_APP_USE_MOCK_API=true
 ```
 
-Set it to `false` to call the live REST API at `/api/admin`.
+Set it to `false` and configure `REACT_APP_ADMIN_API_BASE_URL=/api/admin/v1` to call the live admin API.
 
 List endpoints receive `page`, `pageSize`, `search`, `sortBy`, `sortDirection`, and serialized `filters`.
 
@@ -61,4 +61,5 @@ src/admin/
   types.ts
 ```
 
-Admin & Roles navigation is shown only when `GET /api/admin/me` returns the `manage_admins` permission.
+Admin & Roles navigation is shown only for admins with the `manage_admins` permission. The backend contract lives in `../backend/admin-api/openapi/admin-api.yaml`; the subscriptions resource is implemented end-to-end as the first live API slice.
+

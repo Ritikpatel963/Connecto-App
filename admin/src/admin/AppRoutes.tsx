@@ -14,6 +14,7 @@ import ReferralTiersPage from "./pages/ReferralTiersPage";
 import ReferralsPage from "./pages/ReferralsPage";
 import RolesPage from "./pages/RolesPage";
 import SettingsPage from "./pages/SettingsPage";
+import SubscriptionsPage from "./pages/SubscriptionsPage";
 import UserDetailPage from "./pages/UserProfilePage";
 import UsersPage from "./pages/UsersPage";
 import VerificationsPage from "./pages/VerificationsPage";
@@ -35,6 +36,7 @@ const AppRoutes = () => (
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/chat/profile" element={<ChatProfilePage />} />
         <Route path="/ratings" element={<RatingsPage />} />
+        <Route path="/subscriptions" element={<SubscriptionsPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/wallet/transactions" element={<WalletTransactionsPage />} />
         <Route path="/wallet/manual-approvals" element={<ManualRechargePage />} />
@@ -51,4 +53,6 @@ const AppRoutes = () => (
 );
 
 export default AppRoutes;
+
+
 

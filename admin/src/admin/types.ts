@@ -107,6 +107,29 @@ export interface ReferralRedemption extends BaseRecord {
   requested_at: string;
 }
 
+
+export interface Subscription extends BaseRecord {
+  id: number;
+  user_id: number;
+  plan_id: string;
+  provider: string;
+  status: "trialing" | "active" | "past_due" | "canceled" | "expired" | "refunded";
+  current_period_start?: string;
+  current_period_end: string;
+  trial_ends_at?: string;
+  cancel_at_period_end: boolean;
+  created_at: string;
+  updated_at: string;
+  user?: { id: number; name: string; phone_number: string } | null;
+}
+
+export interface SubscriptionStats {
+  snapshot_date: string | null;
+  active_count: number;
+  trial_count: number;
+  churned_count: number;
+  revenue: number;
+}
 export interface ColumnDef<T> {
   key: keyof T | string;
   label: string;
@@ -121,3 +144,4 @@ export interface SelectFilter {
   label: string;
   options: Array<{ label: string; value: string }>;
 }
+
