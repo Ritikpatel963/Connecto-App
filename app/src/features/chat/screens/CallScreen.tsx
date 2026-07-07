@@ -9,7 +9,7 @@ import { mockProfiles } from '../../../shared/data/mockData';
 import { useUser } from '../../../context/UserContext';
 import RatingStars from '../../../components/RatingStars';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Call'>;

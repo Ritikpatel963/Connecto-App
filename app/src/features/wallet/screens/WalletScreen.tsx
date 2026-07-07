@@ -8,7 +8,7 @@ import WalletCard from '../../../components/WalletCard';
 import TransactionRow from '../../../components/TransactionRow';
 import { mockTransactions } from '../../../shared/data/mockData';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { TabParamList } from '../../../navigation/AppNavigator';

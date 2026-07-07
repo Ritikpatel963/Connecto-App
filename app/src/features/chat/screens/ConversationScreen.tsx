@@ -21,7 +21,7 @@ import OnlineIndicator from '../../../components/OnlineIndicator';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import type { ChatMessage } from '../../../shared/types/app';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Conversation'>;

@@ -13,47 +13,62 @@ import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 import { useUser } from '../../../context/UserContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
+const STATIC_OTP = '123456';
+
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { setPhoneNumber } = useUser();
+  const { setIsAuthenticated, setPhoneNumber } = useUser();
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const otpRefs = useRef<(TextInput | null)[]>([]);
 
   const handleSendOtp = () => {
-    if (phone.length >= 10) {
-      setLoading(true);
-      setTimeout(() => {
-        setLoading(false);
-        setStep('otp');
-      }, 1200);
-    }
+    if (phone.length !== 10) return;
+
+    setLoading(true);
+    setError('');
+    
+    // Simulate API call with 500ms delay
+    setTimeout(() => {
+      setStep('otp');
+      setLoading(false);
+    }, 500);
   };
 
   const handleVerify = () => {
-    if (otp.every(d => d !== '')) {
-      setLoading(true);
-      setTimeout(() => {
+    if (otp.some(digit => !digit)) return;
+
+    setLoading(true);
+    setError('');
+    const enteredOtp = otp.join('');
+    
+    // Simulate API call with 500ms delay
+    setTimeout(() => {
+      if (enteredOtp === STATIC_OTP) {
         setPhoneNumber(`+91${phone}`);
-        setLoading(false);
+        setIsAuthenticated(true);
         navigation.replace('RoleSelect');
-      }, 1000);
-    }
+      } else {
+        setError('Invalid OTP. Use 123456 for testing.');
+      }
+      setLoading(false);
+    }, 500);
   };
 
   const handleOtpChange = (value: string, index: number) => {
-    const digit = value.replace(/\D/g, '');
+    const digit = value.replace(/\D/g, '').slice(-1);
     const newOtp = [...otp];
     newOtp[index] = digit;
     setOtp(newOtp);
-    if (digit && index < 3) {
+    if (digit && index < otp.length - 1) {
       otpRefs.current[index + 1]?.focus();
     }
   };
@@ -68,17 +83,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.iconBox}>
-          <Text style={styles.iconEmoji}>📞</Text>
+          <Text style={styles.iconText}>OTP</Text>
         </LinearGradient>
 
-        <Text style={styles.title}>
-          {step === 'phone' ? 'Enter your phone' : 'Verify OTP'}
-        </Text>
+        <Text style={styles.title}>{step === 'phone' ? 'Enter your phone' : 'Verify OTP'}</Text>
         <Text style={styles.subtitle}>
-          {step === 'phone'
-            ? "We'll send you a verification code"
-            : `Code sent to +91 ${phone}`}
+          {step === 'phone' ? "We'll send you a verification code" : `Code sent to +91 ${phone}`}
         </Text>
+        {!!error && <Text style={styles.errorText}>{error}</Text>}
 
         {step === 'phone' ? (
           <View>
@@ -104,46 +116,38 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[styles.submitBtn, (phone.length < 10 || loading) && styles.disabled]}>
-                {loading ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text style={styles.submitBtnText}>Send OTP →</Text>
-                )}
+                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Send OTP</Text>}
               </LinearGradient>
             </TouchableOpacity>
           </View>
         ) : (
           <View>
             <View style={styles.otpRow}>
-              {[0, 1, 2, 3].map(i => (
+              {otp.map((digit, i) => (
                 <TextInput
                   key={i}
                   ref={ref => {
                     otpRefs.current[i] = ref;
                   }}
-                  value={otp[i]}
+                  value={digit}
                   onChangeText={v => handleOtpChange(v, i)}
                   maxLength={1}
                   keyboardType="number-pad"
-                  style={[styles.otpBox, otp[i] ? styles.otpBoxFilled : null]}
+                  style={[styles.otpBox, digit ? styles.otpBoxFilled : null]}
                   autoFocus={i === 0}
                 />
               ))}
             </View>
             <TouchableOpacity
               onPress={handleVerify}
-              disabled={otp.some(d => d === '') || loading}
+              disabled={otp.some(digit => !digit) || loading}
               activeOpacity={0.8}>
               <LinearGradient
                 colors={[...Gradients.primary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={[styles.submitBtn, (otp.some(d => d === '') || loading) && styles.disabled]}>
-                {loading ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text style={styles.submitBtnText}>Verify →</Text>
-                )}
+                style={[styles.submitBtn, (otp.some(digit => !digit) || loading) && styles.disabled]}>
+                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Verify</Text>}
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setStep('phone')} style={styles.changeBtn}>
@@ -184,8 +188,9 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     ...Elevation.glow,
   },
-  iconEmoji: {
-    fontSize: 24,
+  iconText: {
+    ...Typography.label,
+    color: '#FFFFFF',
   },
   title: {
     ...Typography.h2,
@@ -196,6 +201,11 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.mutedForeground,
     marginBottom: 32,
+  },
+  errorText: {
+    ...Typography.small,
+    color: Colors.destructive,
+    marginBottom: 16,
   },
   phoneRow: {
     flexDirection: 'row',
@@ -240,11 +250,11 @@ const styles = StyleSheet.create({
   otpRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    gap: 8,
     marginBottom: 32,
   },
   otpBox: {
-    width: 56,
+    width: 44,
     height: 56,
     backgroundColor: Colors.card,
     borderRadius: Radius.xl,

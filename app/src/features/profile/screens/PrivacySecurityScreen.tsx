@@ -16,7 +16,7 @@ import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PrivacySecurity'>;
 

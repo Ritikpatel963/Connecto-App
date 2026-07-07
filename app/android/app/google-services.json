@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "890117178879",
+    "project_id": "connecto-477ad",
+    "storage_bucket": "connecto-477ad.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:890117178879:android:061924ca4200ad7b2213ca",
+        "android_client_info": {
+          "package_name": "com.connecto"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1xANLUG1L1mCtE-6UhMsyK9YzPYu_5og"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

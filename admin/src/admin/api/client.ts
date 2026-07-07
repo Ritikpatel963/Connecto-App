@@ -54,12 +54,55 @@ export async function listResource<T extends BaseRecord>(resource: string, param
       const search = escapeSearch(params.search || "");
       const columns = searchColumns[resource] || [];
       if (search && columns.length) query = query.or(columns.map((column) => `${column}.ilike.%${search}%`).join(","));
-      if (params.sortBy) query = query.order(params.sortBy, { ascending: params.sortDirection !== "desc" });
+      const userCols = [
+        { idCol: 'user_id', nameCol: 'user' },
+        { idCol: 'referrer_user_id', nameCol: 'referrer' },
+        { idCol: 'referred_user_id', nameCol: 'referred' },
+        { idCol: 'caller_user_id', nameCol: 'caller' },
+        { idCol: 'receiver_user_id', nameCol: 'receiver' },
+        { idCol: 'user_one_id', nameCol: 'user_one' },
+        { idCol: 'user_two_id', nameCol: 'user_two' },
+        { idCol: 'rater_user_id', nameCol: 'rater' },
+        { idCol: 'rated_user_id', nameCol: 'rated' },
+        { idCol: 'sender_id', nameCol: 'sender' },
+      ];
+
+      let sortBy = params.sortBy;
+      if (sortBy) {
+        const mappedCol = userCols.find((c) => c.nameCol === sortBy);
+        if (mappedCol) sortBy = mappedCol.idCol;
+        query = query.order(sortBy, { ascending: params.sortDirection !== "desc" });
+      }
 
       const from = (params.page - 1) * params.pageSize;
       const { data, error, count } = await query.range(from, from + params.pageSize - 1);
       if (error) throw error;
-      return { data: (data || []) as T[], total: count || 0, page: params.page, pageSize: params.pageSize };
+
+      let rows = (data || []) as Record<string, any>[];
+      const userIds = new Set<number>();
+      for (const row of rows) {
+        for (const col of userCols) {
+          if (row[col.idCol]) userIds.add(row[col.idCol]);
+        }
+      }
+
+      if (userIds.size > 0) {
+        const { data: users } = await supabase.from('users').select('id, name').in('id', Array.from(userIds));
+        if (users) {
+          const userMap = new Map(users.map((u: any) => [u.id, u.name]));
+          rows = rows.map((row) => {
+            const newRow = { ...row };
+            for (const col of userCols) {
+              if (newRow[col.idCol] && !newRow[col.nameCol]) {
+                newRow[col.nameCol] = userMap.get(newRow[col.idCol]) || "Unknown";
+              }
+            }
+            return newRow;
+          });
+        }
+      }
+
+      return { data: rows as T[], total: count || 0, page: params.page, pageSize: params.pageSize };
     },
     () => mockStore.list<T>(resource, params)
   );
@@ -70,7 +113,37 @@ export async function getResource<T extends BaseRecord>(resource: string, id: st
     async () => {
       const { data, error } = await supabase.from(tableFor(resource)).select("*").eq("id", id).single();
       if (error) throw error;
-      return data as T;
+      
+      const row = data as Record<string, any>;
+      const userCols = [
+        { idCol: 'user_id', nameCol: 'user' },
+        { idCol: 'referrer_user_id', nameCol: 'referrer' },
+        { idCol: 'referred_user_id', nameCol: 'referred' },
+        { idCol: 'caller_user_id', nameCol: 'caller' },
+        { idCol: 'receiver_user_id', nameCol: 'receiver' },
+        { idCol: 'user_one_id', nameCol: 'user_one' },
+        { idCol: 'user_two_id', nameCol: 'user_two' },
+        { idCol: 'rater_user_id', nameCol: 'rater' },
+        { idCol: 'rated_user_id', nameCol: 'rated' },
+        { idCol: 'sender_id', nameCol: 'sender' },
+      ];
+      const userIds = new Set<number>();
+      for (const col of userCols) {
+        if (row[col.idCol]) userIds.add(row[col.idCol]);
+      }
+      if (userIds.size > 0) {
+        const { data: users } = await supabase.from('users').select('id, name').in('id', Array.from(userIds));
+        if (users) {
+          const userMap = new Map(users.map((u: any) => [u.id, u.name]));
+          for (const col of userCols) {
+            if (row[col.idCol] && !row[col.nameCol]) {
+              row[col.nameCol] = userMap.get(row[col.idCol]) || "Unknown";
+            }
+          }
+        }
+      }
+      
+      return row as T;
     },
     () => mockStore.get<T>(resource, id)
   );

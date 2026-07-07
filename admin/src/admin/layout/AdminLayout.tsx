@@ -5,6 +5,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import ThemeToggleButton from "../../helper/ThemeToggleButton";
 import { AdminNotification, notificationsApi } from "../api/notifications";
 import { useAuth } from "../auth/AuthContext";
+import { supabase } from "../../lib/supabase";
 
 interface NavItem { label: string; to: string; }
 interface NavGroup { id: string; label: string; icon: string; items: NavItem[]; permission?: string; }
@@ -65,6 +66,28 @@ const AdminLayout = () => {
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [notificationsOpen]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-notifications-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const logout = async () => {
     await signOut();
     navigate("/login", { replace: true });

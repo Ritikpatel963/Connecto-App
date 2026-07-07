@@ -19,7 +19,7 @@ import { Radius } from '../../../theme/spacing';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import { useUser } from '../../../context/UserContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 
 const { width } = Dimensions.get('window');
 

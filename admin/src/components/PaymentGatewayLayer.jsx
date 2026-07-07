@@ -1,6 +1,7 @@
 import React from 'react'
-import Paypal from './child/Paypal'
 import RazorPay from './child/RazorPay'
+import InAppPurchase from './child/InAppPurchase'
+import CustomPayment from './child/CustomPayment'
 
 const PaymentGatewayLayer = () => {
     return (
@@ -8,11 +9,14 @@ const PaymentGatewayLayer = () => {
             <div className="card-body p-24">
                 <div className="row gy-4">
 
-                    {/* Paypal */}
-                    <Paypal />
-
                     {/* RazorPay */}
                     <RazorPay />
+
+                    {/* In-App Purchase */}
+                    <InAppPurchase />
+
+                    {/* Custom Payment (QR Code) */}
+                    <CustomPayment />
 
                 </div>
             </div>
