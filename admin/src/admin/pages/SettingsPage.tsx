@@ -39,6 +39,14 @@ const SettingsPage = () => {
             </li>
             <li className="nav-item">
               <button 
+                className={`nav-link fw-semibold text-lg ${activeTab === 'otp' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
+                onClick={() => setActiveTab('otp')}
+              >
+                OTP Methods
+              </button>
+            </li>
+            <li className="nav-item">
+              <button 
                 className={`nav-link fw-semibold text-lg ${activeTab === 'notifications' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
                 onClick={() => setActiveTab('notifications')}
               >
@@ -187,6 +195,78 @@ const SettingsPage = () => {
                         <div className="col-md-6">
                           <label className="form-label fw-semibold">Upload QR Code</label>
                           <input className="form-control" type="file" accept="image/*" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* OTP TAB */}
+            {activeTab === 'otp' && (
+              <div className="row gy-4">
+                {/* Firebase OTP */}
+                <div className="col-lg-12">
+                  <div className="card shadow-none border">
+                    <div className="card-header bg-neutral-50 border-bottom py-16 px-24 d-flex align-items-center justify-content-between">
+                      <div className="d-flex align-items-center gap-2">
+                        <Icon icon="logos:firebase" className="text-2xl text-primary-600" />
+                        <h6 className="mb-0 text-lg">Firebase</h6>
+                      </div>
+                      <div className="form-switch switch-primary">
+                        <input className="form-check-input" type="checkbox" role="switch" defaultChecked />
+                      </div>
+                    </div>
+                    <div className="card-body p-24">
+                      <div className="row gy-3">
+                        <div className="col-md-6">
+                          <label className="form-label fw-semibold">API Key</label>
+                          <input className="form-control" placeholder="AIzaSyB..." />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label fw-semibold">Auth Domain</label>
+                          <input className="form-control" placeholder="app-id.firebaseapp.com" />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label fw-semibold">Project ID</label>
+                          <input className="form-control" placeholder="app-id" />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label fw-semibold">Sender ID</label>
+                          <input className="form-control" placeholder="123456789" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fast2sms OTP */}
+                <div className="col-lg-12">
+                  <div className="card shadow-none border">
+                    <div className="card-header bg-neutral-50 border-bottom py-16 px-24 d-flex align-items-center justify-content-between">
+                      <div className="d-flex align-items-center gap-2">
+                        <Icon icon="solar:letter-outline" className="text-2xl text-primary-600" />
+                        <h6 className="mb-0 text-lg">Fast2sms</h6>
+                      </div>
+                      <div className="form-switch switch-primary">
+                        <input className="form-check-input" type="checkbox" role="switch" />
+                      </div>
+                    </div>
+                    <div className="card-body p-24">
+                      <div className="row gy-3">
+                        <div className="col-md-6">
+                          <label className="form-label fw-semibold">API Key</label>
+                          <input className="form-control" type="password" placeholder="••••••••••••" />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label fw-semibold">Sender ID</label>
+                          <input className="form-control" placeholder="FSTSMS" />
+                        </div>
+                        <div className="col-12">
+                          <p className="text-sm text-secondary-light mb-0 mt-2">
+                            Used for sending domestic OTP messages in India.
+                          </p>
                         </div>
                       </div>
                     </div>
