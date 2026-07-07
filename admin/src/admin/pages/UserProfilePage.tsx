@@ -85,10 +85,10 @@ const EmptyPanel = ({ label }: { label: string }) => <div className="profile-emp
   <p className="mb-0">No {label.toLowerCase()} found</p>
 </div>;
 
-const MiniTable = ({ rows, emptyLabel = "records" }: { rows: Record<string, unknown>[]; emptyLabel?: string }) => {
+const MiniTable = ({ rows, emptyLabel = "records", hasImage }: { rows: Record<string, unknown>[]; emptyLabel?: string; hasImage?: boolean }) => {
   if (!rows.length) return <EmptyPanel label={emptyLabel} />;
   const keys = Object.keys(rows[0]).filter((key) => !["id_image_url", "voice_audio_url"].includes(key)).slice(0, 6);
-  return <div className="table-responsive"><table className="table bordered-table align-middle mb-0"><thead><tr>{keys.map((key) => <th key={key}>{humanize(key)}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id ?? index)}>{keys.map((key) => <td key={key}>{String(row[key] ?? "-")}</td>)}</tr>)}</tbody></table></div>;
+  return <div className="table-responsive"><table className="table bordered-table align-middle mb-0"><thead><tr>{keys.map((key) => <th key={key}>{humanize(key)}</th>)}{hasImage && <th>Image</th>}</tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id ?? index)}>{keys.map((key) => <td key={key}>{String(row[key] ?? "-")}</td>)}{hasImage && <td>{row.id_image_url && !String(row.id_image_url).startsWith("/demo/") ? <a href={String(row.id_image_url)} target="_blank" rel="noreferrer" className="text-primary-600 fw-medium">View Document</a> : "Demo Asset"}</td>}</tr>)}</tbody></table></div>;
 };
 
 const InfoItem = ({ icon, label, value }: { icon: string; label: string; value: React.ReactNode }) => <div className="profile-info-item">
@@ -178,7 +178,7 @@ const UserProfilePage = () => {
           <InfoItem icon="solar:calendar-outline" label="Age" value={`${user.age} years`} />
           <InfoItem icon="solar:user-outline" label="Gender" value={humanize(user.gender)} />
           <InfoItem icon="solar:map-point-outline" label="Location" value={fullLocation} />
-          <InfoItem icon="solar:phone-calling-outline" label="Call rate" value={`₹${user.call_rate}/minute`} />
+          {user.gender !== 'male' && <InfoItem icon="solar:phone-calling-outline" label="Call rate" value={`₹${user.call_rate}/minute`} />}
           <InfoItem icon="solar:calendar-add-outline" label="Joined" value={new Date(user.created_at).toLocaleDateString()} />
         </div>
       </section>
@@ -189,7 +189,7 @@ const UserProfilePage = () => {
         <div className="d-flex flex-column gap-3">
           <div className="d-flex align-items-center justify-content-between gap-3"><span>Account</span><StatusBadge value={user.is_active ? "active" : "inactive"} /></div>
           <div className="d-flex align-items-center justify-content-between gap-3"><span>ID verification</span><StatusBadge value={user.is_id_verified ? "verified" : "pending"} /></div>
-          <div className="d-flex align-items-center justify-content-between gap-3"><span>Voice verification</span><StatusBadge value={user.is_voice_verified ? "verified" : "pending"} /></div>
+          {user.gender !== 'male' && <div className="d-flex align-items-center justify-content-between gap-3"><span>Voice verification</span><StatusBadge value={user.is_voice_verified ? "verified" : "pending"} /></div>}
           <div className="d-flex align-items-center justify-content-between gap-3"><span>Presence</span><StatusBadge value={user.is_online ? "online" : "offline"} /></div>
         </div>
       </section>
@@ -200,7 +200,7 @@ const UserProfilePage = () => {
 
   const tabContent: Record<Tab, React.ReactNode> = {
     Profile: profileContent,
-    Verifications: <div className="row g-3"><div className="col-12"><section className="profile-section-card"><h5 className="mb-16">ID verification submissions</h5><MiniTable rows={detail.idVerifications} emptyLabel="ID submissions" /></section></div><div className="col-12"><section className="profile-section-card"><h5 className="mb-16">Voice verification submissions</h5><MiniTable rows={detail.voiceVerifications} emptyLabel="voice submissions" /></section></div></div>,
+    Verifications: <div className="row g-3"><div className="col-12"><section className="profile-section-card"><h5 className="mb-16">ID verification submissions</h5><MiniTable rows={detail.idVerifications} emptyLabel="ID submissions" hasImage={true} /></section></div>{user.gender !== 'male' && <div className="col-12"><section className="profile-section-card"><h5 className="mb-16">Voice verification submissions</h5><MiniTable rows={detail.voiceVerifications} emptyLabel="voice submissions" /></section></div>}</div>,
     Wallet: <div><div className="profile-table-heading"><h5>Wallet transactions</h5><p>Review this member's wallet activity and payment status.</p></div><AdminDataTable<BaseRecord> queryKey={["user-wallet-transactions", id]} queryFn={localList(detail.transactions)} columns={walletColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search wallet transactions..." /></div>,
     Calls: <div><div className="profile-table-heading"><h5>Call history</h5><p>Search, filter and review this member's calls.</p></div><AdminDataTable<CallRecord> queryKey={["user-calls", id]} queryFn={localList(callRows)} columns={callColumns} filters={callFilters} initialSort={{ key: "created_at", direction: "desc" }} defaultVisibleColumns={["caller", "receiver", "duration_seconds", "total_cost", "status", "created_at"]} searchPlaceholder="Search call history..." /></div>,
     Ratings: <div><div className="profile-table-heading"><h5>Ratings and reviews</h5><p>Feedback given by or received by this member.</p></div><AdminDataTable<BaseRecord> queryKey={["user-ratings", id]} queryFn={localList(detail.ratings)} columns={ratingColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search ratings and reviews..." /></div>,
@@ -211,7 +211,10 @@ const UserProfilePage = () => {
     <Link to="/users" className="profile-back-link"><Icon icon="solar:alt-arrow-left-linear" /> All users</Link>
 
     <section className="card profile-hero-card">
-      <div className="profile-avatar">{initials(user.name)}<span className={user.is_online ? "online" : ""} /></div>
+      <div className="profile-avatar">
+        {user.profile_image_url ? <img src={user.profile_image_url} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} /> : initials(user.name)}
+        <span className={user.is_online ? "online" : ""} />
+      </div>
       <div className="profile-hero-content flex-grow-1 min-w-0"><div className="d-flex flex-wrap align-items-center gap-2 mb-6"><h2 className="mb-0">{user.name}</h2><StatusBadge value={user.is_active ? "active" : "inactive"} /></div><p className="mb-6 text-secondary-light"><Icon icon="solar:phone-outline" /> {user.phone_number}</p><p className="mb-0 text-secondary-light"><Icon icon="solar:map-point-outline" /> {fullLocation || "Location not added"} · User #{user.id}</p></div>
       <button className="btn btn-primary-600 profile-edit-button d-inline-flex align-items-center gap-2" onClick={openEditor}><Icon icon="solar:pen-outline" /> Edit profile</button>
     </section>

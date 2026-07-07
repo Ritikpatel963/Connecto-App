@@ -3,7 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Colors } from '../theme/colors';
 import { SplashScreen, OnboardingScreen, NotificationsScreen } from '../features/system/screens';
-import { LoginScreen, RoleSelectScreen, ProfileSetupScreen } from '../features/auth/screens';
+import { LoginScreen, RoleSelectScreen, ProfileSetupScreen, WaitApprovalScreen } from '../features/auth/screens';
 import { ProfileScreen, PrivacySecurityScreen } from '../features/profile/screens';
 import { CallScreen, ConversationScreen } from '../features/chat/screens';
 import { ReferralScreen, RechargeScreen } from '../features/wallet/screens';
@@ -25,6 +25,7 @@ const RootNavigator = () => (
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
       <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+      <Stack.Screen name="WaitApproval" component={WaitApprovalScreen} />
       <Stack.Screen name="MainTabs" component={AppTabs} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Call" component={CallScreen} options={{ animation: 'fade' }} />

@@ -4,6 +4,7 @@ export type RootStackParamList = {
   Login: undefined;
   RoleSelect: undefined;
   ProfileSetup: undefined;
+  WaitApproval: undefined;
   MainTabs: undefined;
   Profile: { id: string };
   Call: { id: string };
