@@ -81,19 +81,22 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const [voiceBase64, setVoiceBase64] = useState<string | null>(null);
-  const audioChunksRef = React.useRef<string[]>([]);
+  // voiceFilePath: local path to the recorded .wav file
+  const [voiceFilePath, setVoiceFilePath] = useState<string | null>(null);
+  // recordingPhase: 'idle' | 'countdown' | 'recording'
+  const [recordingPhase, setRecordingPhase] = useState<'idle' | 'countdown' | 'recording'>('idle');
 
   const startRecording = async () => {
-    if (voiceRecorded || recordingTime !== null) return;
+    if (voiceRecorded || recordingPhase !== 'idle') return;
 
+    // 1. Request mic permission
     if (Platform.OS === 'android') {
       try {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
         );
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert('Permission Required', 'Microphone permission is needed.');
+          Alert.alert('Permission Required', 'Microphone permission is needed to verify your voice.');
           return;
         }
       } catch (err) {
@@ -102,98 +105,74 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
       }
     }
 
-    try {
-      audioChunksRef.current = [];
+    // 2. Countdown: 3s before recording starts
+    setRecordingPhase('countdown');
+    let countdown = 3;
+    setRecordingTime(countdown);
+    await new Promise<void>(resolve => {
+      const cd = setInterval(() => {
+        countdown -= 1;
+        setRecordingTime(countdown);
+        if (countdown <= 0) {
+          clearInterval(cd);
+          resolve();
+        }
+      }, 1000);
+    });
 
-      const options = {
+    // 3. Actually start recording
+    try {
+      AudioRecord.init({
         sampleRate: 16000,
         channels: 1,
         bitsPerSample: 16,
         audioSource: 6,
-        wavFile: 'verification.wav',
-      };
+        wavFile: 'voice_verification.wav',
+      });
+      AudioRecord.start();
+      setRecordingPhase('recording');
 
-      AudioRecord.init(options);
-
-      AudioRecord.on('data', (data: string) => {
-        audioChunksRef.current.push(data);
+      // Record for 10 seconds
+      let elapsed = 0;
+      const MAX = 10;
+      setRecordingTime(MAX);
+      await new Promise<void>(resolve => {
+        const recInterval = setInterval(() => {
+          elapsed += 1;
+          setRecordingTime(MAX - elapsed);
+          if (elapsed >= MAX) {
+            clearInterval(recInterval);
+            resolve();
+          }
+        }, 1000);
       });
 
-      AudioRecord.start();
-      setRecordingTime(5);
+      // 4. Stop and get the file path
+      const filePath = await AudioRecord.stop();
+      await new Promise(r => setTimeout(r, 600)); // let OS flush the file
 
-      let timeLeft = 5;
-      const interval = setInterval(async () => {
-        timeLeft -= 1;
-        setRecordingTime(timeLeft);
-        if (timeLeft <= 0) {
-          clearInterval(interval);
-          setRecordingTime(null);
+      // Verify the file actually has data
+      let resolvedPath = filePath;
+      if (!resolvedPath || !(await RNFS.exists(resolvedPath))) {
+        // Fallback: library writes to app's files dir
+        resolvedPath = RNFS.DocumentDirectoryPath + '/voice_verification.wav';
+      }
 
-          try {
-            const returnedPath = await AudioRecord.stop();
-            // Give file system 500ms to flush
-            await new Promise(r => setTimeout(r, 500));
+      const stat = await RNFS.stat(resolvedPath);
+      if (!stat || stat.size < 1000) {
+        throw new Error(`Recording file is empty or too small (${stat?.size ?? 0} bytes). Please speak louder and try again.`);
+      }
 
-            let base64Str = '';
-
-            // Strategy 1: Try reading from the path returned by stop()
-            if (returnedPath && typeof returnedPath === 'string') {
-              try {
-                const exists = await RNFS.exists(returnedPath);
-                if (exists) {
-                  base64Str = await RNFS.readFile(returnedPath, 'base64');
-                }
-              } catch (_) {}
-            }
-
-            // Strategy 2: Try cache directory
-            if (!base64Str) {
-              try {
-                const cachePath = RNFS.CachesDirectoryPath + '/verification.wav';
-                const exists = await RNFS.exists(cachePath);
-                if (exists) {
-                  base64Str = await RNFS.readFile(cachePath, 'base64');
-                }
-              } catch (_) {}
-            }
-
-            // Strategy 3: Try document directory
-            if (!base64Str) {
-              try {
-                const docPath = RNFS.DocumentDirectoryPath + '/verification.wav';
-                const exists = await RNFS.exists(docPath);
-                if (exists) {
-                  base64Str = await RNFS.readFile(docPath, 'base64');
-                }
-              } catch (_) {}
-            }
-
-            // Strategy 4: Use streamed chunks
-            if (!base64Str && audioChunksRef.current.length > 0) {
-              base64Str = audioChunksRef.current.join('');
-            }
-
-            if (base64Str && base64Str.length > 50) {
-              setVoiceBase64(`data:audio/wav;base64,${base64Str}`);
-              setVoiceRecorded(true);
-              Alert.alert('Voice Verified', 'Your voice sample was recorded successfully.');
-            } else {
-              Alert.alert(
-                'Recording Failed',
-                `No audio data captured.\nReturned path: ${returnedPath}\nChunks: ${audioChunksRef.current.length}\nBase64 length: ${base64Str.length}`,
-              );
-            }
-          } catch (e: any) {
-            console.warn('Recording error', e);
-            Alert.alert('Error', `Recording failed: ${e.message || String(e)}`);
-          }
-        }
-      }, 1000);
-    } catch (e: any) {
-      console.warn('Error starting recorder', e);
+      setVoiceFilePath(resolvedPath);
+      setVoiceRecorded(true);
+      setRecordingPhase('idle');
       setRecordingTime(null);
-      Alert.alert('Error', `Could not start recorder: ${e.message || String(e)}`);
+      Alert.alert('Voice Recorded ✓', 'Your voice sample is ready. Complete the form to submit for review.');
+    } catch (e: any) {
+      console.warn('Recording error', e);
+      setRecordingPhase('idle');
+      setRecordingTime(null);
+      Alert.alert('Recording Failed', e.message || 'Could not record audio. Please try again.');
     }
   };
 
@@ -275,17 +254,55 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
             })
           }));
 
-          // Insert voice verification if girl
-          if (role === 'girl' && voiceRecorded && voiceBase64) {
-            insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/voice_verifications`, {
-              method: 'POST',
-              headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                user_id: newUserId, 
-                status: 'pending',
-                voice_audio_url: voiceBase64
-              })
-            }));
+          // Insert voice verification if girl — upload file to Storage first
+          if (role === 'girl' && voiceRecorded && voiceFilePath) {
+            try {
+              // Read the WAV file as base64
+              const fileBase64 = await RNFS.readFile(voiceFilePath, 'base64');
+              const timestamp = Date.now();
+              const storagePath = `${newUserId}/${timestamp}.wav`;
+              const bucketName = 'voice-verifications';
+
+              // Upload WAV bytes to Supabase Storage
+              const uploadRes = await fetch(
+                `${SUPABASE_URL}/storage/v1/object/${bucketName}/${storagePath}`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': 'audio/wav',
+                    'x-upsert': 'true',
+                  },
+                  body: fileBase64,
+                }
+              );
+
+              if (!uploadRes.ok) {
+                const errText = await uploadRes.text();
+                throw new Error(`Storage upload failed: ${errText}`);
+              }
+
+              // Get the public URL
+              const voiceAudioUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${storagePath}`;
+
+              // Insert into voice_verifications
+              insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/voice_verifications`, {
+                method: 'POST',
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  user_id: newUserId, 
+                  status: 'pending',
+                  voice_audio_url: voiceAudioUrl,
+                })
+              }));
+
+              // Clean up local temp file
+              RNFS.unlink(voiceFilePath).catch(() => {});
+            } catch (voiceErr: any) {
+              console.warn('Voice upload error', voiceErr);
+              Alert.alert('Voice Upload Warning', `Voice could not be uploaded: ${voiceErr.message}. Your profile was still created.`);
+            }
           }
 
           await Promise.all(insertPromises);
@@ -456,11 +473,18 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             </View>
             <TouchableOpacity 
-              style={[styles.recordBtn, (voiceRecorded || recordingTime !== null) && { backgroundColor: Colors.primary }]} 
+              style={[styles.recordBtn, (voiceRecorded || recordingPhase !== 'idle') && { backgroundColor: Colors.primary }]} 
               activeOpacity={0.7}
+              disabled={recordingPhase !== 'idle' && !voiceRecorded}
               onPress={startRecording}>
-              <Text style={[styles.recordBtnText, voiceRecorded && { color: '#FFF' }]}>
-                {voiceRecorded ? 'Voice Recorded ✓' : recordingTime !== null ? `Recording... ${recordingTime}s` : 'Start Live Recording'}
+              <Text style={[styles.recordBtnText, (voiceRecorded || recordingPhase !== 'idle') && { color: '#FFF' }]}>
+                {voiceRecorded
+                  ? 'Voice Recorded ✓'
+                  : recordingPhase === 'countdown'
+                  ? `Starting in ${recordingTime}s...`
+                  : recordingPhase === 'recording'
+                  ? `🔴 Recording... ${recordingTime}s left`
+                  : 'Start Voice Recording'}
               </Text>
             </TouchableOpacity>
           </View>
