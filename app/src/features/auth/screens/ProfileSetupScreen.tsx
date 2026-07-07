@@ -182,138 +182,145 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     try {
-        const payload = {
-          name,
-          phone_number: phoneNumber,
-          age: parseInt(age),
-          gender: role === 'girl' ? 'female' : 'male',
-          city,
-          state,
-          country,
-          profile_image_url: profileImageBase64 || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
-          is_online: true,
-          call_rate: role === 'girl' ? 8 : 0,
-          average_rating: 0,
-          is_active: false, // For admin approval
-        };
+      const payload = {
+        name,
+        phone_number: phoneNumber,
+        age: parseInt(age),
+        gender: role === 'girl' ? 'female' : 'male',
+        city,
+        state,
+        country,
+        profile_image_url: profileImageBase64 || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
+        is_online: true,
+        call_rate: role === 'girl' ? 8 : 0,
+        average_rating: 0,
+        is_active: false, // For admin approval
+      };
 
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify(payload)
-        });
-        const resBody = await res.text();
-        console.log('Supabase response:', res.status, resBody);
-        if (!res.ok) {
-          Alert.alert('Error', `Failed to save profile: ${resBody}`);
-          return;
-        }
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(payload)
+      });
+      const resBody = await res.text();
+      console.log('Supabase response:', res.status, resBody);
+      if (!res.ok) {
+        Alert.alert('Error', `Failed to save profile: ${resBody}`);
+        return;
+      }
 
-        let newUserId = null;
-        try {
-          const parsed = JSON.parse(resBody);
-          newUserId = parsed[0]?.id;
-        } catch(e) {}
+      let newUserId = null;
+      try {
+        const parsed = JSON.parse(resBody);
+        newUserId = parsed[0]?.id;
+      } catch (e) { }
 
-        if (newUserId) {
-          const insertPromises = [];
-          
-          // Insert languages
-          const langs = languages.split(',').map(s => s.trim()).filter(Boolean);
-          for (const lang of langs) {
-            insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/user_languages`, {
-              method: 'POST',
-              headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ user_id: newUserId, language: lang })
-            }));
-          }
+      if (newUserId) {
+        const insertPromises = [];
 
-          // Insert interests
-          const ints = interests.split(',').map(s => s.trim()).filter(Boolean);
-          for (const int of ints) {
-            insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/user_interests`, {
-              method: 'POST',
-              headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ user_id: newUserId, interest: int })
-            }));
-          }
-
-          // Insert ID verification
-          insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/id_verifications`, {
+        // Insert languages
+        const langs = languages.split(',').map(s => s.trim()).filter(Boolean);
+        for (const lang of langs) {
+          insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/user_languages`, {
             method: 'POST',
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              user_id: newUserId, 
-              status: 'pending',
-              id_image_url: idImageBase64 || 'https://images.unsplash.com/photo-1621252179027-94459d278660?w=200&h=150&fit=crop'
-            })
+            body: JSON.stringify({ user_id: newUserId, language: lang })
           }));
-
-          // Insert voice verification if girl — upload file to Storage first
-          if (role === 'girl' && voiceRecorded && voiceFilePath) {
-            try {
-              // Read the WAV file as base64
-              const fileBase64 = await RNFS.readFile(voiceFilePath, 'base64');
-              const timestamp = Date.now();
-              const storagePath = `${newUserId}/${timestamp}.wav`;
-              const bucketName = 'voice-verifications';
-
-              // Upload WAV bytes to Supabase Storage
-              const uploadRes = await fetch(
-                `${SUPABASE_URL}/storage/v1/object/${bucketName}/${storagePath}`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Content-Type': 'audio/wav',
-                    'x-upsert': 'true',
-                  },
-                  body: fileBase64,
-                }
-              );
-
-              if (!uploadRes.ok) {
-                const errText = await uploadRes.text();
-                throw new Error(`Storage upload failed: ${errText}`);
-              }
-
-              // Get the public URL
-              const voiceAudioUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${storagePath}`;
-
-              // Insert into voice_verifications
-              insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/voice_verifications`, {
-                method: 'POST',
-                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  user_id: newUserId, 
-                  status: 'pending',
-                  voice_audio_url: voiceAudioUrl,
-                })
-              }));
-
-              // Clean up local temp file
-              RNFS.unlink(voiceFilePath).catch(() => {});
-            } catch (voiceErr: any) {
-              console.warn('Voice upload error', voiceErr);
-              Alert.alert('Voice Upload Warning', `Voice could not be uploaded: ${voiceErr.message}. Your profile was still created.`);
-            }
-          }
-
-          await Promise.all(insertPromises);
         }
 
-        // Profile submitted for approval — don't authenticate yet
-        navigation.replace('WaitApproval');
-      } catch (err) {
-        console.log('Error creating profile', err);
-        Alert.alert('Error', 'Something went wrong. Please try again.');
+        // Insert interests
+        const ints = interests.split(',').map(s => s.trim()).filter(Boolean);
+        for (const int of ints) {
+          insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/user_interests`, {
+            method: 'POST',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: newUserId, interest: int })
+          }));
+        }
+
+        // Insert ID verification
+        insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/id_verifications`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: newUserId,
+            status: 'pending',
+            id_image_url: idImageBase64 || 'https://images.unsplash.com/photo-1621252179027-94459d278660?w=200&h=150&fit=crop'
+          })
+        }));
+
+        // Insert voice verification if girl — upload file to Storage first
+        if (role === 'girl' && voiceRecorded && voiceFilePath) {
+          try {
+            // Read WAV as base64 then decode to raw bytes — Supabase Storage needs binary, not base64 string
+            const fileBase64 = await RNFS.readFile(voiceFilePath, 'base64');
+            const binaryStr = atob(fileBase64);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+              bytes[i] = binaryStr.charCodeAt(i);
+            }
+
+            const timestamp = Date.now();
+            const storagePath = `${newUserId}/${timestamp}.wav`;
+            const bucketName = 'voice-verifications';
+
+            // Upload raw WAV bytes to Supabase Storage
+            const uploadRes = await fetch(
+              `${SUPABASE_URL}/storage/v1/object/${bucketName}/${storagePath}`,
+              {
+                method: 'POST',
+                headers: {
+                  'apikey': SUPABASE_KEY,
+                  'Authorization': `Bearer ${SUPABASE_KEY}`,
+                  'Content-Type': 'audio/wav',
+                  'x-upsert': 'true',
+                },
+                body: bytes,
+              }
+            );
+
+            if (!uploadRes.ok) {
+              const errText = await uploadRes.text();
+              throw new Error(`Storage upload failed (${uploadRes.status}): ${errText}`);
+            }
+
+            // Public URL for the uploaded file
+            const voiceAudioUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${storagePath}`;
+
+            // Insert record into voice_verifications table
+            insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/voice_verifications`, {
+              method: 'POST',
+              headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: newUserId,
+                status: 'pending',
+                voice_audio_url: voiceAudioUrl,
+              })
+            }));
+
+            // Clean up local temp file
+            RNFS.unlink(voiceFilePath).catch(() => { });
+          } catch (voiceErr: any) {
+            console.warn('Voice upload error', voiceErr);
+            Alert.alert('Voice Upload Failed', `Could not upload voice: ${voiceErr.message}\n\nPlease try again.`);
+            return; // Don't navigate away — let them retry
+          }
+        }
+
+        await Promise.all(insertPromises);
       }
+
+      // Profile submitted for approval — don't authenticate yet
+      navigation.replace('WaitApproval');
+    } catch (err) {
+      console.log('Error creating profile', err);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    }
   };
 
   return (
@@ -444,8 +451,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
           {idImageUri && (
             <Image source={{ uri: idImageUri }} style={{ width: '100%', height: 120, borderRadius: 8, marginTop: 8 }} resizeMode="cover" />
           )}
-          <TouchableOpacity 
-            style={[styles.recordBtn, idUploaded && { backgroundColor: Colors.primary }]} 
+          <TouchableOpacity
+            style={[styles.recordBtn, idUploaded && { backgroundColor: Colors.primary }]}
             activeOpacity={0.7}
             onPress={pickDocument}>
             <Text style={[styles.recordBtnText, idUploaded && { color: '#FFF' }]}>
@@ -472,8 +479,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity 
-              style={[styles.recordBtn, (voiceRecorded || recordingPhase !== 'idle') && { backgroundColor: Colors.primary }]} 
+            <TouchableOpacity
+              style={[styles.recordBtn, (voiceRecorded || recordingPhase !== 'idle') && { backgroundColor: Colors.primary }]}
               activeOpacity={0.7}
               disabled={recordingPhase !== 'idle' && !voiceRecorded}
               onPress={startRecording}>
@@ -481,10 +488,10 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
                 {voiceRecorded
                   ? 'Voice Recorded ✓'
                   : recordingPhase === 'countdown'
-                  ? `Starting in ${recordingTime}s...`
-                  : recordingPhase === 'recording'
-                  ? `🔴 Recording... ${recordingTime}s left`
-                  : 'Start Voice Recording'}
+                    ? `Starting in ${recordingTime}s...`
+                    : recordingPhase === 'recording'
+                      ? `🔴 Recording... ${recordingTime}s left`
+                      : 'Start Voice Recording'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -500,7 +507,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[
-            styles.submitBtn, 
+            styles.submitBtn,
             (!name || !age || !phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded)) && styles.disabled
           ]}>
           <Text style={styles.submitText}>Complete Setup →</Text>
