@@ -127,7 +127,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         const dataUri = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
 
         const { error } = await supabase.from('wallet_transactions').insert({
-          user_id: currentUser?.id || 1,
+          wallet_id: currentUser?.id || 1,
           transaction_type: 'recharge',
           amount: finalAmount,
           payment_method: 'manual_upload',

@@ -13,7 +13,7 @@ export const useTransactions = () => {
       const { data, error } = await supabase
         .from('wallet_transactions')
         .select('*')
-        .eq('user_id', userId)
+        .eq('wallet_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
