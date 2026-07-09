@@ -5,7 +5,7 @@ import { UserProfile } from '../shared/types/app';
 
 export const useFavorites = () => {
   const { currentUser } = useUser(); const id = currentUser?.id;
-  
+
   return useQuery({
     queryKey: ['favorites', id],
     queryFn: async () => {
@@ -31,8 +31,8 @@ export const useFavorites = () => {
           bio: 'Favorite User',
           isOnline: u.is_online,
           isPremium: false,
-          isVerified: u.is_active,
-          rating: u.average_rating || 0,
+          isVerified: u.is_id_verified && u.is_active,
+          rating: parseFloat(u.average_rating) || 0,
           totalCalls: 0,
           pricePerMinute: u.call_rate || 0,
           languages: ['English'],

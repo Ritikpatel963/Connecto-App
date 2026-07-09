@@ -72,6 +72,12 @@ export const mockStore = {
     
     if (!updated) throw new Error("Record not found");
 
+    // ponytail: auto-credit mock wallet on approval
+    if (resource === 'wallet-transactions' && payload.verification_status === 'verified' && oldRecord?.verification_status !== 'verified') {
+      const wallet = store['wallets']?.find(w => String(w.id) === String((updated as any).wallet_id) || String(w.user_id) === String((updated as any).wallet_id));
+      if (wallet) mockStore.update('wallets', wallet.id as string, { balance: Number(wallet.balance) + Number((updated as any).amount) });
+    }
+
     // Ponytail Mock Automation: Trigger reward when a referral gets qualified!
     if (resource === 'referrals' && payload.status === 'qualified' && oldRecord?.status !== 'qualified') {
       const referrerId = updated.referrer_user_id;

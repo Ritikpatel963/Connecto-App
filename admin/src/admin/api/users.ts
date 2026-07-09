@@ -35,8 +35,8 @@ const mockDetail = (id: string | number): UserDetail => {
     favourites: related("favourites", ["user_id", "favourite_user_id"]),
     ratings: related("ratings", ["rater_user_id", "rated_user_id"]),
     calls: related("calls", ["caller_user_id", "receiver_user_id"]),
-    wallet,
-    transactions: mockStore.rows("wallet-transactions").filter((row) => row.wallet_id === wallet?.id),
+    wallet: wallet || ({ id: "no-wallet", balance: 0 } as any),
+    transactions: mockStore.rows("wallet-transactions").filter((row) => row.wallet_id === wallet?.id || String(row.wallet_id) === String(userId)),
     referrals: related("referrals", ["referrer_user_id", "referred_user_id"]),
     redemptions: related("referral-redemptions", ["user_id"]),
     idVerifications: related("id-verifications", ["user_id"]),
@@ -78,9 +78,7 @@ const liveDetail = async (id: string | number): Promise<UserDetail> => {
   ].filter((value) => value !== undefined && value !== null)));
 
   const [transactions, relatedUsers, tiers] = await Promise.all([
-    wallet
-      ? queryRows(supabase.from("wallet_transactions").select("*").eq("wallet_id", wallet.id))
-      : Promise.resolve([]),
+    queryRows(supabase.from("wallet_transactions").select("*").or(`wallet_id.eq.${wallet?.id || userId},wallet_id.eq.${userId}`)),
     queryRows(supabase.from("users").select("id, name").in("id", relatedUserIds)),
     queryRows(supabase.from("referral_tiers").select("id, tier_name")),
   ]);
@@ -100,7 +98,7 @@ const liveDetail = async (id: string | number): Promise<UserDetail> => {
     favourites,
     ratings: enrichedRatings,
     calls: enrichedCalls,
-    wallet,
+    wallet: wallet || ({ id: "no-wallet", balance: 0 } as any),
     transactions,
     referrals: enrichedReferrals,
     redemptions: enrichedRedemptions,

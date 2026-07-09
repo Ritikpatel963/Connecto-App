@@ -25,7 +25,7 @@ export const useProfiles = () => {
           bio: u.bio || 'Hi, I am new here!',
           isOnline: u.is_online,
           isPremium: false,
-          isVerified: u.is_id_verified || u.is_active,
+          isVerified: u.is_id_verified && u.is_active,
           rating: parseFloat(u.average_rating) || 0,
           totalCalls: u.total_ratings || 0,
           pricePerMinute: pkg ? parseFloat(pkg.price) : (parseFloat(u.call_rate) || 0),

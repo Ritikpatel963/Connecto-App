@@ -73,7 +73,8 @@ const UsersPage = () => {
 
   const save = useMutation({
     mutationFn: () => {
-      const payload = { ...form, phone_number: normalizePhoneNumber(form.phone_number) };
+      const payload: any = { ...form, phone_number: normalizePhoneNumber(form.phone_number) };
+      if (!payload.call_package_id || payload.gender === 'male') payload.call_package_id = null;
       return editing === "new"
         ? usersApi.create({ ...payload, is_online: false, average_rating: 0, created_at: new Date().toISOString() })
         : usersApi.update(editing!.id, payload);
@@ -158,7 +159,7 @@ const UsersPage = () => {
         <div className="col-12"><div className="bg-neutral-50 radius-12 p-16"><p className="fw-semibold mb-12">Account controls</p><div className="d-flex flex-wrap gap-4">
           <label className="d-flex gap-2 align-items-center"><input type="checkbox" className="form-check-input mt-0" checked={form.is_active} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} /> Active account</label>
           <label className="d-flex gap-2 align-items-center"><input type="checkbox" className="form-check-input mt-0" checked={form.is_id_verified} onChange={(event) => setForm({ ...form, is_id_verified: event.target.checked })} /> ID verified</label>
-          <label className="d-flex gap-2 align-items-center"><input type="checkbox" className="form-check-input mt-0" checked={form.is_voice_verified} onChange={(event) => setForm({ ...form, is_voice_verified: event.target.checked })} /> Voice verified</label>
+          {form.gender !== 'male' && <label className="d-flex gap-2 align-items-center"><input type="checkbox" className="form-check-input mt-0" checked={form.is_voice_verified} onChange={(event) => setForm({ ...form, is_voice_verified: event.target.checked })} /> Voice verified</label>}
         </div></div></div>
       </div>
     </ThemeModal>

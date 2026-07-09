@@ -10,10 +10,14 @@ export const useTransactions = () => {
     queryFn: async () => {
       // For now, hardcode user ID 1 if context is missing, since we don't have auth yet
       const userId = id || 1; 
+      
+      const { data: wallet } = await supabase.from('wallets').select('id').eq('user_id', userId).maybeSingle();
+      const walletId = wallet?.id;
+
       const { data, error } = await supabase
         .from('wallet_transactions')
         .select('*')
-        .eq('wallet_id', userId)
+        .or(`wallet_id.eq.${userId}${walletId ? `,wallet_id.eq.${walletId}` : ''}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -24,7 +28,7 @@ export const useTransactions = () => {
         amount: Number(tx.amount || 0),
         description: String(tx.payment_method || 'Wallet Tx'),
         timestamp: String(tx.created_at),
-        status: (tx.status as any) || 'completed'
+        status: (tx.verification_status || tx.status) as any || 'completed'
       }));
     }
   });

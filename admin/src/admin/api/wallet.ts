@@ -14,13 +14,14 @@ export const walletTransactionsApi = {
     
     // 2. Add amount to wallet balance
     // Ponytail approach: Fetch current balance, add amount, then update.
-    const { data: wallet } = await supabase.from('wallets').select('balance').eq('id', row.wallet_id).single();
+    const { data: wallet } = await supabase.from('wallets').select('id, balance').or(`id.eq.${row.wallet_id},user_id.eq.${row.wallet_id}`).maybeSingle();
     const currentBalance = wallet?.balance || 0;
+    const targetId = wallet?.id || row.wallet_id;
     
-    const { error } = await supabase.from('wallets').update({ balance: currentBalance + row.amount }).eq('id', row.wallet_id);
-    if (error) {
-       // If wallet doesn't exist, try inserting it
-       await supabase.from('wallets').insert({ id: row.wallet_id, user_id: row.wallet_id, balance: row.amount }).select().single();
+    if (wallet?.id) {
+      await supabase.from('wallets').update({ balance: currentBalance + row.amount }).eq('id', wallet.id);
+    } else {
+      await supabase.from('wallets').insert({ id: targetId, user_id: row.wallet_id, balance: row.amount });
     }
     
     return result;
