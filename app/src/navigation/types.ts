@@ -12,7 +12,7 @@ export type RootStackParamList = {
   Notifications: undefined;
   Referral: undefined;
   PrivacySecurity: undefined;
-  Recharge: undefined;
+  Recharge: { amount?: number } | undefined;
 };
 
 export type TabParamList = {

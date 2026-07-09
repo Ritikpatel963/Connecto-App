@@ -89,11 +89,11 @@ const WalletIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 
   </Svg>
 );
 
-const RechargeScreen: React.FC<Props> = ({ navigation }) => {
+const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { currentUser, walletBalance, setWalletBalance } = useUser();
 
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(route.params?.amount ?? null);
   const [customAmount, setCustomAmount] = useState('');
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethodId>('upi');
 
@@ -133,7 +133,6 @@ const RechargeScreen: React.FC<Props> = ({ navigation }) => {
           payment_method: 'manual_upload',
           payment_screenshot_url: dataUri,
           verification_status: 'pending',
-          status: 'pending',
         });
 
         if (error) throw error;

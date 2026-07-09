@@ -43,7 +43,7 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
             {rechargeAmounts.map(amt => (
               <TouchableOpacity
                 key={amt}
-                onPress={() => setWalletBalance(walletBalance + amt)}
+                onPress={() => navigation.navigate('Recharge', { amount: amt })}
                 style={styles.rechargeBtn}
                 activeOpacity={0.7}>
                 <Text style={styles.rechargeAmount}>₹{amt}</Text>
