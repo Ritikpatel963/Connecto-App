@@ -45,9 +45,9 @@ const ChatListScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const filtered = chats.filter(c =>
-    c.user.name.toLowerCase().includes(search.toLowerCase()) && c.user.role !== role
+    c.user.name.toLowerCase().includes(search.toLowerCase())
   );
-  const onlineUsers = chats.filter(c => c.user.isOnline && c.user.role !== role);
+  const onlineUsers = chats.filter(c => c.user.isOnline);
 
   const SearchIcon = () => (
     <Svg

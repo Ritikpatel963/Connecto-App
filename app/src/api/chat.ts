@@ -9,11 +9,13 @@ export const useChats = () => {
     queryKey: ['chats', id],
     queryFn: async () => {
       // Lazy mock implementation that fetches real users to simulate chats
+      const oppositeGender = currentUser?.role === 'boy' ? 'female' : 'male';
       const { data: users, error } = await supabase
         .from('users')
         .select('*')
         .neq('id', id || 0)
-        .limit(5);
+        .eq('gender', oppositeGender)
+        .limit(20);
       if (error) throw error;
 
       return (users || []).map((u: any): ChatConversation => ({
@@ -22,7 +24,7 @@ export const useChats = () => {
           id: u.id,
           name: u.name || 'Unknown',
           age: u.age || 20,
-          avatar: u.profile_image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
+          avatar: u.profile_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=random`,
           role: u.gender === 'female' ? 'girl' : 'boy',
           bio: 'New user',
           isOnline: u.is_online,
