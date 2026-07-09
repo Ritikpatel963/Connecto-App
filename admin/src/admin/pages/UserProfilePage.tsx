@@ -105,6 +105,50 @@ const Metric = ({ icon, label, value, tone }: { icon: string; label: string; val
   <div className="card profile-metric-card h-100"><span className={`profile-metric-icon ${tone}`}><Icon icon={icon} /></span><div><span className="d-block text-sm text-secondary-light">{label}</span><strong className="profile-metric-value">{value}</strong></div></div>
 </div>;
 
+const callColumns = [
+  { key: "caller", label: "Caller", render: (row: CallRecord) => <PersonCell name={row.caller} /> },
+  { key: "receiver", label: "Receiver", render: (row: CallRecord) => <PersonCell name={row.receiver} /> },
+  { key: "duration_seconds", label: "Duration", render: (row: CallRecord) => <span className="font-monospace">{formatDuration(row.duration_seconds)}</span> },
+  { key: "rate_per_min_charged", label: "Rate/min", render: (row: CallRecord) => <MoneyCell value={row.rate_per_min_charged} /> },
+  { key: "total_cost", label: "Total cost", render: (row: CallRecord) => <MoneyCell value={row.total_cost} /> },
+  { key: "status", label: "Status", render: (row: CallRecord) => <StatusBadge value={row.status} /> },
+  { key: "created_at", label: "Date", render: (row: CallRecord) => <DateCell value={row.created_at} /> },
+];
+const walletColumns = [
+  { key: "id", label: "Transaction" },
+  { key: "transaction_type", label: "Type", render: (row: BaseRecord) => humanize(String(row.transaction_type || "-")) },
+  { key: "amount", label: "Amount", render: (row: BaseRecord) => <MoneyCell value={row.amount} /> },
+  { key: "payment_method", label: "Method", render: (row: BaseRecord) => humanize(String(row.payment_method || "-")) },
+  { key: "verification_status", label: "Status", render: (row: BaseRecord) => <StatusBadge value={String(row.verification_status || "pending")} /> },
+  { key: "created_at", label: "Created", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
+];
+const ratingColumns = [
+  { key: "rater", label: "From", render: (row: BaseRecord) => <PersonCell name={row.rater} /> },
+  { key: "rated", label: "To", render: (row: BaseRecord) => <PersonCell name={row.rated} /> },
+  { key: "rating", label: "Rating", render: (row: BaseRecord) => <RatingCell value={row.rating} /> },
+  { key: "review_text", label: "Review", sortable: false, className: "profile-review-cell" },
+  { key: "call_id", label: "Call" },
+  { key: "created_at", label: "Date", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
+];
+const referralColumns = [
+  { key: "id", label: "Referral" },
+  { key: "referrer", label: "Referrer", render: (row: BaseRecord) => <PersonCell name={row.referrer} /> },
+  { key: "referred", label: "Referred user", render: (row: BaseRecord) => <PersonCell name={row.referred} /> },
+  { key: "status", label: "Status", render: (row: BaseRecord) => <StatusBadge value={String(row.status)} /> },
+  { key: "qualified_at", label: "Qualified", render: (row: BaseRecord) => <DateCell value={row.qualified_at} /> },
+  { key: "created_at", label: "Joined", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
+];
+const favoriteColumns = [
+  { key: "id", label: "ID" },
+  { key: "target_user", label: "Liked User", render: (row: FavoriteRecord) => <PersonCell name={row.target_user?.name || `User #${row.target_user_id}`} /> },
+  { key: "created_at", label: "Date", render: (row: FavoriteRecord) => <DateCell value={row.created_at} /> },
+];
+const fanColumns = [
+  { key: "id", label: "ID" },
+  { key: "user", label: "Fan", render: (row: FavoriteRecord) => <PersonCell name={row.user?.name || `User #${row.user_id}`} /> },
+  { key: "created_at", label: "Date", render: (row: FavoriteRecord) => <DateCell value={row.created_at} /> },
+];
+
 const UserProfilePage = () => {
   const { id = "" } = useParams();
   const client = useQueryClient();
@@ -138,51 +182,6 @@ const UserProfilePage = () => {
   const rateDisplay = currentPkg ? `${currentPkg.currency || 'INR'} ${currentPkg.price}/${currentPkg.billing_unit || 'minute'}` : `Not set`;
 
   const callRows = detail.calls as CallRecord[];
-  const callColumns = [
-    { key: "caller", label: "Caller", render: (row: CallRecord) => <PersonCell name={row.caller} /> },
-    { key: "receiver", label: "Receiver", render: (row: CallRecord) => <PersonCell name={row.receiver} /> },
-    { key: "duration_seconds", label: "Duration", render: (row: CallRecord) => <span className="font-monospace">{formatDuration(row.duration_seconds)}</span> },
-    { key: "rate_per_min_charged", label: "Rate/min", render: (row: CallRecord) => <MoneyCell value={row.rate_per_min_charged} /> },
-    { key: "total_cost", label: "Total cost", render: (row: CallRecord) => <MoneyCell value={row.total_cost} /> },
-    { key: "status", label: "Status", render: (row: CallRecord) => <StatusBadge value={row.status} /> },
-    { key: "created_at", label: "Date", render: (row: CallRecord) => <DateCell value={row.created_at} /> },
-  ];
-  const walletColumns = [
-    { key: "id", label: "Transaction" },
-    { key: "transaction_type", label: "Type", render: (row: BaseRecord) => humanize(String(row.transaction_type || "-")) },
-    { key: "amount", label: "Amount", render: (row: BaseRecord) => <MoneyCell value={row.amount} /> },
-    { key: "payment_method", label: "Method", render: (row: BaseRecord) => humanize(String(row.payment_method || "-")) },
-    { key: "verification_status", label: "Status", render: (row: BaseRecord) => <StatusBadge value={String(row.verification_status || "pending")} /> },
-    { key: "created_at", label: "Created", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
-  ];
-  const ratingColumns = [
-    { key: "rater", label: "From", render: (row: BaseRecord) => <PersonCell name={row.rater} /> },
-    { key: "rated", label: "To", render: (row: BaseRecord) => <PersonCell name={row.rated} /> },
-    { key: "rating", label: "Rating", render: (row: BaseRecord) => <RatingCell value={row.rating} /> },
-    { key: "review_text", label: "Review", sortable: false, className: "profile-review-cell" },
-    { key: "call_id", label: "Call" },
-    { key: "created_at", label: "Date", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
-  ];
-  const referralColumns = [
-    { key: "id", label: "Referral" },
-    { key: "referrer", label: "Referrer", render: (row: BaseRecord) => <PersonCell name={row.referrer} /> },
-    { key: "referred", label: "Referred user", render: (row: BaseRecord) => <PersonCell name={row.referred} /> },
-    { key: "status", label: "Status", render: (row: BaseRecord) => <StatusBadge value={String(row.status)} /> },
-    { key: "qualified_at", label: "Qualified", render: (row: BaseRecord) => <DateCell value={row.qualified_at} /> },
-    { key: "created_at", label: "Joined", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
-  ];
-
-  const favoriteColumns = [
-    { key: "id", label: "ID" },
-    { key: "target_user", label: "Liked User", render: (row: FavoriteRecord) => <PersonCell name={row.target_user?.name || `User #${row.target_user_id}`} /> },
-    { key: "created_at", label: "Date", render: (row: FavoriteRecord) => <DateCell value={row.created_at} /> },
-  ];
-  const fanColumns = [
-    { key: "id", label: "ID" },
-    { key: "user", label: "Fan", render: (row: FavoriteRecord) => <PersonCell name={row.user?.name || `User #${row.user_id}`} /> },
-    { key: "created_at", label: "Date", render: (row: FavoriteRecord) => <DateCell value={row.created_at} /> },
-  ];
-
   const profileContent = <div className="row g-3">
     <div className="col-xl-8">
       <section className="profile-section-card h-100">
