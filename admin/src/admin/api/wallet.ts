@@ -10,7 +10,7 @@ export const walletTransactionsApi = {
   ...base,
   approve: async (row: WalletTransaction) => {
     // 1. Mark transaction as verified
-    await resourceAction<WalletTransaction>("wallet-transactions", row.id, "approve", {}, { verification_status: "verified", reviewed_at: new Date().toISOString() });
+    const result = await resourceAction<WalletTransaction>("wallet-transactions", row.id, "approve", {}, { verification_status: "verified", reviewed_at: new Date().toISOString() });
     
     // 2. Add amount to wallet balance
     // Ponytail approach: Fetch current balance, add amount, then update.
@@ -22,6 +22,8 @@ export const walletTransactionsApi = {
        // If wallet doesn't exist, try inserting it
        await supabase.from('wallets').insert({ id: row.wallet_id, user_id: row.wallet_id, balance: row.amount }).select().single();
     }
+    
+    return result;
   },
   reject: (id: string | number, rejection_reason: string) => resourceAction<WalletTransaction>("wallet-transactions", id, "reject", { rejection_reason }, { verification_status: "rejected", reviewed_at: new Date().toISOString(), rejection_reason }),
 };
