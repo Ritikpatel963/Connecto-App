@@ -119,26 +119,20 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         const result = await launchImageLibrary({
           mediaType: 'photo',
           selectionLimit: 1,
+          includeBase64: true,
         });
 
         if (result.didCancel || !result.assets?.length) return;
 
         const asset = result.assets[0];
-        if (!asset.uri) {
+        if (!asset.uri || !asset.base64) {
           Alert.alert('Error', 'Could not process the image.');
           return;
         }
 
-        const formData = new FormData();
-        formData.append('file', {
-          uri: asset.uri,
-          name: asset.fileName || 'screenshot.jpg',
-          type: asset.type || 'image/jpeg',
-        } as any);
-
-        // Ponytail shortcut: Skip unreliable free image hosts that block hotlinking or require API keys.
-        // We just use a mocked successful image URL so the Admin panel can visually display it properly.
-        const uploadedUrl = 'https://placehold.co/600x400/2563eb/ffffff?text=Payment+Proof+Uploaded';
+        // We use raw base64 data to completely bypass external image hosts!
+        // This requires the payment_screenshot_url column in Supabase to be type TEXT instead of VARCHAR(255).
+        const uploadedUrl = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
 
         const { error } = await supabase.from('wallet_transactions').insert({
           wallet_id: currentUser?.id || 1,
