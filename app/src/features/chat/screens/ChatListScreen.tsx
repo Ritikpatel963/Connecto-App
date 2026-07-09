@@ -214,6 +214,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: Radius.xl,
+    backgroundColor: Colors.muted,
   },
   onlineIndicator: {
     position: 'absolute',
@@ -238,6 +239,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: Radius.xl,
+    backgroundColor: Colors.muted,
   },
   chatIndicator: {
     position: 'absolute',
