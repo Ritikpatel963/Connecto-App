@@ -9,6 +9,7 @@ import {
   StatusBar,
   Dimensions,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
@@ -96,15 +97,20 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(route.params?.amount ?? null);
   const [customAmount, setCustomAmount] = useState('');
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethodId>('upi');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const finalAmount = selectedAmount ?? (customAmount ? Number(customAmount) : 0);
   const bonus = OFFERS.find(o => o.amount === finalAmount)?.bonus ?? 0;
 
   const handleRecharge = async () => {
+    if (isSubmitting) return;
+
     if (!finalAmount || finalAmount < 10) {
       Alert.alert('Invalid Amount', 'Minimum recharge is Rs 10');
       return;
     }
+
+    setIsSubmitting(true);
 
     const paymentLabel = PAYMENT_METHODS.find(p => p.id === selectedPayment)?.label ?? 'UPI';
 
@@ -158,17 +164,14 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
           { text: 'OK', onPress: () => navigation.goBack() },
         ]);
       } catch (e: any) {
-        // Ponytail: If RLS blocks it, fake success since Admin panel is on Mock API anyway!
-        if (e.message && e.message.includes('row-level security policy')) {
-           Alert.alert('Success', 'Recharge request submitted. Pending admin approval.', [
-            { text: 'OK', onPress: () => navigation.goBack() },
-           ]);
-        } else {
-           Alert.alert('Error', e.message || 'Failed to submit request');
-        }
+        Alert.alert('Error', e.message || 'Failed to submit request');
+      } finally {
+        setIsSubmitting(false);
       }
       return;
     }
+
+    setIsSubmitting(false);
 
     Alert.alert(
       'Confirm Recharge',
@@ -324,15 +327,27 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
               {bonus > 0 && <Text style={styles.ctaBonus}> +Rs {bonus}</Text>}
             </Text>
           </View>
-          <TouchableOpacity activeOpacity={0.85} onPress={handleRecharge}>
-            <LinearGradient
-              colors={[...Gradients.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaButton}>
-              <Text style={styles.ctaButtonText}>Proceed to Pay</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          <TouchableOpacity
+          onPress={handleRecharge}
+          disabled={!finalAmount || isSubmitting}
+          activeOpacity={0.8}
+          style={styles.payBtnWrapper}
+        >
+          <LinearGradient
+            colors={!finalAmount || isSubmitting ? [Colors.border, Colors.border] : [...Gradients.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.payBtn}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color={Colors.background} />
+            ) : (
+              <Text style={[styles.payBtnText, !finalAmount && { color: Colors.mutedForeground }]}>
+                Proceed to Pay
+              </Text>
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
         </View>
       )}
     </View>
