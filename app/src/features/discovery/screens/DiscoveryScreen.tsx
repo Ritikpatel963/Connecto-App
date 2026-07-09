@@ -141,7 +141,20 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.availabilitySwitch}>
               <TouchableOpacity
                 activeOpacity={0.85}
-                onPress={() => setIsOnline(true)}
+                onPress={() => {
+                  setIsOnline(true);
+                  if (currentUser) {
+                    fetch(`https://whypwqhdfxtjjenkhkwt.supabase.co/rest/v1/users?id=eq.${currentUser.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'apikey': 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
+                        'Authorization': 'Bearer sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ is_online: true })
+                    }).catch(console.error);
+                  }
+                }}
                 style={styles.availabilityHalfPressable}>
                 {isOnline ? (
                   <LinearGradient
@@ -159,7 +172,20 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.85}
-                onPress={() => setIsOnline(false)}
+                onPress={() => {
+                  setIsOnline(false);
+                  if (currentUser) {
+                    fetch(`https://whypwqhdfxtjjenkhkwt.supabase.co/rest/v1/users?id=eq.${currentUser.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'apikey': 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
+                        'Authorization': 'Bearer sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ is_online: false })
+                    }).catch(console.error);
+                  }
+                }}
                 style={styles.availabilityHalfPressable}>
                 {!isOnline ? (
                   <LinearGradient

@@ -35,7 +35,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     setError('');
-    
+
     // Simulate API call with 500ms delay
     setTimeout(() => {
       setStep('otp');
@@ -49,13 +49,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(true);
     setError('');
     const enteredOtp = otp.join('');
-    
+
     // Simulate API call
     setTimeout(async () => {
       if (enteredOtp === STATIC_OTP) {
         const fullPhone = `+91${phone}`;
         setPhoneNumber(fullPhone);
-        
+
         try {
           const res = await fetch(`https://whypwqhdfxtjjenkhkwt.supabase.co/rest/v1/users?phone_number=eq.${encodeURIComponent(fullPhone)}&select=*`, {
             headers: {
@@ -64,22 +64,22 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             }
           });
           const users = await res.json();
-          
+
           if (users && users.length > 0) {
             const u = users[0];
             setCurrentUser({
               id: u.id,
               name: u.name || 'Unknown',
               age: u.age || 20,
-              avatar: u.profile_image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
+              avatar: u.profile_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=random`,
               role: u.gender === 'female' ? 'girl' : 'boy',
               bio: u.bio || 'Hi, I am new here!',
               isOnline: u.is_online,
               isPremium: false,
               isVerified: u.is_id_verified || u.is_active,
-              rating: u.average_rating || 0,
+              rating: parseFloat(u.average_rating) || 0,
               totalCalls: u.total_ratings || 0,
-              pricePerMinute: u.call_rate || 0,
+              pricePerMinute: parseFloat(u.call_rate) || 0,
               languages: u.languages || ['English', 'Hindi'],
               interests: u.interests || ['Music', 'Movies', 'Travel'],
               city: u.city || 'Unknown',
