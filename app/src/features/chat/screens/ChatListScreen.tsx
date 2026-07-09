@@ -8,12 +8,14 @@ import {
   FlatList,
   ScrollView,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Colors } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
 import { useChats } from '../../../api/chat';
+import { useUser } from '../../../context/UserContext';
 import OnlineIndicator from '../../../components/OnlineIndicator';
 import LinearGradient from 'react-native-linear-gradient';
 import { Gradients } from '../../../theme/colors';
@@ -31,8 +33,16 @@ type Props = CompositeScreenProps<
 
 const ChatListScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { currentUser } = useUser();
   const [search, setSearch] = useState('');
   const { data: chats = [], isLoading } = useChats();
+
+  const handleOpenChat = (chatId: string) => {
+    if (!currentUser?.isVerified) {
+      return Alert.alert('Not Verified', 'Admin has not verified your profile yet.');
+    }
+    navigation.navigate('Conversation', { id: chatId });
+  };
 
   const filtered = chats.filter(c =>
     c.user.name.toLowerCase().includes(search.toLowerCase()),
@@ -91,7 +101,7 @@ const ChatListScreen: React.FC<Props> = ({ navigation }) => {
               {onlineUsers.map(c => (
                 <TouchableOpacity
                   key={c.id}
-                  onPress={() => navigation.navigate('Conversation', { id: c.id })}
+                  onPress={() => handleOpenChat(c.id)}
                   style={styles.onlineItem}>
                   <View>
                     <Image source={{ uri: c.user.avatar }} style={styles.onlineAvatar} />
@@ -114,7 +124,7 @@ const ChatListScreen: React.FC<Props> = ({ navigation }) => {
 
           return (
             <TouchableOpacity
-              onPress={() => navigation.navigate('Conversation', { id: chat.id })}
+              onPress={() => handleOpenChat(chat.id)}
               style={styles.chatRow}
               activeOpacity={0.7}>
               <View>
