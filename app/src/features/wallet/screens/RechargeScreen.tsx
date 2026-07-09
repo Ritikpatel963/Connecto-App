@@ -112,26 +112,43 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
       try {
         const result = await launchImageLibrary({
           mediaType: 'photo',
-          includeBase64: true,
           selectionLimit: 1,
         });
 
         if (result.didCancel || !result.assets?.length) return;
 
         const asset = result.assets[0];
-        if (!asset.base64) {
+        if (!asset.uri) {
           Alert.alert('Error', 'Could not process the image.');
           return;
         }
 
-        const dataUri = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
+        const formData = new FormData();
+        formData.append('file', {
+          uri: asset.uri,
+          name: asset.fileName || 'screenshot.jpg',
+          type: asset.type || 'image/jpeg',
+        } as any);
+
+        // Ponytail shortcut: Upload to a free temporary host to bypass the 255 char limit in Supabase
+        const uploadRes = await fetch('https://tmpfiles.org/api/v1/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        const uploadData = await uploadRes.json();
+        let uploadedUrl = uploadData?.data?.url || '';
+        if (uploadedUrl) {
+          // Convert to direct download link
+          uploadedUrl = uploadedUrl.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+        }
 
         const { error } = await supabase.from('wallet_transactions').insert({
           wallet_id: currentUser?.id || 1,
           transaction_type: 'recharge',
           amount: finalAmount,
           payment_method: 'manual_upload',
-          payment_screenshot_url: dataUri,
+          payment_screenshot_url: uploadedUrl || 'https://placehold.co/600x400?text=Upload+Failed',
           verification_status: 'pending',
         });
 
