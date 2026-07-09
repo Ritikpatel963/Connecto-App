@@ -20,7 +20,7 @@ export const useProfiles = () => {
           id: u.id,
           name: u.name || 'Unknown',
           age: u.age || 20,
-          avatar: u.profile_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=random`,
+          avatar: u.profile_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=random&color=fff&size=256`,
           role: u.gender === 'female' ? 'girl' : 'boy',
           bio: u.bio || 'Hi, I am new here!',
           isOnline: u.is_online,

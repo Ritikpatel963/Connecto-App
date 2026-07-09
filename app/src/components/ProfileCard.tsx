@@ -163,6 +163,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: Radius.xl,
+    backgroundColor: Colors.muted,
   },
   listIndicator: {
     position: 'absolute',
@@ -217,6 +218,7 @@ const styles = StyleSheet.create({
   gridImage: {
     width: '100%',
     aspectRatio: 3 / 4,
+    backgroundColor: Colors.muted,
   },
   gridOverlay: {
     ...StyleSheet.absoluteFillObject,
