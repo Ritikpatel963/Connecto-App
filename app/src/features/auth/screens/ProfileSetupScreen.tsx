@@ -326,6 +326,26 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
         await Promise.all(insertPromises);
       }
 
+      if (newUserId) {
+        setCurrentUser({
+          id: newUserId,
+          name,
+          age: parseInt(age),
+          avatar: profileImageBase64 || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
+          role: role || 'boy',
+          bio: 'Hi, I am new here!',
+          isOnline: true,
+          isPremium: false,
+          isVerified: false,
+          rating: 0,
+          totalCalls: 0,
+          pricePerMinute: role === 'girl' ? 8 : 0,
+          languages: [],
+          interests: [],
+          city,
+        });
+      }
+
       // Profile setup complete - go straight to app
       navigation.replace('MainTabs');
     } catch (err) {

@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -90,14 +91,14 @@ const CallIcon: React.FC<IconProps> = ({ color = '#FFFFFF', size = 14 }) => (
 
 const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { role, isOnline, setIsOnline } = useUser();
+  const { role, isOnline, setIsOnline, currentUser } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [activeFilter, setActiveFilter] = useState(0);
   const { data: profiles = [], isLoading } = useProfiles();
 
   const filtered = profiles.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) && String(p.id) !== String(currentUser?.id)
   );
 
   return (
@@ -237,7 +238,10 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
               profile={item}
               role={role}
               onPress={() => navigation.navigate('Profile', { id: item.id, profile: item })}
-              onCall={() => navigation.navigate('Call', { id: item.id })}
+              onCall={() => {
+                if (!currentUser?.isVerified) return Alert.alert('Not Verified', 'Admin has not verified your profile yet.');
+                navigation.navigate('Call', { id: item.id });
+              }}
             />
           </View>
         )}

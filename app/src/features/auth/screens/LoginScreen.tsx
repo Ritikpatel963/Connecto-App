@@ -22,7 +22,7 @@ const STATIC_OTP = '123456';
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { setIsAuthenticated, setPhoneNumber } = useUser();
+  const { setIsAuthenticated, setPhoneNumber, setCurrentUser, setRole } = useUser();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
@@ -50,12 +50,53 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     setError('');
     const enteredOtp = otp.join('');
     
-    // Simulate API call with 500ms delay
-    setTimeout(() => {
+    // Simulate API call
+    setTimeout(async () => {
       if (enteredOtp === STATIC_OTP) {
-        setPhoneNumber(`+91${phone}`);
-        setIsAuthenticated(true);
-        navigation.replace('RoleSelect');
+        const fullPhone = `+91${phone}`;
+        setPhoneNumber(fullPhone);
+        
+        try {
+          const res = await fetch(`https://whypwqhdfxtjjenkhkwt.supabase.co/rest/v1/users?phone_number=eq.${encodeURIComponent(fullPhone)}&select=*`, {
+            headers: {
+              'apikey': 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
+              'Authorization': 'Bearer sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ'
+            }
+          });
+          const users = await res.json();
+          
+          if (users && users.length > 0) {
+            const u = users[0];
+            setCurrentUser({
+              id: u.id,
+              name: u.name || 'Unknown',
+              age: u.age || 20,
+              avatar: u.profile_image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
+              role: u.gender === 'female' ? 'girl' : 'boy',
+              bio: u.bio || 'Hi, I am new here!',
+              isOnline: u.is_online,
+              isPremium: false,
+              isVerified: u.is_id_verified || u.is_active,
+              rating: u.average_rating || 0,
+              totalCalls: u.total_ratings || 0,
+              pricePerMinute: u.call_rate || 0,
+              languages: u.languages || ['English', 'Hindi'],
+              interests: u.interests || ['Music', 'Movies', 'Travel'],
+              city: u.city || 'Unknown',
+              lastSeen: u.last_seen_at || undefined
+            });
+            setRole(u.gender === 'female' ? 'girl' : 'boy');
+            setIsAuthenticated(true);
+            navigation.replace('MainTabs');
+          } else {
+            setIsAuthenticated(true);
+            navigation.replace('RoleSelect');
+          }
+        } catch (e) {
+          console.error(e);
+          setIsAuthenticated(true);
+          navigation.replace('RoleSelect');
+        }
       } else {
         setError('Invalid OTP. Use 123456 for testing.');
       }

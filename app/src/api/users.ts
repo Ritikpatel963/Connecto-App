@@ -7,7 +7,7 @@ export const useProfiles = () => {
     queryKey: ['profiles'],
     queryFn: async () => {
       const [{ data: users, error: usersError }, { data: packages, error: packagesError }] = await Promise.all([
-        supabase.from('users').select('*'),
+        supabase.from('users').select('*, user_languages(language), user_interests(interest)'),
         supabase.from('packages').select('*')
       ]);
 
@@ -22,17 +22,18 @@ export const useProfiles = () => {
           age: u.age || 20,
           avatar: u.profile_image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
           role: u.gender === 'female' ? 'girl' : 'boy',
-          bio: 'New user',
+          bio: u.bio || 'Hi, I am new here!',
           isOnline: u.is_online,
           isPremium: false,
-          isVerified: u.is_active,
+          isVerified: u.is_id_verified || u.is_active,
           rating: u.average_rating || 0,
-          totalCalls: 0,
+          totalCalls: u.total_ratings || 0,
           pricePerMinute: pkg ? pkg.coins : (u.call_rate || 0),
           packageName: pkg ? pkg.name : undefined,
-          languages: ['English'],
-          interests: [],
-          city: u.city || 'Unknown'
+          languages: u.user_languages?.map((l: any) => l.language) || ['English', 'Hindi'],
+          interests: u.user_interests?.map((i: any) => i.interest) || ['Music', 'Movies', 'Travel'],
+          city: u.city || 'Unknown',
+          lastSeen: u.last_seen_at || undefined
         };
       });
     }

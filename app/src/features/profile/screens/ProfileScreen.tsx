@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
@@ -96,9 +97,9 @@ const HeartIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = ACTI
 const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { id } = route.params;
-  const { role } = useUser();
+  const { role, currentUser } = useUser();
   const { data: profiles = [] } = useProfiles();
-  const profile = route.params.profile || profiles.find(p => p.id === id);
+  const profile = route.params.profile || profiles.find(p => String(p.id) === String(id));
 
   if (!profile) {
     return (
@@ -139,7 +140,9 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>📍 {profile.city}</Text>
-            <Text style={styles.metaText}>🌐 {profile.languages.join(', ')}</Text>
+            {profile.languages && profile.languages.length > 0 && (
+              <Text style={styles.metaText}>🌐 {profile.languages.join(', ')}</Text>
+            )}
           </View>
         </View>
       </View>
@@ -149,7 +152,10 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.actionRow}>
           {role === 'boy' && (
             <TouchableOpacity
-              onPress={() => navigation.navigate('Call', { id: profile.id })}
+              onPress={() => {
+                if (!currentUser?.isVerified) return Alert.alert('Not Verified', 'Admin has not verified your profile yet.');
+                navigation.navigate('Call', { id: profile.id });
+              }}
               activeOpacity={0.8}
               style={styles.callBtnWrapper}>
               <LinearGradient
@@ -170,7 +176,10 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             <HeartIcon />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Conversation', { id: `chat-${profile.id}` })}
+            onPress={() => {
+              if (!currentUser?.isVerified) return Alert.alert('Not Verified', 'Admin has not verified your profile yet.');
+              navigation.navigate('Conversation', { id: `chat-${profile.id}` });
+            }}
             style={styles.iconBtn}>
             <ChatIcon />
           </TouchableOpacity>
@@ -206,6 +215,20 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             </View>
           )}
         </View>
+
+        {/* Languages */}
+        {profile.languages && profile.languages.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.sectionLabel}>LANGUAGES</Text>
+            <View style={styles.tagsRow}>
+              {profile.languages.map((lang: string) => (
+                <View key={lang} style={[styles.tag, { backgroundColor: 'rgba(107,159,255,0.1)' }]}>
+                  <Text style={[styles.tagText, { color: Colors.primary }]}>{lang}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Interests */}
         <View style={[styles.card, { marginBottom: 100 }]}>
