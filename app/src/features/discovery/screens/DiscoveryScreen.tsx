@@ -98,7 +98,9 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
   const { data: profiles = [], isLoading } = useProfiles();
 
   const filtered = profiles.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) && String(p.id) !== String(currentUser?.id)
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) && 
+    String(p.id) !== String(currentUser?.id) &&
+    p.role !== role
   );
 
   return (
