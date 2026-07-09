@@ -85,7 +85,19 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { id } = route.params;
   const { data: chats = [], isLoading } = useChats();
-  const chat = chats.find(c => c.id === id);
+  const chat = chats.find(c => c.id === id) || (route.params.profile ? {
+    id,
+    user: route.params.profile,
+    lastMessage: {
+      id: 'm-last',
+      senderId: route.params.profile.id,
+      text: 'Start chatting...',
+      timestamp: new Date().toISOString(),
+      type: 'text' as const,
+      isRead: true
+    },
+    unreadCount: 0
+  } : undefined);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: 'm1', senderId: chat?.user.id || '', text: 'Hey! How are you doing? 😊', timestamp: new Date(Date.now() - 300000).toISOString(), type: 'text', isRead: true },

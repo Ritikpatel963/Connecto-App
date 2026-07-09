@@ -8,7 +8,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Profile: { id: string; profile?: any };
   Call: { id: string };
-  Conversation: { id: string };
+  Conversation: { id: string; profile?: any };
   Notifications: undefined;
   Referral: undefined;
   PrivacySecurity: undefined;

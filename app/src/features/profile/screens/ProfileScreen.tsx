@@ -178,7 +178,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           <TouchableOpacity
             onPress={() => {
               if (!currentUser?.isVerified) return Alert.alert('Not Verified', 'Admin has not verified your profile yet.');
-              navigation.navigate('Conversation', { id: `chat-${profile.id}` });
+              navigation.navigate('Conversation', { id: `chat-${profile.id}`, profile });
             }}
             style={styles.iconBtn}>
             <ChatIcon />

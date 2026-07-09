@@ -9,7 +9,11 @@ export const useChats = () => {
     queryKey: ['chats', id],
     queryFn: async () => {
       // Lazy mock implementation that fetches real users to simulate chats
-      const { data: users, error } = await supabase.from('users').select('*').limit(5);
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .neq('id', id || 0)
+        .limit(5);
       if (error) throw error;
 
       return (users || []).map((u: any): ChatConversation => ({
