@@ -13,7 +13,7 @@ const ManualRechargePage = () => {
   const client = useQueryClient();
   const [action, setAction] = useState<{ row: WalletTransaction; mode: "view" | "approve" | "reject" } | null>(null);
   const mutation = useMutation({
-    mutationFn: (reason: string) => action?.mode === "reject" ? walletTransactionsApi.reject(action.row.id, reason) : walletTransactionsApi.approve(action!.row.id),
+    mutationFn: (reason: string) => action?.mode === "reject" ? walletTransactionsApi.reject(action.row.id, reason) : walletTransactionsApi.approve(action!.row),
     onSuccess: () => { toast.success("Recharge request updated"); setAction(null); client.invalidateQueries({ queryKey: ["manual-recharges"] }); },
     onError: (error: Error) => toast.error(error.message),
   });
