@@ -1,13 +1,63 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { toast } from "react-toastify";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation, useNavigate } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
+import { settingsApi } from "../api/settings";
 
 const SettingsPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("general");
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (location.hash === "#withdrawal") {
+      setActiveTab("withdrawal");
+    }
+  }, [location.hash]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'withdrawal') {
+      navigate('/settings#withdrawal', { replace: true });
+    } else {
+      navigate('/settings', { replace: true });
+    }
+  };
+
+  // Settings State
+  const [withdrawalConfig, setWithdrawalConfig] = useState<{min: string, max: string}>({min: "100", max: "10000"});
+
+  const { data: configData } = useQuery({
+    queryKey: ["settings", "withdrawal_config"],
+    queryFn: () => settingsApi.get("withdrawal_config"),
+  });
+
+  useEffect(() => {
+    if (configData) {
+      setWithdrawalConfig(configData);
+    }
+  }, [configData]);
+
+  const saveRules = useMutation({
+    mutationFn: (config: any) => settingsApi.set("withdrawal_config", config),
+    onSuccess: () => {
+      toast.success("Withdrawal rule saved successfully!");
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    }
+  });
 
   const handleSave = () => {
-    toast.success("Settings saved successfully!");
+    if (activeTab === 'withdrawal') {
+      saveRules.mutate(withdrawalConfig);
+    } else {
+      toast.success("Settings saved successfully!");
+    }
   };
 
   return (
@@ -24,7 +74,7 @@ const SettingsPage = () => {
             <li className="nav-item">
               <button 
                 className={`nav-link fw-semibold text-lg ${activeTab === 'general' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
-                onClick={() => setActiveTab('general')}
+                onClick={() => handleTabChange('general')}
               >
                 General
               </button>
@@ -32,7 +82,7 @@ const SettingsPage = () => {
             <li className="nav-item">
               <button 
                 className={`nav-link fw-semibold text-lg ${activeTab === 'payments' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
-                onClick={() => setActiveTab('payments')}
+                onClick={() => handleTabChange('payments')}
               >
                 Payment Gateways
               </button>
@@ -40,7 +90,7 @@ const SettingsPage = () => {
             <li className="nav-item">
               <button 
                 className={`nav-link fw-semibold text-lg ${activeTab === 'otp' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
-                onClick={() => setActiveTab('otp')}
+                onClick={() => handleTabChange('otp')}
               >
                 OTP Methods
               </button>
@@ -48,7 +98,7 @@ const SettingsPage = () => {
             <li className="nav-item">
               <button 
                 className={`nav-link fw-semibold text-lg ${activeTab === 'notifications' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
-                onClick={() => setActiveTab('notifications')}
+                onClick={() => handleTabChange('notifications')}
               >
                 Notifications
               </button>
@@ -56,9 +106,17 @@ const SettingsPage = () => {
             <li className="nav-item">
               <button 
                 className={`nav-link fw-semibold text-lg ${activeTab === 'company' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
-                onClick={() => setActiveTab('company')}
+                onClick={() => handleTabChange('company')}
               >
                 Company Profile
+              </button>
+            </li>
+            <li className="nav-item">
+              <button 
+                className={`nav-link fw-semibold text-lg ${activeTab === 'withdrawal' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
+                onClick={() => handleTabChange('withdrawal')}
+              >
+                Withdrawal Rules
               </button>
             </li>
           </ul>
@@ -316,6 +374,45 @@ const SettingsPage = () => {
                 <div className="col-12">
                   <label className="form-label fw-semibold">Address</label>
                   <textarea className="form-control" rows={3} defaultValue="123 Platform St, Tech City" />
+                </div>
+              </div>
+            )}
+
+            {/* WITHDRAWAL RULES TAB */}
+            {activeTab === 'withdrawal' && (
+              <div className="row gy-4">
+                <div className="col-lg-6">
+                  <label className="form-label fw-semibold">Minimum Withdrawal Amount (INR)</label>
+                  <div className="input-group">
+                    <span className="input-group-text">₹</span>
+                    <input 
+                      type="number"
+                      className="form-control" 
+                      value={withdrawalConfig.min} 
+                      onChange={(e) => setWithdrawalConfig({...withdrawalConfig, min: e.target.value})}
+                      placeholder="e.g. 100" 
+                    />
+                  </div>
+                  <p className="text-sm text-secondary-light mb-0 mt-2">
+                    Users cannot request a withdrawal below this amount.
+                  </p>
+                </div>
+                
+                <div className="col-lg-6">
+                  <label className="form-label fw-semibold">Maximum Withdrawal Amount (INR)</label>
+                  <div className="input-group">
+                    <span className="input-group-text">₹</span>
+                    <input 
+                      type="number"
+                      className="form-control" 
+                      value={withdrawalConfig.max} 
+                      onChange={(e) => setWithdrawalConfig({...withdrawalConfig, max: e.target.value})}
+                      placeholder="e.g. 10000" 
+                    />
+                  </div>
+                  <p className="text-sm text-secondary-light mb-0 mt-2">
+                    Users cannot request a withdrawal exceeding this amount in a single transaction.
+                  </p>
                 </div>
               </div>
             )}

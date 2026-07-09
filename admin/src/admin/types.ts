@@ -55,6 +55,7 @@ export interface User extends BaseRecord {
   profile_image_url?: string;
   is_online: boolean;
   call_rate: number;
+  call_package_id?: number | string;
   average_rating: number;
   is_id_verified: boolean;
   is_voice_verified: boolean;
@@ -107,7 +108,6 @@ export interface ReferralRedemption extends BaseRecord {
   requested_at: string;
 }
 
-
 export interface Subscription extends BaseRecord {
   id: number;
   user_id: number;
@@ -130,6 +130,7 @@ export interface SubscriptionStats {
   churned_count: number;
   revenue: number;
 }
+
 export interface ColumnDef<T> {
   key: keyof T | string;
   label: string;
@@ -145,3 +146,43 @@ export interface SelectFilter {
   options: Array<{ label: string; value: string }>;
 }
 
+export interface CallRatePackage extends BaseRecord {
+  id: number | string;
+  name: string;
+  coins: number;
+  price: number;
+  currency?: string;
+  status: "active" | "inactive";
+  billing_unit?: "second" | "minute" | "hour";
+  created_at: string;
+}
+
+export interface CoinPackage extends BaseRecord {
+  id: number | string;
+  name: string;
+  coins: number;
+  price: number;
+  currency: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface WithdrawalRequest extends BaseRecord {
+  id: string | number;
+  user: string;
+  amount_coins: number;
+  amount_fiat: number;
+  currency: string;
+  payment_method: string;
+  status: "pending" | "approved" | "rejected" | "completed";
+  created_at: string;
+}
+
+export interface FavoriteRecord extends BaseRecord {
+  id: string | number;
+  user_id: number;
+  target_user_id: number;
+  created_at: string;
+  user?: User; // Optional populated user
+  target_user?: User; // Optional populated target user
+}

@@ -315,8 +315,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
         await Promise.all(insertPromises);
       }
 
-      // Profile submitted for approval — don't authenticate yet
-      navigation.replace('WaitApproval');
+      // Profile setup complete - go straight to app
+      navigation.replace('MainTabs');
     } catch (err) {
       console.log('Error creating profile', err);
       Alert.alert('Error', 'Something went wrong. Please try again.');

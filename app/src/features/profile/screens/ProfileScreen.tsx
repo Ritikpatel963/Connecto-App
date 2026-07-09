@@ -97,7 +97,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { id } = route.params;
   const { role } = useUser();
-  const profile = mockProfiles.find(p => p.id === id);
+  const profile = route.params.profile || mockProfiles.find(p => p.id === id);
 
   if (!profile) {
     return (
@@ -158,7 +158,9 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
                 style={styles.callBtn}>
                 <View style={styles.callBtnContent}>
                   <PhoneIcon />
-                  <Text style={styles.callBtnText}>Call · ₹{profile.pricePerMinute}/min</Text>
+                  <Text style={styles.callBtnText}>
+                    Call · {profile.packageName ? `${profile.packageName} (${profile.pricePerMinute} coins/min)` : `₹${profile.pricePerMinute}/min`}
+                  </Text>
                 </View>
               </LinearGradient>
             </TouchableOpacity>
@@ -167,7 +169,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             <HeartIcon />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Conversation', { id: `chat-0` })}
+            onPress={() => navigation.navigate('Conversation', { id: `chat-${profile.id}` })}
             style={styles.iconBtn}>
             <ChatIcon />
           </TouchableOpacity>
@@ -192,10 +194,16 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.statValue}>{profile.totalCalls}</Text>
             <Text style={styles.statLabel}>Calls</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>₹{profile.pricePerMinute}/min</Text>
-            <Text style={styles.statLabel}>Rate</Text>
-          </View>
+          {profile.role !== 'boy' && (
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>
+                {profile.packageName ? `${profile.pricePerMinute}` : `₹${profile.pricePerMinute}`}
+              </Text>
+              <Text style={styles.statLabel}>
+                {profile.packageName ? 'Coins/min' : 'Rate'}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Interests */}

@@ -5,6 +5,7 @@ export const statusOptions = {
   transactions: ["pending", "verified", "rejected"],
   referrals: ["pending", "qualified", "rejected"],
   redemptions: ["pending", "approved", "rejected", "credited"],
+  withdrawals: ["pending", "approved", "rejected", "completed"],
 };
 
 const people = {
@@ -24,7 +25,7 @@ export const entityConfigs = {
     description: "Manage member profiles, account status, verification and referral performance.",
     icon: "solar:users-group-rounded-outline",
     primaryAction: "Add user",
-    schemaFields: ["id", "name", "age", "gender", "country", "state", "city", "bio", "profile_image_url", "is_online", "last_seen_at", "call_rate", "average_rating", "total_ratings", "is_active", "is_id_verified", "is_voice_verified", "referral_code", "referred_by_user_id", "total_referrals", "referral_earnings", "created_at", "updated_at"],
+    schemaFields: ["id", "name", "age", "gender", "country", "state", "city", "bio", "profile_image_url", "is_online", "last_seen_at", "call_rate", "call_package_id", "average_rating", "total_ratings", "is_active", "is_id_verified", "is_voice_verified", "referral_code", "referred_by_user_id", "total_referrals", "referral_earnings", "created_at", "updated_at"],
     columns: [
       { key: "id", label: "ID" },
       { key: "name", label: "Member", type: "user" },
@@ -33,6 +34,8 @@ export const entityConfigs = {
       { key: "call_rate", label: "Call rate", type: "money" },
       { key: "average_rating", label: "Rating", type: "rating" },
       { key: "verification", label: "Verification", type: "verification" },
+      { key: "total_referrals", label: "Referrals" },
+      { key: "referral_earnings", label: "Earned", type: "money" },
       { key: "status", label: "Status", type: "status" },
     ],
     rows: [
@@ -234,6 +237,25 @@ export const entityConfigs = {
       { id: 5, role_id: 3, role: "Finance admin", permission_id: 4, permission: "approve_referral_redemption", scope: "Referrals" },
     ],
   },
+  "coin-packages": {
+    tableName: "coin_packages", title: "Coin Packages", singular: "package", description: "Manage fiat-to-coin recharge packages for users to purchase.", icon: "solar:bag-heart-outline", primaryAction: "Add package",
+    schemaFields: ["id", "name", "coins", "price", "currency", "is_active", "created_at"],
+    columns: [{ key: "id", label: "ID" }, { key: "name", label: "Package" }, { key: "coins", label: "Coins" }, { key: "price", label: "Price", type: "money" }, { key: "status", label: "Status", type: "status" }, { key: "created_at", label: "Created", type: "date" }],
+    rows: [
+      { id: 1, name: "Starter Kit", coins: 100, price: 50, currency: "INR", is_active: true, status: "active", created_at: "2026-07-01" },
+      { id: 2, name: "Pro Pack", coins: 500, price: 200, currency: "INR", is_active: true, status: "active", created_at: "2026-07-02" },
+      { id: 3, name: "Whale Offer", coins: 2000, price: 700, currency: "INR", is_active: true, status: "active", created_at: "2026-07-03" },
+    ]
+  },
+  withdrawals: {
+    tableName: "withdrawal_requests", title: "Withdrawal Requests", singular: "withdrawal", description: "Review and process payout requests from creators.", icon: "solar:cash-out-outline", workflow: "approval",
+    schemaFields: ["id", "user_id", "amount_coins", "amount_fiat", "currency", "payment_method", "payment_details", "status", "created_at"],
+    columns: [{ key: "id", label: "ID" }, { key: "user", label: "Creator", type: "user" }, { key: "amount_coins", label: "Coins" }, { key: "amount_fiat", label: "Payout", type: "money" }, { key: "payment_method", label: "Method" }, { key: "status", label: "Status", type: "status" }, { key: "created_at", label: "Requested", type: "date" }],
+    rows: [
+      { id: "WDR-101", user_id: 1002, user: people[2], amount_coins: 5000, amount_fiat: 500, currency: "INR", payment_method: "UPI", payment_details: { upi_id: "meera@ybl" }, status: "pending", created_at: "2026-07-03 12:00" },
+      { id: "WDR-102", user_id: 1005, user: people[5], amount_coins: 12000, amount_fiat: 1200, currency: "INR", payment_method: "Bank Transfer", payment_details: { account_number: "xxxx-4321", ifsc: "HDFC0001" }, status: "approved", created_at: "2026-07-02 10:15" },
+    ]
+  },
 };
 
 export const sidebarSections = [
@@ -265,13 +287,13 @@ export const sidebarSections = [
     id: "finance",
     label: "Wallet & Finance",
     icon: "solar:wallet-2-outline",
-    items: [["wallets", "Wallets"], ["wallet-transactions", "Transactions"]],
+    items: [["wallets", "Wallets"], ["wallet-transactions", "Transactions"], ["recharge-packages", "Coin Packages"], ["withdrawals", "Withdrawals"]],
   },
   {
     id: "referrals",
     label: "Referrals",
     icon: "solar:share-circle-outline",
-    items: [["referrals", "Referral Activity"], ["referral-tiers", "Reward Tiers"], ["referral-redemptions", "Redemptions"]],
+    items: [["referrals", "Referral Activity"], ["referral-tiers", "Reward Tiers"]],
   },
   {
     id: "access",
@@ -292,5 +314,4 @@ export const approvalQueue = [
   { type: "ID verification", item: "IDV-2041", user: people[3], age: "14 min", route: "/admin/id-verifications", tone: "warning" },
   { type: "Voice verification", item: "VV-912", user: people[2], age: "21 min", route: "/admin/voice-verifications", tone: "info" },
   { type: "Manual recharge", item: "TXN-7204", user: people[2], age: "27 min", route: "/admin/wallet-transactions", tone: "primary" },
-  { type: "Referral payout", item: "RDM-330", user: people[5], age: "42 min", route: "/admin/referral-redemptions", tone: "success" },
 ];

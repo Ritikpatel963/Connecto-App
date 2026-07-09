@@ -14,6 +14,7 @@ export interface UserProfile {
   rating: number;
   totalCalls: number;
   pricePerMinute: number;
+  packageName?: string;
   languages: string[];
   interests: string[];
   city: string;

@@ -21,6 +21,12 @@ import VerificationsPage from "./pages/VerificationsPage";
 import WalletTransactionsPage from "./pages/WalletTransactionsPage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./auth/ProtectedRoute";
+import CreatePackagePage from "./pages/CreatePackagePage";
+import EditPackagePage from "./pages/EditPackagePage";
+import RechargePackagesPage from "./pages/RechargePackagesPage";
+import CreateRechargePackagePage from "./pages/CreateRechargePackagePage";
+import EditRechargePackagePage from "./pages/EditRechargePackagePage";
+import WithdrawalsPage from "./pages/WithdrawalsPage";
 
 const AppRoutes = () => (
   <Routes>
@@ -37,9 +43,15 @@ const AppRoutes = () => (
         <Route path="/chat/profile" element={<ChatProfilePage />} />
         <Route path="/ratings" element={<RatingsPage />} />
         <Route path="/subscriptions" element={<SubscriptionsPage />} />
+        <Route path="/packages/create" element={<CreatePackagePage />} />
+        <Route path="/packages/edit/:id" element={<EditPackagePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/wallet/transactions" element={<WalletTransactionsPage />} />
         <Route path="/wallet/manual-approvals" element={<ManualRechargePage />} />
+        <Route path="/recharge-packages" element={<RechargePackagesPage />} />
+        <Route path="/recharge-packages/create" element={<CreateRechargePackagePage />} />
+        <Route path="/recharge-packages/edit/:id" element={<EditRechargePackagePage />} />
+        <Route path="/withdrawals" element={<WithdrawalsPage />} />
         <Route path="/referrals" element={<ReferralsPage />} />
         <Route path="/referrals/tiers" element={<ReferralTiersPage />} />
         <Route path="/referrals/redemptions" element={<RedemptionsPage />} />

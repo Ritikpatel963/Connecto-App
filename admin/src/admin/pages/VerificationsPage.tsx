@@ -58,7 +58,7 @@ const VerificationsPage = ({ type }: { type: "id" | "voice" }) => {
       {action && <div className="bg-neutral-50 radius-12 p-20">
         {type === "id"
           ? hasUploadedAsset(action.row.id_image_url)
-            ? <div className="text-center py-32"><Icon icon="solar:gallery-wide-outline" className="text-5xl text-primary-600 mb-12" /><p className="fw-semibold mb-4">{action.row.document || "Identity document"}</p><a href={action.row.id_image_url} target="_blank" rel="noreferrer" className="text-primary-600">Open submitted image</a></div>
+            ? <div className="text-center"><img src={action.row.id_image_url} alt={action.row.document || "Identity document"} className="w-100 radius-8 mb-12" style={{ maxHeight: '400px', objectFit: 'contain' }} /><p className="fw-semibold mb-0">{action.row.document || "Identity document"}</p></div>
             : <DemoAssetNotice type="id" />
           : hasUploadedAsset(action.row.voice_audio_url)
             ? <div><audio controls className="w-100"><source src={action.row.voice_audio_url} /></audio><p className="text-sm text-secondary-light mt-12 mb-0">{action.row.sample || "Voice recording"}</p></div>

@@ -6,30 +6,29 @@ import { DateCell } from "../components/Cells";
 import AdminDataTable from "../components/AdminDataTable";
 import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
-import { packagesApi } from "../api/packages";
-import { ColumnDef, SelectFilter, CallRatePackage } from "../types";
+import { coinPackagesApi } from "../api/coinPackages";
+import { ColumnDef, SelectFilter, CoinPackage } from "../types";
 
 const filters: SelectFilter[] = [
   { key: "status", label: "Status", options: ["active", "inactive"].map((value) => ({ label: value.replace(/^\w/, c => c.toUpperCase()), value })) },
 ];
 
-const columns: ColumnDef<CallRatePackage>[] = [
+const columns: ColumnDef<CoinPackage>[] = [
   { key: "id", label: "ID" },
   { key: "name", label: "Package Name" },
   { key: "coins", label: "Coins", render: (row) => <strong>{row.coins}</strong> },
-  { key: "price", label: "Price", render: (row) => <span>{row.currency || "USD"} {row.price.toFixed(2)}</span> },
-  { key: "billing_unit", label: "Billing Unit", render: (row) => <span className="text-capitalize">{row.billing_unit || "minute"}</span> },
-  { key: "status", label: "Status", render: (row) => <StatusBadge value={row.status} /> },
+  { key: "price", label: "Price", render: (row) => <span>{row.currency || "INR"} {row.price.toFixed(2)}</span> },
+  { key: "is_active", label: "Status", render: (row) => <StatusBadge value={row.is_active ? "active" : "inactive"} /> },
   { key: "created_at", label: "Created", render: (row) => <DateCell value={row.created_at} /> },
 ];
 
-const SubscriptionsPage = () => {
+const RechargePackagesPage = () => {
   const queryClient = useQueryClient();
   
   const deleteMutation = useMutation({
-    mutationFn: (id: string | number) => packagesApi.remove(id),
+    mutationFn: (id: string | number) => coinPackagesApi.remove(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["packages"] });
+      queryClient.invalidateQueries({ queryKey: ["coin-packages"] });
     },
   });
 
@@ -40,22 +39,22 @@ const SubscriptionsPage = () => {
   };
 
   return (
-    <div className="packages-page">
-      <PageHeader title="Packages" description="Manage call rate packages." icon="solar:crown-star-outline" />
-      <AdminDataTable<CallRatePackage>
-        queryKey={["packages"]}
-        queryFn={packagesApi.list}
+    <div className="recharge-packages-page">
+      <PageHeader title="Coin Recharge Packages" description="Manage fiat-to-coin packages for users to purchase." icon="solar:bag-heart-outline" />
+      <AdminDataTable<CoinPackage>
+        queryKey={["coin-packages"]}
+        queryFn={coinPackagesApi.list}
         columns={columns}
         filters={filters}
         initialSort={{ key: "created_at", direction: "desc" }}
         toolbar={
-          <Link to="/packages/create" className="btn btn-primary-600 d-inline-flex align-items-center gap-2">
+          <Link to="/recharge-packages/create" className="btn btn-primary-600 d-inline-flex align-items-center gap-2">
             <Icon icon="solar:add-circle-outline" /> Create Package
           </Link>
         }
         renderActions={(row) => (
           <>
-            <Link to={`/packages/edit/${row.id}`} className="btn btn-sm btn-outline-primary" title="Edit">
+            <Link to={`/recharge-packages/edit/${row.id}`} className="btn btn-sm btn-outline-primary" title="Edit">
               <Icon icon="solar:pen-outline" />
             </Link>
             <button 
@@ -73,5 +72,4 @@ const SubscriptionsPage = () => {
   );
 };
 
-export default SubscriptionsPage;
-
+export default RechargePackagesPage;

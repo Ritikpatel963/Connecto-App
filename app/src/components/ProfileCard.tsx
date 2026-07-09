@@ -85,7 +85,11 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           <Text style={styles.listBio} numberOfLines={1}>{profile.bio}</Text>
           <View style={styles.listMeta}>
             <RatingStars rating={profile.rating} size={12} />
-            <Text style={styles.listPrice}>₹{profile.pricePerMinute}/min</Text>
+            {profile.role !== 'boy' && (
+              <Text style={styles.listPrice}>
+                {profile.packageName ? `${profile.pricePerMinute} coins/min` : `₹${profile.pricePerMinute}/min`}
+              </Text>
+            )}
           </View>
         </View>
         {role === 'boy' && (
@@ -126,7 +130,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           {profile.isVerified && <BadgeCheckIcon />}
         </View>
         <Text style={styles.gridSub}>
-          {profile.city} · ₹{profile.pricePerMinute}/min
+          {profile.city} {profile.role !== 'boy' && `· ${profile.packageName ? `${profile.pricePerMinute} coins/min` : `₹${profile.pricePerMinute}/min`}`}
         </Text>
         <View style={styles.gridFooter}>
           <RatingStars rating={profile.rating} size={12} />

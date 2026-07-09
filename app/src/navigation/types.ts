@@ -6,7 +6,7 @@ export type RootStackParamList = {
   ProfileSetup: undefined;
   WaitApproval: undefined;
   MainTabs: undefined;
-  Profile: { id: string };
+  Profile: { id: string; profile?: any };
   Call: { id: string };
   Conversation: { id: string };
   Notifications: undefined;
