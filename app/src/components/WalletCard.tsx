@@ -80,12 +80,12 @@ const WalletCard: React.FC<WalletCardProps> = ({ onRecharge, onWithdraw }) => {
           <WalletIcon />
           <Text style={styles.label}>Wallet Balance</Text>
         </View>
-        <Text style={styles.balance}>₹{walletBalance.toLocaleString()}</Text>
+        <Text style={styles.balance}>{walletBalance.toLocaleString()} Coins</Text>
 
         {role === 'girl' && (
           <View style={styles.earningRow}>
             <CallIcon />
-            <Text style={styles.earningText}>₹2,450 earned this month</Text>
+            <Text style={styles.earningText}>{2450} Coins earned this month</Text>
           </View>
         )}
 

@@ -10,6 +10,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +19,7 @@ import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import { useUser } from '../../../context/UserContext';
+import { supabase } from '../../../api/supabase';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 
@@ -30,7 +32,7 @@ type IconProps = {
   size?: number;
 };
 
-type PaymentMethodId = 'upi' | 'card' | 'netbanking' | 'wallet';
+type PaymentMethodId = 'upi' | 'card' | 'netbanking' | 'wallet' | 'manual';
 
 type PaymentMethod = {
   id: PaymentMethodId;
@@ -51,6 +53,7 @@ const PAYMENT_METHODS: PaymentMethod[] = [
   { id: 'card', label: 'Credit / Debit Card', subtitle: 'Visa, Mastercard, RuPay' },
   { id: 'netbanking', label: 'Net Banking', subtitle: 'All major banks' },
   { id: 'wallet', label: 'Mobile Wallets', subtitle: 'Paytm, Amazon Pay' },
+  { id: 'manual', label: 'Manual Recharge (Upload Screenshot)', subtitle: 'Upload payment proof' },
 ];
 
 const SmartphoneIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 }) => (
@@ -88,7 +91,7 @@ const WalletIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 
 
 const RechargeScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { walletBalance, setWalletBalance } = useUser();
+  const { currentUser, walletBalance, setWalletBalance } = useUser();
 
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
@@ -97,13 +100,53 @@ const RechargeScreen: React.FC<Props> = ({ navigation }) => {
   const finalAmount = selectedAmount ?? (customAmount ? Number(customAmount) : 0);
   const bonus = OFFERS.find(o => o.amount === finalAmount)?.bonus ?? 0;
 
-  const handleRecharge = () => {
+  const handleRecharge = async () => {
     if (!finalAmount || finalAmount < 10) {
       Alert.alert('Invalid Amount', 'Minimum recharge is Rs 10');
       return;
     }
 
     const paymentLabel = PAYMENT_METHODS.find(p => p.id === selectedPayment)?.label ?? 'UPI';
+
+    if (selectedPayment === 'manual') {
+      try {
+        const result = await launchImageLibrary({
+          mediaType: 'photo',
+          includeBase64: true,
+          selectionLimit: 1,
+        });
+
+        if (result.didCancel || !result.assets?.length) return;
+
+        const asset = result.assets[0];
+        if (!asset.base64) {
+          Alert.alert('Error', 'Could not process the image.');
+          return;
+        }
+
+        const dataUri = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
+
+        const { error } = await supabase.from('wallet_transactions').insert({
+          user_id: currentUser?.id || 1,
+          transaction_type: 'recharge',
+          amount: finalAmount,
+          payment_method: 'manual_upload',
+          payment_screenshot_url: dataUri,
+          verification_status: 'pending',
+          status: 'pending',
+        });
+
+        if (error) throw error;
+
+        Alert.alert('Success', 'Recharge request submitted. Pending admin approval.', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } catch (e: any) {
+        Alert.alert('Error', e.message || 'Failed to submit request');
+      }
+      return;
+    }
+
     Alert.alert(
       'Confirm Recharge',
       `Recharge Rs ${finalAmount}${bonus ? ` + Rs ${bonus} bonus` : ''} via ${paymentLabel}?`,
@@ -157,7 +200,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.balanceCard}>
           <View style={styles.balanceGlow} />
           <Text style={styles.balanceLabel}>Current Balance</Text>
-          <Text style={styles.balanceAmount}>Rs {walletBalance.toLocaleString()}</Text>
+          <Text style={styles.balanceAmount}>{walletBalance.toLocaleString()} Coins</Text>
         </LinearGradient>
 
         <Text style={styles.sectionTitle}>Select Amount</Text>
