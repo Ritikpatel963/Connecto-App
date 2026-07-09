@@ -33,7 +33,7 @@ type Props = CompositeScreenProps<
 
 const ChatListScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { currentUser } = useUser();
+  const { currentUser, role } = useUser();
   const [search, setSearch] = useState('');
   const { data: chats = [], isLoading } = useChats();
 
@@ -45,9 +45,9 @@ const ChatListScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const filtered = chats.filter(c =>
-    c.user.name.toLowerCase().includes(search.toLowerCase()),
+    c.user.name.toLowerCase().includes(search.toLowerCase()) && c.user.role !== role
   );
-  const onlineUsers = chats.filter(c => c.user.isOnline);
+  const onlineUsers = chats.filter(c => c.user.isOnline && c.user.role !== role);
 
   const SearchIcon = () => (
     <Svg

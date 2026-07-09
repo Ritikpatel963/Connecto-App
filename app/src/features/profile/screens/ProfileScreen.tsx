@@ -166,7 +166,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
                 <View style={styles.callBtnContent}>
                   <PhoneIcon />
                   <Text style={styles.callBtnText}>
-                    Call · {profile.packageName ? `${profile.packageName} (${profile.pricePerMinute} coins/min)` : `₹${profile.pricePerMinute}/min`}
+                    Call · {profile.pricePerMinute} coins/min
                   </Text>
                 </View>
               </LinearGradient>
@@ -206,10 +206,10 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>
-              {profile.packageName ? `${profile.pricePerMinute}` : `₹${profile.pricePerMinute}`}
+              {profile.pricePerMinute}
             </Text>
             <Text style={styles.statLabel}>
-              {profile.packageName ? 'Coins/min' : 'Rate'}
+              Coins/min
             </Text>
           </View>
         </View>

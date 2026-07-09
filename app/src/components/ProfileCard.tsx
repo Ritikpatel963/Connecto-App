@@ -86,7 +86,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           <View style={styles.listMeta}>
             <RatingStars rating={profile.rating} size={12} />
             <Text style={styles.listPrice}>
-              {profile.packageName ? `${profile.pricePerMinute} coins/min` : `₹${profile.pricePerMinute}/min`}
+              {profile.pricePerMinute} coins/min
             </Text>
           </View>
         </View>
@@ -128,7 +128,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           {profile.isVerified && <BadgeCheckIcon />}
         </View>
         <Text style={styles.gridSub}>
-          {profile.city} · {profile.packageName ? `${profile.pricePerMinute} coins/min` : `₹${profile.pricePerMinute}/min`}
+          {profile.city} · {profile.pricePerMinute} coins/min
         </Text>
         <View style={styles.gridFooter}>
           <RatingStars rating={profile.rating} size={12} />
