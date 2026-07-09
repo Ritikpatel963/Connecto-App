@@ -145,8 +145,8 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         const uploadData = await uploadRes.json();
         let uploadedUrl = uploadData?.data?.url || '';
         if (uploadedUrl) {
-          // Convert to direct download link
-          uploadedUrl = uploadedUrl.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+          // Convert to direct image link (tmpfiles uses /f/ for raw files, not /dl/)
+          uploadedUrl = uploadedUrl.replace('tmpfiles.org/', 'tmpfiles.org/f/');
         }
 
         const { error } = await supabase.from('wallet_transactions').insert({
