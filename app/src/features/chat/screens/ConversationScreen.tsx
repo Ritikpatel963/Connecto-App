@@ -15,7 +15,7 @@ import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
-import { mockChats } from '../../../shared/data/mockData';
+import { useChats } from '../../../api/chat';
 import ChatBubble from '../../../components/ChatBubble';
 import OnlineIndicator from '../../../components/OnlineIndicator';
 import BackArrowIcon from '../../../components/BackArrowIcon';
@@ -84,7 +84,8 @@ const SendIcon: React.FC<IconProps> = ({ color = '#FFFFFF', size = CHAT_SEND_ICO
 const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { id } = route.params;
-  const chat = mockChats.find(c => c.id === id);
+  const { data: chats = [], isLoading } = useChats();
+  const chat = chats.find(c => c.id === id);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: 'm1', senderId: chat?.user.id || '', text: 'Hey! How are you doing? 😊', timestamp: new Date(Date.now() - 300000).toISOString(), type: 'text', isRead: true },

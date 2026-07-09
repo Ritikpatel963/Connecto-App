@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { Colors } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
-import { mockProfiles } from '../../../shared/data/mockData';
+import { useFavorites } from '../../../api/favorites';
 import { useUser } from '../../../context/UserContext';
 import ProfileCard from '../../../components/ProfileCard';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -20,7 +20,7 @@ type Props = CompositeScreenProps<
 const FavoritesScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { role } = useUser();
-  const [favorites] = useState(mockProfiles.slice(0, 3));
+  const { data: favorites = [], isLoading } = useFavorites();
 
   return (
     <View style={styles.container}>

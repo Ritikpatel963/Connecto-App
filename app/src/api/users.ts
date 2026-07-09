@@ -1,40 +1,35 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from './supabase';
-import { useUser } from '../context/UserContext';
 import { UserProfile } from '../shared/types/app';
 
-export const useFavorites = () => {
-  const { currentUser } = useUser(); const id = currentUser?.id;
-  
+export const useProfiles = () => {
   return useQuery({
-    queryKey: ['favorites', id],
+    queryKey: ['profiles'],
     queryFn: async () => {
-      const userId = id || 1;
-      const { data, error } = await supabase
-        .from('favorites')
-        .select(`
-          id,
-          target_user:users!favorites_target_user_id_fkey(*)
-        `)
-        .eq('user_id', userId);
+      const [{ data: users, error: usersError }, { data: packages, error: packagesError }] = await Promise.all([
+        supabase.from('users').select('*'),
+        supabase.from('packages').select('*')
+      ]);
 
-      if (error) throw error;
+      if (usersError) throw usersError;
+      if (packagesError) throw packagesError;
 
-      return (data || []).map((fav: any): UserProfile => {
-        const u = fav.target_user || {};
+      return (users || []).map((u: any): UserProfile => {
+        const pkg = (packages || []).find((p: any) => String(p.id) === String(u.call_package_id));
         return {
           id: u.id,
           name: u.name || 'Unknown',
           age: u.age || 20,
           avatar: u.profile_image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
           role: u.gender === 'female' ? 'girl' : 'boy',
-          bio: 'Favorite User',
+          bio: 'New user',
           isOnline: u.is_online,
           isPremium: false,
           isVerified: u.is_active,
           rating: u.average_rating || 0,
           totalCalls: 0,
-          pricePerMinute: u.call_rate || 0,
+          pricePerMinute: pkg ? pkg.coins : (u.call_rate || 0),
+          packageName: pkg ? pkg.name : undefined,
           languages: ['English'],
           interests: [],
           city: u.city || 'Unknown'

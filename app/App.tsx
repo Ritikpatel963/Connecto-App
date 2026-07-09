@@ -1,9 +1,16 @@
 import React from 'react';
 import { StatusBar, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { UserProvider, useUser } from './src/context/UserContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { Colors } from './src/theme/colors';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false },
+  },
+});
 
 const BootGate = () => {
   const { hasHydrated } = useUser();
@@ -21,10 +28,12 @@ const BootGate = () => {
 
 const App = () => (
   <SafeAreaProvider>
-    <UserProvider>
-      <StatusBar barStyle="light-content" backgroundColor="#0F0F11" />
-      <BootGate />
-    </UserProvider>
+    <QueryClientProvider client={queryClient}>
+      <UserProvider>
+        <StatusBar barStyle="light-content" backgroundColor="#0F0F11" />
+        <BootGate />
+      </UserProvider>
+    </QueryClientProvider>
   </SafeAreaProvider>
 );
 

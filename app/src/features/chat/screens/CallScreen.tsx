@@ -5,7 +5,7 @@ import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
-import { mockProfiles } from '../../../shared/data/mockData';
+import { useProfiles } from '../../../api/users';
 import { useUser } from '../../../context/UserContext';
 import RatingStars from '../../../components/RatingStars';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -141,7 +141,8 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { id } = route.params;
   const { role, walletBalance, setWalletBalance, setIsOnline } = useUser();
-  const profile = mockProfiles.find(p => p.id === id);
+  const { data: profiles = [], isLoading } = useProfiles();
+  const profile = profiles.find(p => p.id === id);
   const [callState, setCallState] = useState<'ringing' | 'active' | 'ended'>('ringing');
   const [duration, setDuration] = useState(0);
   const [muted, setMuted] = useState(false);

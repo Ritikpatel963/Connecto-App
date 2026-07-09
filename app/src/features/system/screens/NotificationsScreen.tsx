@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
-import { mockNotifications } from '../../../shared/data/mockData';
+import { useNotifications } from '../../../api/notifications';
 import NotificationCard from '../../../components/NotificationCard';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,6 +13,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Notifications'>;
 
 const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { data: notifications = [], isLoading } = useNotifications();
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -23,7 +24,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <FlatList
-        data={mockNotifications}
+        data={notifications}
         keyExtractor={item => item.id}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 32 }]}
         initialNumToRender={8}

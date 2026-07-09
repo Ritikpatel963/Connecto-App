@@ -6,7 +6,7 @@ import { Radius } from '../../../theme/spacing';
 import { useUser } from '../../../context/UserContext';
 import WalletCard from '../../../components/WalletCard';
 import TransactionRow from '../../../components/TransactionRow';
-import { mockTransactions } from '../../../shared/data/mockData';
+import { useTransactions } from '../../../api/wallet';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 import type { CompositeScreenProps } from '@react-navigation/native';
@@ -24,6 +24,7 @@ const rechargeAmounts = [100, 200, 500, 1000];
 const WalletScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { role, walletBalance, setWalletBalance } = useUser();
+  const { data: transactions = [], isLoading } = useTransactions();
 
   return (
     <ScrollView
@@ -54,7 +55,7 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.txSection}>
         <Text style={styles.sectionLabel}>TRANSACTIONS</Text>
-        {mockTransactions.map(tx => (
+        {isLoading ? <Text style={{color: Colors.mutedForeground}}>Loading...</Text> : transactions.map(tx => (
           <View key={tx.id} style={styles.txRow}>
             <TransactionRow tx={tx} />
           </View>

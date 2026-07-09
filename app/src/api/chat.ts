@@ -1,34 +1,26 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from './supabase';
+import { ChatConversation } from '../shared/types/app';
 import { useUser } from '../context/UserContext';
-import { UserProfile } from '../shared/types/app';
 
-export const useFavorites = () => {
+export const useChats = () => {
   const { currentUser } = useUser(); const id = currentUser?.id;
-  
   return useQuery({
-    queryKey: ['favorites', id],
+    queryKey: ['chats', id],
     queryFn: async () => {
-      const userId = id || 1;
-      const { data, error } = await supabase
-        .from('favorites')
-        .select(`
-          id,
-          target_user:users!favorites_target_user_id_fkey(*)
-        `)
-        .eq('user_id', userId);
-
+      // Lazy mock implementation that fetches real users to simulate chats
+      const { data: users, error } = await supabase.from('users').select('*').limit(5);
       if (error) throw error;
 
-      return (data || []).map((fav: any): UserProfile => {
-        const u = fav.target_user || {};
-        return {
+      return (users || []).map((u: any): ChatConversation => ({
+        id: `chat-${u.id}`,
+        user: {
           id: u.id,
           name: u.name || 'Unknown',
           age: u.age || 20,
           avatar: u.profile_image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
           role: u.gender === 'female' ? 'girl' : 'boy',
-          bio: 'Favorite User',
+          bio: 'New user',
           isOnline: u.is_online,
           isPremium: false,
           isVerified: u.is_active,
@@ -38,8 +30,17 @@ export const useFavorites = () => {
           languages: ['English'],
           interests: [],
           city: u.city || 'Unknown'
-        };
-      });
+        },
+        lastMessage: {
+          id: `msg-${u.id}`,
+          senderId: String(u.id),
+          text: 'Hello, are you available?',
+          timestamp: new Date().toISOString(),
+          type: 'text',
+          isRead: false
+        },
+        unreadCount: 1
+      }));
     }
   });
 };

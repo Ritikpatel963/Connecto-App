@@ -14,7 +14,7 @@ import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
 import BackArrowIcon from '../../../components/BackArrowIcon';
-import { mockProfiles } from '../../../shared/data/mockData';
+import { useProfiles } from '../../../api/users';
 import { useUser } from '../../../context/UserContext';
 import OnlineIndicator from '../../../components/OnlineIndicator';
 import PremiumBadge from '../../../components/PremiumBadge';
@@ -97,7 +97,8 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { id } = route.params;
   const { role } = useUser();
-  const profile = route.params.profile || mockProfiles.find(p => p.id === id);
+  const { data: profiles = [] } = useProfiles();
+  const profile = route.params.profile || profiles.find(p => p.id === id);
 
   if (!profile) {
     return (
@@ -210,7 +211,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={[styles.card, { marginBottom: 100 }]}>
           <Text style={styles.sectionLabel}>INTERESTS</Text>
           <View style={styles.tagsRow}>
-            {profile.interests.map(interest => (
+            {profile.interests.map((interest: string) => (
               <View key={interest} style={styles.tag}>
                 <Text style={styles.tagText}>{interest}</Text>
               </View>

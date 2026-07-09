@@ -13,7 +13,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { Colors } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
-import { mockChats } from '../../../shared/data/mockData';
+import { useChats } from '../../../api/chat';
 import OnlineIndicator from '../../../components/OnlineIndicator';
 import LinearGradient from 'react-native-linear-gradient';
 import { Gradients } from '../../../theme/colors';
@@ -32,10 +32,12 @@ type Props = CompositeScreenProps<
 const ChatListScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
-  const filtered = mockChats.filter(c =>
+  const { data: chats = [], isLoading } = useChats();
+
+  const filtered = chats.filter(c =>
     c.user.name.toLowerCase().includes(search.toLowerCase()),
   );
-  const onlineUsers = mockChats.filter(c => c.user.isOnline);
+  const onlineUsers = chats.filter(c => c.user.isOnline);
 
   const SearchIcon = () => (
     <Svg

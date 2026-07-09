@@ -5,7 +5,7 @@ import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
-import { mockReferralInfo } from '../../../shared/data/mockData';
+import { useReferralStats } from '../../../api/wallet';
 import ReferralProgressBar from '../../../components/ReferralProgressBar';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -66,7 +66,15 @@ const ShareIcon: React.FC<{ color?: string; size?: number }> = ({ color = '#FFFF
 
 const ReferralScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const info = mockReferralInfo;
+  const { data: info, isLoading } = useReferralStats();
+
+  if (isLoading || !info) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={{color: Colors.mutedForeground}}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
