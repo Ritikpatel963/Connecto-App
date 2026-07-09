@@ -17,6 +17,7 @@ import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
 import { useProfiles } from '../../../api/users';
 import { useUser } from '../../../context/UserContext';
+import { supabase } from '../../../api/supabase';
 import OnlineIndicator from '../../../components/OnlineIndicator';
 import ProfileCard from '../../../components/ProfileCard';
 
@@ -95,7 +96,16 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [activeFilter, setActiveFilter] = useState(0);
-  const { data: profiles = [], isLoading } = useProfiles();
+  const { data: profiles = [], isLoading, refetch } = useProfiles();
+
+  useEffect(() => {
+    const channel = supabase.channel('public:users')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users' }, () => {
+        refetch();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [refetch]);
 
   const filtered = profiles.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) && 

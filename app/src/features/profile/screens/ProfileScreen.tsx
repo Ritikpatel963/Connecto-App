@@ -204,16 +204,14 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.statValue}>{profile.totalCalls}</Text>
             <Text style={styles.statLabel}>Calls</Text>
           </View>
-          {profile.role !== 'boy' && (
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>
-                {profile.packageName ? `${profile.pricePerMinute}` : `₹${profile.pricePerMinute}`}
-              </Text>
-              <Text style={styles.statLabel}>
-                {profile.packageName ? 'Coins/min' : 'Rate'}
-              </Text>
-            </View>
-          )}
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>
+              {profile.packageName ? `${profile.pricePerMinute}` : `₹${profile.pricePerMinute}`}
+            </Text>
+            <Text style={styles.statLabel}>
+              {profile.packageName ? 'Coins/min' : 'Rate'}
+            </Text>
+          </View>
         </View>
 
         {/* Languages */}
