@@ -107,11 +107,26 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
     return () => { supabase.removeChannel(channel); };
   }, [refetch]);
 
-  const filtered = profiles.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) && 
-    String(p.id) !== String(currentUser?.id) &&
-    p.role !== role
-  );
+  const activeFilterName = filters[activeFilter];
+  const filtered = profiles.filter(p => {
+    if (!p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (String(p.id) === String(currentUser?.id)) return false;
+    if (p.role === role) return false;
+
+    switch (activeFilterName) {
+      case 'Online':
+        return p.isOnline;
+      case 'Premium':
+        return p.isPremium;
+      case 'Verified':
+        return p.isVerified;
+      case 'New':
+        return p.totalCalls === 0;
+      case 'All':
+      default:
+        return true;
+    }
+  });
 
   return (
     <View style={styles.container}>
