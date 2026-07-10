@@ -7,8 +7,8 @@ import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
 import { useProfiles } from '../../../api/users';
 import { useUser } from '../../../context/UserContext';
-import { useSubmitRating } from '../../../api/ratings';
 import RatingStars from '../../../components/RatingStars';
+import { supabase } from '../../../api/supabase';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -152,8 +152,9 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
   const [review, setReview] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTip, setActiveTip] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const submitRating = useSubmitRating();
+  const { currentUser } = useUser();
 
   const costPerMin = profile?.pricePerMinute || 10;
   const totalCost = Math.ceil(duration / 60) * costPerMin;
@@ -305,17 +306,25 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
             <TouchableOpacity
               onPress={async () => {
                 if (rating > 0 || review.trim().length > 0) {
-                  await submitRating.mutateAsync({
-                    targetUserId: profile.id,
-                    rating,
-                    reviewText: review
-                  });
+                  setIsSubmitting(true);
+                  try {
+                    await supabase.from('ratings').insert({
+                      rater_user_id: currentUser?.id,
+                      rated_user_id: profile.id,
+                      rating,
+                      review_text: review,
+                      call_id: `call-${Date.now()}`
+                    });
+                  } catch (e) {
+                    console.error('Failed to submit rating', e);
+                  }
+                  setIsSubmitting(false);
                 }
                 navigation.navigate('MainTabs');
               }}
               activeOpacity={0.85}
               style={styles.doneBtnPressable}
-              disabled={submitRating.isPending}>
+              disabled={isSubmitting}>
               <LinearGradient
                 colors={[...Gradients.primary]}
                 start={{ x: 0, y: 0 }}
