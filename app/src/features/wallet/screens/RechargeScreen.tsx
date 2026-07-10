@@ -19,10 +19,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
-import BackArrowIcon from '../../../components/BackArrowIcon';
 import { useUser } from '../../../context/UserContext';
 import { supabase } from '../../../api/supabase';
-import { useCoinPackages } from '../../../api/wallet';
+import { useCoinPackages, useSettings } from '../../../api/wallet';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 
@@ -35,7 +34,7 @@ type IconProps = {
   size?: number;
 };
 
-type PaymentMethodId = 'upi' | 'card' | 'netbanking' | 'wallet' | 'manual';
+type PaymentMethodId = 'razorpay' | 'in_app' | 'manual';
 
 type PaymentMethod = {
   id: PaymentMethodId;
@@ -52,11 +51,9 @@ const OFFERS = [
 ] as const;
 
 const PAYMENT_METHODS: PaymentMethod[] = [
-  { id: 'upi', label: 'UPI', subtitle: 'Google Pay, PhonePe, Paytm' },
-  { id: 'card', label: 'Credit / Debit Card', subtitle: 'Visa, Mastercard, RuPay' },
-  { id: 'netbanking', label: 'Net Banking', subtitle: 'All major banks' },
-  { id: 'wallet', label: 'Mobile Wallets', subtitle: 'Paytm, Amazon Pay' },
-  { id: 'manual', label: 'Manual Recharge (Upload Screenshot)', subtitle: 'Upload payment proof' },
+  { id: 'razorpay', label: 'Razorpay', subtitle: 'UPI, Cards, Netbanking' },
+  { id: 'in_app', label: 'In App Purchase', subtitle: 'Google Play Billing' },
+  { id: 'manual', label: 'Manual Recharge', subtitle: 'Upload payment screenshot' },
 ];
 
 const SmartphoneIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 }) => (
@@ -97,9 +94,10 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
   const { currentUser, walletBalance, setWalletBalance } = useUser();
 
   const { data: coinPackages = [], isLoading: packagesLoading } = useCoinPackages();
+  const { data: settings = {} } = useSettings();
   const [selectedAmount, setSelectedAmount] = useState<number | null>(route.params?.amount ?? null);
   const [customAmount, setCustomAmount] = useState('');
-  const [selectedPayment, setSelectedPayment] = useState<PaymentMethodId>('upi');
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethodId>('razorpay');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const finalAmount = selectedAmount ?? (customAmount ? Number(customAmount) : 0);
@@ -208,13 +206,11 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const renderPaymentIcon = (id: PaymentMethodId) => {
     switch (id) {
-      case 'upi':
-        return <SmartphoneIcon />;
-      case 'card':
-        return <CardIcon />;
-      case 'netbanking':
+      case 'razorpay':
         return <BankIcon />;
-      case 'wallet':
+      case 'in_app':
+        return <SmartphoneIcon />;
+      case 'manual':
         return <WalletIcon />;
       default:
         return <WalletIcon />;
@@ -317,20 +313,39 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         {PAYMENT_METHODS.map(method => {
           const isSelected = selectedPayment === method.id;
           return (
-            <TouchableOpacity
-              key={method.id}
-              activeOpacity={0.7}
-              onPress={() => setSelectedPayment(method.id)}
-              style={[styles.paymentCard, isSelected && styles.paymentCardActive]}>
-              <View style={styles.paymentIconWrap}>{renderPaymentIcon(method.id)}</View>
-              <View style={styles.paymentInfo}>
-                <Text style={styles.paymentLabel}>{method.label}</Text>
-                <Text style={styles.paymentSub}>{method.subtitle}</Text>
-              </View>
-              <View style={[styles.radio, isSelected && styles.radioActive]}>
-                {isSelected && <View style={styles.radioDot} />}
-              </View>
-            </TouchableOpacity>
+            <View key={method.id}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setSelectedPayment(method.id)}
+                style={[styles.paymentCard, isSelected && styles.paymentCardActive]}>
+                <View style={styles.paymentIconWrap}>{renderPaymentIcon(method.id)}</View>
+                <View style={styles.paymentInfo}>
+                  <Text style={styles.paymentLabel}>{method.label}</Text>
+                  <Text style={styles.paymentSub}>{method.subtitle}</Text>
+                </View>
+                <View style={[styles.radio, isSelected && styles.radioActive]}>
+                  {isSelected && <View style={styles.radioDot} />}
+                </View>
+              </TouchableOpacity>
+
+              {isSelected && method.id === 'manual' && (
+                <View style={{ backgroundColor: Colors.card, padding: 16, borderRadius: Radius.lg, marginBottom: 16, alignItems: 'center' }}>
+                  <Text style={{ ...Typography.bodySemibold, color: Colors.foreground, marginBottom: 12 }}>Scan QR to Pay</Text>
+                  {settings.payment_qr_url ? (
+                    <View style={{ width: 200, height: 200, backgroundColor: Colors.border, borderRadius: Radius.md, marginBottom: 16, overflow: 'hidden' }}>
+                      <Svg width="100%" height="100%">
+                         <image href={settings.payment_qr_url} width="100%" height="100%" preserveAspectRatio="xMidYMid slice" />
+                      </Svg>
+                    </View>
+                  ) : (
+                    <Text style={{ color: Colors.mutedForeground, marginBottom: 16 }}>No QR Code configured</Text>
+                  )}
+                  <TouchableOpacity style={{ padding: 10, backgroundColor: Colors.primary, borderRadius: Radius.md }}>
+                    <Text style={{ ...Typography.button, color: Colors.primaryForeground }}>Download QR</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           );
         })}
       </ScrollView>

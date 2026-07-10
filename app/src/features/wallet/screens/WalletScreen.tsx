@@ -25,6 +25,11 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { role, walletBalance } = useUser();
   const { data: transactions = [], isLoading } = useTransactions();
+  const { data: coinPackages = [] } = useCoinPackages();
+  
+  const baseRule = coinPackages[0];
+  const conversionRate = (baseRule && baseRule.coins > 0) ? (baseRule.price / baseRule.coins) : 1;
+  const paginatedTransactions = transactions.slice(0, 10);
   
   // Fetch actual wallet balance from API to sync with context
   useWalletBalance();
@@ -41,7 +46,14 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
 
       {role === 'boy' && (
         <View style={styles.rechargeSection}>
-          <Text style={styles.sectionLabel}>QUICK RECHARGE</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>QUICK RECHARGE</Text>
+            {baseRule && (
+              <Text style={{ ...Typography.smallSemibold, color: Colors.primary }}>
+                {baseRule.coins} Coin = ₹{baseRule.price}
+              </Text>
+            )}
+          </View>
           <View style={styles.rechargeGrid}>
             {rechargeAmounts.map(amt => (
               <TouchableOpacity
@@ -60,14 +72,14 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.sectionLabel}>TRANSACTIONS</Text>
         {isLoading ? (
           <Text style={{color: Colors.mutedForeground}}>Loading...</Text>
-        ) : transactions.length === 0 ? (
+        ) : paginatedTransactions.length === 0 ? (
           <View style={{ paddingVertical: 32, alignItems: 'center' }}>
             <Text style={{ color: Colors.mutedForeground, ...Typography.body }}>No transactions yet</Text>
           </View>
         ) : (
-          transactions.map(tx => (
+          paginatedTransactions.map(tx => (
             <View key={tx.id} style={styles.txRow}>
-              <TransactionRow tx={tx} />
+              <TransactionRow tx={tx} conversionRate={conversionRate} />
             </View>
           ))
         )}

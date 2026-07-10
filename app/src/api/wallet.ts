@@ -105,3 +105,15 @@ export const useCoinPackages = () => {
     }
   });
 };
+
+export const useSettings = () => {
+  return useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('settings').select('*');
+      if (error) throw error;
+      const settingsMap = data.reduce((acc, row) => ({ ...acc, [row.key]: row.value }), {});
+      return settingsMap;
+    }
+  });
+};

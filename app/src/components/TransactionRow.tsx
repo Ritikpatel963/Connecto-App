@@ -80,10 +80,12 @@ const colorMap: Record<string, { bg: string; fg: string }> = {
   referral_bonus: { bg: 'rgba(245,166,35,0.1)', fg: Colors.secondary },
 };
 
-const TransactionRow: React.FC<{ tx: Transaction }> = ({ tx }) => {
+const TransactionRow: React.FC<{ tx: Transaction; conversionRate?: number }> = ({ tx, conversionRate = 1 }) => {
   const date = new Date(tx.timestamp);
   const isPositive = tx.amount > 0;
   const colors = colorMap[tx.type] || colorMap.recharge;
+  
+  const coins = Math.floor(Math.abs(tx.amount) / conversionRate);
 
   const renderIcon = () => {
     switch (tx.type) {
@@ -115,9 +117,16 @@ const TransactionRow: React.FC<{ tx: Transaction }> = ({ tx }) => {
         <Text style={[styles.amount, { color: isPositive ? Colors.accent : Colors.primary }]}>
           {isPositive ? '+' : ''}₹{Math.abs(tx.amount)}
         </Text>
-        <Text style={[styles.status, tx.status === 'pending' && { color: Colors.secondary }]}>
-          {tx.status}
-        </Text>
+        {tx.type === 'recharge' && (
+          <Text style={[styles.status, { color: Colors.accent }]}>
+            +{coins} Coins
+          </Text>
+        )}
+        {tx.type !== 'recharge' && (
+          <Text style={[styles.status, tx.status === 'pending' && { color: Colors.secondary }]}>
+            {tx.status}
+          </Text>
+        )}
       </View>
     </View>
   );

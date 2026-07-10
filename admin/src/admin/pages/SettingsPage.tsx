@@ -29,22 +29,40 @@ const SettingsPage = () => {
 
   // Settings State
   const [withdrawalConfig, setWithdrawalConfig] = useState<{min: string, max: string}>({min: "100", max: "10000"});
+  const [paymentQrUrl, setPaymentQrUrl] = useState<string>("");
 
   const { data: configData } = useQuery({
     queryKey: ["settings", "withdrawal_config"],
     queryFn: () => settingsApi.get("withdrawal_config"),
   });
 
+  const { data: qrData } = useQuery({
+    queryKey: ["settings", "payment_qr_url"],
+    queryFn: () => settingsApi.get("payment_qr_url"),
+  });
+
   useEffect(() => {
     if (configData) {
       setWithdrawalConfig(configData);
     }
-  }, [configData]);
+    if (qrData) {
+      setPaymentQrUrl(qrData);
+    }
+  }, [configData, qrData]);
 
   const saveRules = useMutation({
     mutationFn: (config: any) => settingsApi.set("withdrawal_config", config),
     onSuccess: () => {
-      toast.success("Withdrawal rule saved successfully!");
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    }
+  });
+
+  const saveQr = useMutation({
+    mutationFn: (url: string) => settingsApi.set("payment_qr_url", url),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
     },
     onError: (error: Error) => {
@@ -55,6 +73,10 @@ const SettingsPage = () => {
   const handleSave = () => {
     if (activeTab === 'withdrawal') {
       saveRules.mutate(withdrawalConfig);
+      toast.success("Withdrawal rule saved successfully!");
+    } else if (activeTab === 'payments') {
+      saveQr.mutate(paymentQrUrl);
+      toast.success("Payment settings saved successfully!");
     } else {
       toast.success("Settings saved successfully!");
     }
@@ -250,10 +272,36 @@ const SettingsPage = () => {
                             defaultValue="Scan the QR code below to make the payment. After successful payment, please upload the screenshot of the transaction." 
                           />
                         </div>
-                        <div className="col-md-6">
-                          <label className="form-label fw-semibold">Upload QR Code</label>
-                          <input className="form-control" type="file" accept="image/*" />
+                        <div className="col-12">
+                          <label className="form-label fw-semibold">Upload QR Code Image</label>
+                          <input 
+                            className="form-control" 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setPaymentQrUrl(reader.result as string);
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
                         </div>
+                        {paymentQrUrl && (
+                          <div className="col-12 mt-3">
+                            <img src={paymentQrUrl} alt="QR Code" style={{ maxWidth: 200, borderRadius: 8, border: '1px solid #eee' }} />
+                            <button 
+                              type="button" 
+                              className="btn btn-sm btn-outline-danger mt-2 d-block"
+                              onClick={() => setPaymentQrUrl("")}
+                            >
+                              Remove Image
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
