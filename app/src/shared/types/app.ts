@@ -43,7 +43,7 @@ export interface Transaction {
   amount: number;
   description: string;
   timestamp: string;
-  status: 'completed' | 'pending' | 'failed';
+  status: 'completed' | 'pending' | 'failed' | 'verified' | 'rejected';
 }
 
 export interface CallSession {
