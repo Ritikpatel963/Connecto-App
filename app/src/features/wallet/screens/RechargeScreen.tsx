@@ -13,6 +13,7 @@ import {
   Image,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
+import RazorpayCheckout from 'react-native-razorpay';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -168,6 +169,64 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
 
     setIsSubmitting(false);
 
+    if (selectedPayment === 'razorpay') {
+      try {
+        setIsSubmitting(true);
+        // 1. Create order on backend
+        const res = await fetch('http://10.0.2.2:4100/api/app/v1/payments/razorpay/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: finalAmount })
+        });
+        
+        if (!res.ok) throw new Error("Failed to create order");
+        const order = await res.json();
+        
+        // 2. Open Razorpay Checkout
+        const options = {
+          description: 'Recharge Wallet',
+          image: 'https://placehold.co/100x100?text=Logo',
+          currency: 'INR',
+          key: settings?.razorpay_key_id,
+          amount: order.amount,
+          name: 'Connecto App',
+          order_id: order.id,
+          theme: { color: Colors.primary }
+        };
+        
+        const data = await RazorpayCheckout.open(options);
+        
+        // 3. Payment Success - Add to wallet
+        const userId = currentUser?.id || 1;
+        const { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
+        const walletId = wallet?.id || userId;
+        
+        await supabase.from('wallet_transactions').insert({
+          wallet_id: walletId,
+          transaction_type: 'recharge',
+          amount: finalAmount,
+          payment_method: 'razorpay',
+          verification_status: 'verified',
+        });
+        
+        if (wallet?.id) {
+           await supabase.from('wallets').update({ balance: walletBalance + finalCoins }).eq('id', wallet.id);
+        } else {
+           await supabase.from('wallets').insert({ id: walletId, user_id: userId, balance: finalCoins });
+        }
+        
+        setWalletBalance(walletBalance + finalCoins);
+        queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
+        setIsSubmitting(false);
+        navigation.goBack();
+      } catch (error: any) {
+        setIsSubmitting(false);
+        Alert.alert("Payment Error", error.description || error.message || "Payment failed");
+      }
+      return;
+    }
+
     Alert.alert(
       'Confirm Recharge',
       `Buy ${finalCoins} Coins for Rs ${finalAmount} via ${paymentLabel}?`,
@@ -185,7 +244,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
               wallet_id: walletId,
               transaction_type: 'recharge',
               amount: finalAmount,
-              payment_method: 'razorpay',
+              payment_method: 'in_app',
               verification_status: 'verified',
             });
             

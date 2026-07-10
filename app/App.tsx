@@ -2,6 +2,7 @@ import React from 'react';
 import { StatusBar, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { io } from 'socket.io-client';
 import { UserProvider, useUser } from './src/context/UserContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { Colors } from './src/theme/colors';
@@ -32,6 +33,15 @@ const BootGate = () => {
           setWalletBalance(0);
         }
       }).catch(() => {});
+      
+      // Connect to WebSocket Server
+      const socket = io('http://10.0.2.2:4100');
+      socket.on('connect', () => {
+        console.log('Connected to WebSocket Server:', socket.id);
+      });
+      return () => {
+        socket.disconnect();
+      };
     }
   }, [hasHydrated, currentUser?.id]);
 

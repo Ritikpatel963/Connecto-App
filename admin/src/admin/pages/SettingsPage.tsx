@@ -30,6 +30,8 @@ const SettingsPage = () => {
   // Settings State
   const [withdrawalConfig, setWithdrawalConfig] = useState<{min: string, max: string}>({min: "100", max: "10000"});
   const [paymentQrUrl, setPaymentQrUrl] = useState<string>("");
+  const [razorpayKeyId, setRazorpayKeyId] = useState<string>("");
+  const [razorpayKeySecret, setRazorpayKeySecret] = useState<string>("");
 
   const { data: configData } = useQuery({
     queryKey: ["settings", "withdrawal_config"],
@@ -41,19 +43,41 @@ const SettingsPage = () => {
     queryFn: () => settingsApi.get("payment_qr_url"),
   });
 
+  const { data: rzpKeyData } = useQuery({
+    queryKey: ["settings", "razorpay_key_id"],
+    queryFn: () => settingsApi.get("razorpay_key_id"),
+  });
+
+  const { data: rzpSecretData } = useQuery({
+    queryKey: ["settings", "razorpay_key_secret"],
+    queryFn: () => settingsApi.get("razorpay_key_secret"),
+  });
+
   useEffect(() => {
-    if (configData) {
-      setWithdrawalConfig(configData);
-    }
-    if (qrData) {
-      setPaymentQrUrl(qrData);
-    }
-  }, [configData, qrData]);
+    if (configData) setWithdrawalConfig(configData);
+    if (qrData) setPaymentQrUrl(qrData);
+    if (rzpKeyData) setRazorpayKeyId(rzpKeyData);
+    if (rzpSecretData) setRazorpayKeySecret(rzpSecretData);
+  }, [configData, qrData, rzpKeyData, rzpSecretData]);
 
   const saveRules = useMutation({
     mutationFn: (config: any) => settingsApi.set("withdrawal_config", config),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    }
+  });
+
+  const saveRazorpay = useMutation({
+    mutationFn: async () => {
+      await settingsApi.set("razorpay_key_id", razorpayKeyId);
+      await settingsApi.set("razorpay_key_secret", razorpayKeySecret);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("Razorpay settings saved successfully");
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -204,11 +228,20 @@ const SettingsPage = () => {
                         <div className="col-md-6"></div>
                         <div className="col-md-6">
                           <label className="form-label fw-semibold">Key ID</label>
-                          <input className="form-control" placeholder="rzp_test_..." />
+                          <input className="form-control" placeholder="rzp_test_..." value={razorpayKeyId} onChange={(e) => setRazorpayKeyId(e.target.value)} />
                         </div>
                         <div className="col-md-6">
                           <label className="form-label fw-semibold">Key Secret</label>
-                          <input className="form-control" type="password" placeholder="••••••••••••" />
+                          <input className="form-control" type="password" placeholder="••••••••••••" value={razorpayKeySecret} onChange={(e) => setRazorpayKeySecret(e.target.value)} />
+                        </div>
+                        <div className="col-12 text-end">
+                          <button 
+                            className="btn btn-primary" 
+                            disabled={saveRazorpay.isPending}
+                            onClick={() => saveRazorpay.mutate()}
+                          >
+                            {saveRazorpay.isPending ? "Saving..." : "Save Keys"}
+                          </button>
                         </div>
                       </div>
                     </div>
