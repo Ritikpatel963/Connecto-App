@@ -344,9 +344,16 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
                   ) : (
                     <Text style={{ color: Colors.mutedForeground, marginBottom: 16 }}>No QR Code configured</Text>
                   )}
-                  <TouchableOpacity style={{ padding: 10, backgroundColor: Colors.primary, borderRadius: Radius.md }}>
-                    <Text style={{ ...Typography.button, color: Colors.primaryForeground }}>Download QR</Text>
-                  </TouchableOpacity>
+                  {settings.payment_qr_url && (
+                    <TouchableOpacity 
+                      style={{ padding: 10, backgroundColor: Colors.primary, borderRadius: Radius.md }}
+                      onPress={() => {
+                        Alert.alert('Download', 'Please take a screenshot of the QR code to save it.');
+                      }}
+                    >
+                      <Text style={{ ...Typography.button, color: Colors.primaryForeground }}>Download QR</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </View>
@@ -558,6 +565,21 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   ctaButtonText: { ...Typography.button, color: Colors.primaryForeground },
+  payBtnWrapper: {
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+  },
+  payBtn: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 150,
+  },
+  payBtnText: {
+    ...Typography.button,
+    color: Colors.primaryForeground,
+  }
 });
 
 export default RechargeScreen;
