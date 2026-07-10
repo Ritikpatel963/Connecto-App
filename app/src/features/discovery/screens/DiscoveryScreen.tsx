@@ -99,7 +99,7 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
   const { data: profiles = [], isLoading, refetch } = useProfiles();
 
   useEffect(() => {
-    const channel = supabase.channel('public:users')
+    const channel = supabase.channel(`public:users:${Date.now()}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users' }, () => {
         refetch();
       })
