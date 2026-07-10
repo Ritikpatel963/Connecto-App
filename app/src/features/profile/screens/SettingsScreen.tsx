@@ -114,9 +114,7 @@ const menuItems: ReadonlyArray<MenuItem> = [
   { icon: 'verification', label: 'Verification', screen: 'Verification' },
   { icon: 'wallet', label: 'Wallet', tab: 'Wallet' },
   { icon: 'referral', label: 'Referral Program', screen: 'Referral' },
-  { icon: 'notification', label: 'Notification Settings', screen: 'Notifications' },
   { icon: 'privacy', label: 'Privacy & Security', screen: 'Content', params: { title: 'Privacy & Security', contentKey: 'privacy_policy' } },
-  { icon: 'language', label: 'Language' },
   { icon: 'help', label: 'Help & Support', screen: 'Content', params: { title: 'Help & Support', contentKey: 'help_support' } },
 ];
 
@@ -196,23 +194,14 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
           )}
         </View>
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{currentUser?.name || 'User'}</Text>
-          <Text style={styles.profileMeta}>
-            {role} · {currentUser?.city || 'India'}
-          </Text>
-          <View
-            style={[
-              styles.roleBadge,
-              { backgroundColor: role === 'girl' ? 'rgba(244,114,182,0.1)' : 'rgba(107,159,255,0.1)' },
-            ]}>
-            <Text
-              style={[
-                styles.roleBadgeText,
-                { color: role === 'girl' ? Colors.girl : Colors.boy },
-              ]}>
-              {role === 'girl' ? 'Receiver' : 'Caller'}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.profileName}>{currentUser?.name || 'User'}</Text>
+            {currentUser?.isVerified && <BadgeCheckIcon size={16} color={Colors.primary} />}
           </View>
+          <Text style={styles.profileMeta}>
+            {role === 'girl' ? 'Receiver' : 'Caller'} · {currentUser?.city || 'India'}
+          </Text>
+
         </View>
         <Text style={{ fontSize: 16, color: Colors.mutedForeground }}>›</Text>
       </View>
