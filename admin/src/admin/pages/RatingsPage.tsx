@@ -17,6 +17,10 @@ const RatingsPage = () => {
     onSuccess: () => {
       toast.success("Rating approved");
       client.invalidateQueries({ queryKey: ["ratings"] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to approve rating");
+      console.error(error);
     }
   });
 
