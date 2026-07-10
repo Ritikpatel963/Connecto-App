@@ -3,6 +3,7 @@ import { ratingsApi } from "../api/ratings";
 import AdminDataTable from "../components/AdminDataTable";
 import { DateCell, PersonCell, RatingCell, IconButton } from "../components/Cells";
 import ActionModal from "../components/ActionModal";
+import ThemeModal from "../components/ThemeModal";
 import PageHeader from "../components/PageHeader";
 import { BaseRecord, SelectFilter } from "../types";
 import StatusBadge from "../components/StatusBadge";
@@ -18,6 +19,9 @@ const getReviewText = (row: BaseRecord) => String(row.review_text || "").replace
 const RatingsPage = () => {
   const client = useQueryClient();
   const [deleting, setDeleting] = useState<BaseRecord | null>(null);
+  const [editing, setEditing] = useState<BaseRecord | null>(null);
+  const [editForm, setEditForm] = useState({ review_text: "", rating: 5 });
+
   const approve = useMutation({
     mutationFn: async (row: BaseRecord) => {
       // Store the approval state in the review_text since status column is missing
@@ -52,6 +56,25 @@ const RatingsPage = () => {
     }
   });
 
+  const editMutation = useMutation({
+    mutationFn: async () => {
+      if (!editing) return;
+      const prefix = isRowApproved(editing) ? "[APPROVED] " : "";
+      return ratingsApi.update(editing.id, { 
+        rating: editForm.rating, 
+        review_text: prefix + editForm.review_text 
+      });
+    },
+    onSuccess: () => {
+      toast.success("Rating updated");
+      setEditing(null);
+      client.invalidateQueries({ queryKey: ["ratings"] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to update rating");
+    }
+  });
+
   const columns = [
     { key: "id", label: "ID" },
     { key: "rater", label: "Rater", render: (row: BaseRecord) => <PersonCell name={row.rater} /> },
@@ -73,6 +96,10 @@ const RatingsPage = () => {
         {!isRowApproved(row) && (
           <button className="btn btn-sm btn-primary-600" onClick={() => approve.mutate(row)} disabled={approve.isPending}>Approve</button>
         )}
+        <IconButton icon="solar:pen-outline" title="Edit rating" onClick={() => {
+          setEditing(row);
+          setEditForm({ review_text: getReviewText(row), rating: Number(row.rating || 5) });
+        }} />
         <IconButton icon="solar:trash-bin-trash-outline" title="Delete rating" tone="danger" onClick={() => setDeleting(row)} />
       </>}
     />
@@ -86,6 +113,26 @@ const RatingsPage = () => {
       onConfirm={() => deleteMutation.mutate(deleting!.id)} 
       loading={deleteMutation.isPending} 
     />
+    <ThemeModal 
+      open={Boolean(editing)} 
+      title="Edit Rating" 
+      onClose={() => setEditing(null)} 
+      footer={<>
+        <button className="btn btn-outline-secondary" onClick={() => setEditing(null)}>Cancel</button>
+        <button className="btn btn-primary-600" disabled={editMutation.isPending} onClick={() => editMutation.mutate()}>Save changes</button>
+      </>}
+    >
+      <div className="row gy-3">
+        <div className="col-12">
+          <label className="form-label">Rating (1-5)</label>
+          <input type="number" min={1} max={5} className="form-control" value={editForm.rating} onChange={(e) => setEditForm({...editForm, rating: Number(e.target.value)})} />
+        </div>
+        <div className="col-12">
+          <label className="form-label">Review Text</label>
+          <textarea className="form-control" rows={3} value={editForm.review_text} onChange={(e) => setEditForm({...editForm, review_text: e.target.value})} />
+        </div>
+      </div>
+    </ThemeModal>
   </div>;
 };
 export default RatingsPage;
