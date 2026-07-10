@@ -17,11 +17,17 @@ export const walletTransactionsApi = {
     const { data: wallet } = await supabase.from('wallets').select('id, balance').or(`id.eq.${row.wallet_id},user_id.eq.${row.wallet_id}`).maybeSingle();
     const currentBalance = wallet?.balance || 0;
     const targetId = wallet?.id || row.wallet_id;
+    
+    // Apply conversion rule: 
+    const { data: coinPackages } = await supabase.from('coin_packages').select('*').eq('is_active', true).order('price', { ascending: true });
+    const baseRule = coinPackages?.[0];
+    const conversionRate = (baseRule && baseRule.coins > 0) ? (baseRule.price / baseRule.coins) : 1;
+    const finalCoins = Math.floor(Number(row.amount || 0) / conversionRate);
 
     if (wallet?.id) {
-      await supabase.from('wallets').update({ balance: currentBalance + row.amount }).eq('id', wallet.id);
+      await supabase.from('wallets').update({ balance: currentBalance + finalCoins }).eq('id', wallet.id);
     } else {
-      await supabase.from('wallets').insert({ id: targetId, user_id: row.wallet_id, balance: row.amount });
+      await supabase.from('wallets').insert({ id: targetId, user_id: row.wallet_id, balance: finalCoins });
     }
 
     return result;

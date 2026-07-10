@@ -22,6 +22,7 @@ import { Radius } from '../../../theme/spacing';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import { useUser } from '../../../context/UserContext';
 import { supabase } from '../../../api/supabase';
+import { useCoinPackages } from '../../../api/wallet';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 
@@ -95,6 +96,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { currentUser, walletBalance, setWalletBalance } = useUser();
 
+  const { data: coinPackages = [], isLoading: packagesLoading } = useCoinPackages();
   const [selectedAmount, setSelectedAmount] = useState<number | null>(route.params?.amount ?? null);
   const [customAmount, setCustomAmount] = useState('');
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethodId>('upi');
@@ -102,6 +104,11 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const finalAmount = selectedAmount ?? (customAmount ? Number(customAmount) : 0);
   const bonus = OFFERS.find(o => o.amount === finalAmount)?.bonus ?? 0;
+  
+  // Calculate conversion rate: price per coin. Fallback to 1 if no rule.
+  const baseRule = coinPackages[0];
+  const conversionRate = (baseRule && baseRule.coins > 0) ? (baseRule.price / baseRule.coins) : 1;
+  const finalCoins = Math.floor(finalAmount / conversionRate) + bonus;
 
   const queryClient = useQueryClient();
 
@@ -138,7 +145,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         const { error } = await supabase.from('wallet_transactions').insert({
           wallet_id: currentUser?.id || 1,
           transaction_type: 'recharge',
-          amount: finalAmount,
+          amount: finalAmount, // Store fiat amount in transactions so total spent is correct
           payment_method: 'manual_upload',
           payment_screenshot_url: uploadedUrl || 'https://placehold.co/600x400?text=Upload+Failed',
           verification_status: 'pending',
@@ -163,7 +170,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
 
     Alert.alert(
       'Confirm Recharge',
-      `Recharge Rs ${finalAmount}${bonus ? ` + Rs ${bonus} bonus` : ''} via ${paymentLabel}?`,
+      `Buy ${finalCoins} Coins for Rs ${finalAmount} via ${paymentLabel}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -177,18 +184,18 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
             await supabase.from('wallet_transactions').insert({
               wallet_id: walletId,
               transaction_type: 'recharge',
-              amount: finalAmount + bonus,
+              amount: finalAmount,
               payment_method: 'razorpay',
               verification_status: 'verified',
             });
             
             if (wallet?.id) {
-               await supabase.from('wallets').update({ balance: walletBalance + finalAmount + bonus }).eq('id', wallet.id);
+               await supabase.from('wallets').update({ balance: walletBalance + finalCoins }).eq('id', wallet.id);
             } else {
-               await supabase.from('wallets').insert({ id: walletId, user_id: userId, balance: finalAmount + bonus });
+               await supabase.from('wallets').insert({ id: walletId, user_id: userId, balance: finalCoins });
             }
             
-            setWalletBalance(walletBalance + finalAmount + bonus);
+            setWalletBalance(walletBalance + finalCoins);
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
             queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
             setIsSubmitting(false);
@@ -299,7 +306,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
               <View style={styles.offerTotal}>
                 <Text style={styles.offerTotalLabel}>You get</Text>
                 <Text style={[styles.offerTotalAmount, { color: offer.color }]}>
-                  Rs {offer.amount + offer.bonus}
+                  {Math.floor(offer.amount / conversionRate) + offer.bonus} Coins
                 </Text>
               </View>
             </View>
@@ -334,7 +341,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.ctaLabel}>Total</Text>
             <Text style={styles.ctaAmount}>
               Rs {finalAmount}
-              {bonus > 0 && <Text style={styles.ctaBonus}> +Rs {bonus}</Text>}
+              <Text style={styles.ctaBonus}>  → {finalCoins} Coins</Text>
             </Text>
           </View>
           <TouchableOpacity

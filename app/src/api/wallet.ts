@@ -90,3 +90,18 @@ export const useWalletBalance = () => {
     // enabled: !!id, 
   });
 };
+export const useCoinPackages = () => {
+  return useQuery({
+    queryKey: ['coinPackages'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('coin_packages')
+        .select('*')
+        .eq('is_active', true)
+        .order('price', { ascending: true });
+        
+      if (error) throw error;
+      return data || [];
+    }
+  });
+};
