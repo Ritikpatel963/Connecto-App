@@ -114,7 +114,7 @@ const TransactionRow: React.FC<{ tx: Transaction; conversionRate?: number }> = (
         </Text>
       </View>
       <View style={styles.amountCol}>
-        <Text style={[styles.amount, { color: isPositive ? Colors.accent : Colors.primary }]}>
+        <Text style={[styles.amount, { color: tx.status === 'pending' ? Colors.secondary : (isPositive ? Colors.accent : Colors.primary) }]}>
           {isPositive ? '+' : ''}₹{Math.abs(tx.amount)}
         </Text>
         {tx.type === 'recharge' && (tx.status === 'completed' || tx.status === 'verified') && (
