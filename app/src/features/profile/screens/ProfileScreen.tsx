@@ -32,6 +32,7 @@ const { height } = Dimensions.get('window');
 type IconProps = {
   color?: string;
   size?: number;
+  filled?: boolean;
 };
 
 const VERIFIED_ICON_SIZE = 14;
@@ -81,12 +82,12 @@ const ChatIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = ACTIO
   </Svg>
 );
 
-const HeartIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = ACTION_ICON_SIZE }) => (
+const HeartIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = ACTION_ICON_SIZE, filled = false }) => (
   <Svg
     width={size}
     height={size}
     viewBox="0 0 24 24"
-    fill="none"
+    fill={filled ? color : "none"}
     stroke={color}
     strokeWidth={2}
     strokeLinecap="round"
@@ -183,7 +184,10 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             onPress={() => {
               if (profile) toggleFavorite.mutate(profile.id);
             }}>
-            <HeartIcon color={isFavorited ? Colors.primary : Colors.foreground} />
+            <HeartIcon 
+              color={isFavorited ? '#EF4444' : Colors.foreground} 
+              filled={isFavorited} 
+            />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
