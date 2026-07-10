@@ -29,7 +29,7 @@ const RatingsPage = () => {
       
       // 2. Actually update the user's rating in the app!
       // Calculate true average of all approved ratings
-      const { data: allRatings } = await supabase.from('ratings').select('rating, review_text').eq('rated_user_id', row.rated_user_id);
+      const { data: allRatings } = await supabase.from('ratings').select('id, rating, review_text').eq('rated_user_id', row.rated_user_id);
       
       const approvedRatings = (allRatings || []).filter(r => (r.review_text || "").startsWith("[APPROVED] "));
       // Include the one we are currently approving since it might not be in the fetch yet or we just updated it
