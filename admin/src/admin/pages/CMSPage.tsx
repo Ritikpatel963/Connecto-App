@@ -3,8 +3,8 @@ import { Icon } from "@iconify/react";
 import { toast } from "react-toastify";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 // @ts-ignore
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import ReactQuill from "react-quill-new";
+import "react-quill-new/dist/quill.snow.css";
 import PageHeader from "../components/PageHeader";
 import { settingsApi } from "../api/settings";
 
