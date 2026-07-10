@@ -30,6 +30,17 @@ const SettingsPage = () => {
   // Settings State
   const [withdrawalConfig, setWithdrawalConfig] = useState<{min: string, max: string}>({min: "100", max: "10000"});
   const [paymentQrUrl, setPaymentQrUrl] = useState<string>("");
+
+  const { data: configData } = useQuery({
+    queryKey: ["settings", "withdrawal_config"],
+    queryFn: () => settingsApi.get("withdrawal_config"),
+  });
+
+  const { data: qrData } = useQuery({
+    queryKey: ["settings", "payment_qr_url"],
+    queryFn: () => settingsApi.get("payment_qr_url"),
+  });
+
   useEffect(() => {
     if (configData) {
       setWithdrawalConfig(configData);
