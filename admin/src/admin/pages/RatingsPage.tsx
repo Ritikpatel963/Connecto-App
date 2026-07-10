@@ -7,6 +7,7 @@ import { BaseRecord, SelectFilter } from "../types";
 import StatusBadge from "../components/StatusBadge";
 import { toast } from "react-toastify";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "../../lib/supabase";
 
 const ratingFilters: SelectFilter[] = [{ key: "rating", label: "Rating", options: [1, 2, 3, 4, 5].map((value) => ({ label: `${value} stars`, value: String(value) })) }];
 
