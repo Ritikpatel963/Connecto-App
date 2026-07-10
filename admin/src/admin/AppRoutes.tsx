@@ -13,6 +13,7 @@ import RedemptionsPage from "./pages/RedemptionsPage";
 import ReferralTiersPage from "./pages/ReferralTiersPage";
 import ReferralsPage from "./pages/ReferralsPage";
 import RolesPage from "./pages/RolesPage";
+import CMSPage from "./pages/CMSPage";
 import SettingsPage from "./pages/SettingsPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
 import UserDetailPage from "./pages/UserProfilePage";
@@ -57,6 +58,7 @@ const AppRoutes = () => (
         <Route path="/referrals/redemptions" element={<RedemptionsPage />} />
         <Route path="/admin-access/admins" element={<AdminsPage />} />
         <Route path="/admin-access/roles" element={<RolesPage />} />
+        <Route path="/cms" element={<CMSPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
     </Route>

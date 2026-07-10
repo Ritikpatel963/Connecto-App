@@ -19,6 +19,7 @@ const groups: NavGroup[] = [
   { id: "subscriptions", label: "Packages", icon: "solar:crown-star-outline", items: [{ label: "All Packages", to: "/subscriptions" }] },
   { id: "wallet", label: "Wallet", icon: "solar:wallet-2-outline", items: [{ label: "Transactions", to: "/wallet/transactions" }, { label: "Manual Approvals", to: "/wallet/manual-approvals" }, { label: "Recharge Packages", to: "/recharge-packages" }, { label: "Withdraw Rules", to: "/settings#withdrawal" }, { label: "Withdrawals", to: "/withdrawals" }] },
   { id: "referrals", label: "Referral Program", icon: "solar:share-circle-outline", items: [{ label: "Referrals", to: "/referrals" }, { label: "Referral Tiers", to: "/referrals/tiers" }] },
+  { id: "cms", label: "Content (CMS)", icon: "solar:document-text-outline", items: [{ label: "Manage Content", to: "/cms" }] },
   { id: "rbac", label: "Admin & Roles", icon: "solar:user-shield-outline", permission: "manage_admins", items: [{ label: "Admins", to: "/admin-access/admins" }, { label: "Roles", to: "/admin-access/roles" }] },
 ];
 
