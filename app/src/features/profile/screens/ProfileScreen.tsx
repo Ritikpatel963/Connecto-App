@@ -16,6 +16,7 @@ import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import { useProfiles } from '../../../api/users';
+import { useFavorites, useToggleFavorite } from '../../../api/favorites';
 import { useUser } from '../../../context/UserContext';
 import OnlineIndicator from '../../../components/OnlineIndicator';
 import PremiumBadge from '../../../components/PremiumBadge';
@@ -99,7 +100,11 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const { id } = route.params;
   const { role, currentUser } = useUser();
   const { data: profiles = [] } = useProfiles();
+  const { data: favorites = [] } = useFavorites();
+  const toggleFavorite = useToggleFavorite();
+  
   const profile = route.params.profile || profiles.find(p => String(p.id) === String(id));
+  const isFavorited = profile ? favorites.some(f => String(f.id) === String(profile.id)) : false;
 
   if (!profile) {
     return (
@@ -172,8 +177,13 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
               </LinearGradient>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.iconBtn}>
-            <HeartIcon />
+          <TouchableOpacity 
+            style={styles.iconBtn}
+            disabled={toggleFavorite.isPending}
+            onPress={() => {
+              if (profile) toggleFavorite.mutate(profile.id);
+            }}>
+            <HeartIcon color={isFavorited ? Colors.primary : Colors.foreground} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
