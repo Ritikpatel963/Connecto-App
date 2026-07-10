@@ -10,6 +10,7 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
@@ -334,9 +335,11 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
                   <Text style={{ ...Typography.bodySemibold, color: Colors.foreground, marginBottom: 12 }}>Scan QR to Pay</Text>
                   {settings.payment_qr_url ? (
                     <View style={{ width: 200, height: 200, backgroundColor: Colors.border, borderRadius: Radius.md, marginBottom: 16, overflow: 'hidden' }}>
-                      <Svg width="100%" height="100%">
-                         <image href={settings.payment_qr_url} width="100%" height="100%" preserveAspectRatio="xMidYMid slice" />
-                      </Svg>
+                      <Image 
+                        source={{ uri: settings.payment_qr_url }} 
+                        style={{ width: '100%', height: '100%' }} 
+                        resizeMode="cover"
+                      />
                     </View>
                   ) : (
                     <Text style={{ color: Colors.mutedForeground, marginBottom: 16 }}>No QR Code configured</Text>
@@ -376,7 +379,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
               <ActivityIndicator color={Colors.background} />
             ) : (
               <Text style={[styles.payBtnText, !finalAmount && { color: Colors.mutedForeground }]}>
-                Proceed to Pay
+                {selectedPayment === 'manual' ? 'Upload Screenshot' : 'Proceed to Pay'}
               </Text>
             )}
           </LinearGradient>
