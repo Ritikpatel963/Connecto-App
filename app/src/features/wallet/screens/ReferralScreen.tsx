@@ -137,6 +137,33 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
           />
         ))}
       </View>
+
+      {/* History */}
+      <Text style={styles.sectionLabel}>REFERRAL HISTORY</Text>
+      <View style={styles.historyList}>
+        {(info as any).history?.length === 0 ? (
+          <Text style={{ color: Colors.mutedForeground, textAlign: 'center', marginTop: 12 }}>No referrals yet.</Text>
+        ) : (
+          (info as any).history?.map((ref: any, idx: number) => (
+            <View key={idx} style={styles.historyItem}>
+              <View style={styles.historyLeft}>
+                <View style={styles.historyIcon}>
+                  <Text style={{ fontSize: 16 }}>👤</Text>
+                </View>
+                <View>
+                  <Text style={styles.historyName}>{ref.referred?.name || ref.referred?.phone_number || 'Unknown User'}</Text>
+                  <Text style={styles.historyDate}>{new Date(ref.created_at).toLocaleDateString()}</Text>
+                </View>
+              </View>
+              <View style={[styles.statusBadge, ref.status === 'completed' && styles.statusBadgeCompleted]}>
+                <Text style={[styles.statusText, ref.status === 'completed' && styles.statusTextCompleted]}>
+                  {ref.status || 'pending'}
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
+      </View>
     </ScrollView>
   );
 };
@@ -238,6 +265,56 @@ const styles = StyleSheet.create({
   },
   milestones: {
     gap: 12,
+  },
+  historyList: {
+    gap: 12,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.card,
+    padding: 16,
+    borderRadius: Radius.xl,
+  },
+  historyLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  historyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.muted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyName: {
+    ...Typography.bodySemibold,
+    color: Colors.foreground,
+  },
+  historyDate: {
+    ...Typography.small,
+    color: Colors.mutedForeground,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.sm,
+    backgroundColor: 'rgba(234,179,8,0.1)', // yellow
+  },
+  statusText: {
+    ...Typography.caption,
+    color: '#eab308',
+    textTransform: 'capitalize',
+    fontWeight: '600',
+  },
+  statusBadgeCompleted: {
+    backgroundColor: 'rgba(34,197,94,0.1)', // green
+  },
+  statusTextCompleted: {
+    color: '#22c55e',
   },
 });
 

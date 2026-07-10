@@ -3,7 +3,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
   RoleSelect: undefined;
-  ProfileSetup: undefined;
+  ProfileSetup: { isEdit?: boolean } | undefined;
   WaitApproval: undefined;
   MainTabs: undefined;
   Profile: { id: string; profile?: any };
@@ -13,6 +13,8 @@ export type RootStackParamList = {
   Referral: undefined;
   PrivacySecurity: undefined;
   Recharge: { amount?: number } | undefined;
+  Verification: undefined;
+  Content: { title: string; contentKey: string };
 };
 
 export type TabParamList = {

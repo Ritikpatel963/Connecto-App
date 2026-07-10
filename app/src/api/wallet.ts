@@ -52,6 +52,12 @@ export const useReferralStats = () => {
 
       if (error) throw error;
 
+      const { data: historyData } = await supabase
+        .from('referrals')
+        .select('*, referred:referred_id(name, phone_number)')
+        .eq('referrer_id', userId)
+        .order('created_at', { ascending: false });
+
       return {
         code: data?.referral_code || 'N/A',
         totalReferred: data?.total_referrals || 0,
@@ -60,8 +66,9 @@ export const useReferralStats = () => {
           { target: 10, reward: 500, reached: (data?.total_referrals || 0) >= 10 },
           { target: 50, reward: 3000, reached: (data?.total_referrals || 0) >= 50 },
           { target: 100, reward: 8000, reached: (data?.total_referrals || 0) >= 100 }
-        ]
-      } as ReferralInfo;
+        ],
+        history: historyData || []
+      } as ReferralInfo & { history: any[] };
     }
   });
 };

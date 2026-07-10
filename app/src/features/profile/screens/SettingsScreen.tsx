@@ -26,7 +26,7 @@ type Props = CompositeScreenProps<
   NativeStackScreenProps<RootStackParamList>
 >;
 
-type MenuScreen = 'ProfileSetup' | 'MainTabs' | 'Referral' | 'Notifications' | 'PrivacySecurity';
+type MenuScreen = 'ProfileSetup' | 'MainTabs' | 'Referral' | 'Notifications' | 'PrivacySecurity' | 'Verification' | 'Content';
 type MenuTab = 'Wallet';
 
 type MenuItem = {
@@ -34,6 +34,7 @@ type MenuItem = {
   label: string;
   screen?: MenuScreen;
   tab?: MenuTab;
+  params?: any;
 };
 
 type IconProps = {
@@ -109,14 +110,14 @@ const LogoutIcon: React.FC<IconProps> = ({ color = Colors.destructive, size = 18
 );
 
 const menuItems: ReadonlyArray<MenuItem> = [
-  { icon: 'user', label: 'Edit Profile', screen: 'ProfileSetup' },
-  { icon: 'verification', label: 'Verification' },
+  { icon: 'user', label: 'Edit Profile', screen: 'ProfileSetup', params: { isEdit: true } },
+  { icon: 'verification', label: 'Verification', screen: 'Verification' },
   { icon: 'wallet', label: 'Wallet', tab: 'Wallet' },
   { icon: 'referral', label: 'Referral Program', screen: 'Referral' },
   { icon: 'notification', label: 'Notification Settings', screen: 'Notifications' },
-  { icon: 'privacy', label: 'Privacy & Security', screen: 'PrivacySecurity' },
+  { icon: 'privacy', label: 'Privacy & Security', screen: 'Content', params: { title: 'Privacy & Security', contentKey: 'privacy_policy' } },
   { icon: 'language', label: 'Language' },
-  { icon: 'help', label: 'Help & Support' },
+  { icon: 'help', label: 'Help & Support', screen: 'Content', params: { title: 'Help & Support', contentKey: 'help_support' } },
 ];
 
 const SettingsScreen: React.FC<Props> = ({ navigation }) => {
@@ -161,7 +162,11 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     if (item.screen) {
-      navigation.navigate(item.screen);
+      if (item.params) {
+        navigation.navigate(item.screen as any, item.params);
+      } else {
+        navigation.navigate(item.screen as any);
+      }
     }
   };
 

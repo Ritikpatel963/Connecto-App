@@ -39,17 +39,20 @@ const atob = (input: string = '') => {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProfileSetup'>;
 
-const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
+const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
+  const isEdit = route.params?.isEdit;
   const insets = useSafeAreaInsets();
-  const { role, phoneNumber, setCurrentUser, setIsAuthenticated } = useUser();
-  const [name, setName] = useState('');
-  const [age, setAge] = useState('');
-  const [bio, setBio] = useState('');
-  const [city, setCity] = useState('');
+  const { role, phoneNumber, currentUser, setCurrentUser, setIsAuthenticated } = useUser();
+  const [name, setName] = useState(isEdit && currentUser ? currentUser.name : '');
+  const [age, setAge] = useState(isEdit && currentUser ? String(currentUser.age) : '');
+  const [bio, setBio] = useState(isEdit && currentUser ? currentUser.bio : '');
+  const [city, setCity] = useState(isEdit && currentUser ? currentUser.city || '' : '');
   const [state, setState] = useState('');
   const [country, setCountry] = useState('');
-  const [languages, setLanguages] = useState('');
-  const [interests, setInterests] = useState('');
+  const [languages, setLanguages] = useState(isEdit && currentUser ? currentUser.languages?.join(', ') || '' : '');
+  const [interests, setInterests] = useState(isEdit && currentUser ? currentUser.interests?.join(', ') || '' : '');
+  
+  // Verification state (only used for setup)
   const [idUploaded, setIdUploaded] = useState(false);
   const [idImageUri, setIdImageUri] = useState<string | null>(null);
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
@@ -189,7 +192,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleComplete = async () => {
     // Basic validation
-    if (!name || !age || !phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded)) {
+    if (!name || !age || !city) return;
+    if (!isEdit && (!phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded))) {
       return;
     }
     try {
@@ -208,30 +212,47 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
         is_active: false, // For admin approval
       };
 
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(payload)
-      });
-      const resBody = await res.text();
-      console.log('Supabase response:', res.status, resBody);
-      if (!res.ok) {
-        Alert.alert('Error', `Failed to save profile: ${resBody}`);
-        return;
+      let newUserId = isEdit ? currentUser?.id : null;
+      
+      if (isEdit) {
+        // Just update existing profile
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${newUserId}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name, age: parseInt(age), city, state, country })
+        });
+        if (!res.ok) {
+          Alert.alert('Error', 'Failed to update profile');
+          return;
+        }
+      } else {
+        // Create new profile
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(payload)
+        });
+        const resBody = await res.text();
+        if (!res.ok) {
+          Alert.alert('Error', `Failed to save profile: ${resBody}`);
+          return;
+        }
+        try {
+          const parsed = JSON.parse(resBody);
+          newUserId = parsed[0]?.id;
+        } catch (e) { }
       }
 
-      let newUserId = null;
-      try {
-        const parsed = JSON.parse(resBody);
-        newUserId = parsed[0]?.id;
-      } catch (e) { }
-
-      if (newUserId) {
+      if (newUserId && !isEdit) {
         const insertPromises = [];
 
         // Insert languages
@@ -327,27 +348,37 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
       }
 
       if (newUserId) {
-        setCurrentUser({
-          id: newUserId,
-          name,
-          age: parseInt(age),
-          avatar: profileImageBase64 || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=random&color=fff&size=256`,
-          role: role || 'boy',
-          bio: 'Hi, I am new here!',
-          isOnline: true,
-          isPremium: false,
-          isVerified: false,
-          rating: 0,
-          totalCalls: 0,
-          pricePerMinute: role === 'girl' ? 8 : 0,
-          languages: [],
-          interests: [],
-          city,
-        });
+        if (isEdit && currentUser) {
+          setCurrentUser({
+            ...currentUser,
+            name,
+            age: parseInt(age),
+            city,
+            avatar: profileImageBase64 || currentUser.avatar,
+          });
+          navigation.goBack();
+        } else {
+          setCurrentUser({
+            id: newUserId,
+            name,
+            age: parseInt(age),
+            avatar: profileImageBase64 || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=random&color=fff&size=256`,
+            role: role || 'boy',
+            bio: 'Hi, I am new here!',
+            isOnline: true,
+            isPremium: false,
+            isVerified: false,
+            rating: 0,
+            totalCalls: 0,
+            pricePerMinute: role === 'girl' ? 8 : 0,
+            languages: [],
+            interests: [],
+            city,
+          });
+          // Profile setup complete - go straight to app
+          navigation.replace('MainTabs');
+        }
       }
-
-      // Profile setup complete - go straight to app
-      navigation.replace('MainTabs');
     } catch (err) {
       console.log('Error creating profile', err);
       Alert.alert('Error', 'Something went wrong. Please try again.');
@@ -362,8 +393,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
         { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 32 },
       ]}
       keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Set up your profile</Text>
-      <Text style={styles.subtitle}>Let people know who you are</Text>
+      <Text style={styles.title}>{isEdit ? 'Edit Profile' : 'Set up your profile'}</Text>
+      <Text style={styles.subtitle}>{isEdit ? 'Update your personal details' : 'Let people know who you are'}</Text>
 
       {/* Avatar */}
       <TouchableOpacity style={styles.avatarRow} onPress={pickProfileImage} activeOpacity={0.7}>
@@ -465,34 +496,36 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
-        <View style={styles.voiceCard}>
-          <View style={styles.voiceRow}>
-            <LinearGradient
-              colors={[...Gradients.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.voiceIcon}>
-              <Text style={{ fontSize: 18 }}>📄</Text>
-            </LinearGradient>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.voiceTitle}>ID Verification</Text>
-              <Text style={styles.voiceSubtitle}>Upload your government verified document like Aadhaar, PAN etc.</Text>
+        {!isEdit && (
+          <View style={styles.voiceCard}>
+            <View style={styles.voiceRow}>
+              <LinearGradient
+                colors={[...Gradients.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.voiceIcon}>
+                <Text style={{ fontSize: 18 }}>📄</Text>
+              </LinearGradient>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.voiceTitle}>ID Verification</Text>
+                <Text style={styles.voiceSubtitle}>Upload your government verified document like Aadhaar, PAN etc.</Text>
+              </View>
             </View>
+            {idImageUri && (
+              <Image source={{ uri: idImageUri }} style={{ width: '100%', height: 120, borderRadius: 8, marginTop: 8 }} resizeMode="cover" />
+            )}
+            <TouchableOpacity
+              style={[styles.recordBtn, idUploaded && { backgroundColor: Colors.primary }]}
+              activeOpacity={0.7}
+              onPress={pickDocument}>
+              <Text style={[styles.recordBtnText, idUploaded && { color: '#FFF' }]}>
+                {idUploaded ? 'Document Uploaded ✓' : 'Upload Document'}
+              </Text>
+            </TouchableOpacity>
           </View>
-          {idImageUri && (
-            <Image source={{ uri: idImageUri }} style={{ width: '100%', height: 120, borderRadius: 8, marginTop: 8 }} resizeMode="cover" />
-          )}
-          <TouchableOpacity
-            style={[styles.recordBtn, idUploaded && { backgroundColor: Colors.primary }]}
-            activeOpacity={0.7}
-            onPress={pickDocument}>
-            <Text style={[styles.recordBtnText, idUploaded && { color: '#FFF' }]}>
-              {idUploaded ? 'Document Uploaded ✓' : 'Upload Document'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        )}
 
-        {role === 'girl' && (
+        {!isEdit && role === 'girl' && (
           <View style={styles.voiceCard}>
             <View style={styles.voiceRow}>
               <LinearGradient
@@ -531,7 +564,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
 
       <TouchableOpacity
         onPress={handleComplete}
-        disabled={!name || !age || !phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded)}
+        disabled={!name || !age || !city || (!isEdit && (!phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded)))}
         activeOpacity={0.8}>
         <LinearGradient
           colors={[...Gradients.primary]}
@@ -539,9 +572,9 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation }) => {
           end={{ x: 1, y: 1 }}
           style={[
             styles.submitBtn,
-            (!name || !age || !phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded)) && styles.disabled
+            (!name || !age || !city || (!isEdit && (!phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded)))) && styles.disabled
           ]}>
-          <Text style={styles.submitText}>Complete Setup →</Text>
+          <Text style={styles.submitText}>{isEdit ? 'Save Changes' : 'Complete Setup →'}</Text>
         </LinearGradient>
       </TouchableOpacity>
     </ScrollView>
