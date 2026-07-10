@@ -19,6 +19,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
+import BackArrowIcon from '../../../components/BackArrowIcon';
 import { useUser } from '../../../context/UserContext';
 import { supabase } from '../../../api/supabase';
 import { useCoinPackages, useSettings } from '../../../api/wallet';
