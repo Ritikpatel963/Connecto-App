@@ -361,9 +361,8 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         })}
       </ScrollView>
 
-      {finalAmount > 0 && (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}> 
-          <View>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}> 
+        <View>
             <Text style={styles.ctaLabel}>Total</Text>
             <Text style={styles.ctaAmount}>
               Rs {finalAmount}
@@ -392,7 +391,6 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
           </LinearGradient>
         </TouchableOpacity>
         </View>
-      )}
     </View>
   );
 };
