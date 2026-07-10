@@ -30,35 +30,14 @@ const SettingsPage = () => {
   // Settings State
   const [withdrawalConfig, setWithdrawalConfig] = useState<{min: string, max: string}>({min: "100", max: "10000"});
   const [paymentQrUrl, setPaymentQrUrl] = useState<string>("");
-  const [privacyPolicy, setPrivacyPolicy] = useState<string>("");
-  const [helpSupport, setHelpSupport] = useState<string>("");
-
-  const { data: configData } = useQuery({
-    queryKey: ["settings", "withdrawal_config"],
-    queryFn: () => settingsApi.get("withdrawal_config"),
-  });
-
-  const { data: qrData } = useQuery({
-    queryKey: ["settings", "payment_qr_url"],
-    queryFn: () => settingsApi.get("payment_qr_url"),
-  });
-
-  const { data: privacyData } = useQuery({
-    queryKey: ["settings", "privacy_policy"],
-    queryFn: () => settingsApi.get("privacy_policy"),
-  });
-
-  const { data: helpData } = useQuery({
-    queryKey: ["settings", "help_support"],
-    queryFn: () => settingsApi.get("help_support"),
-  });
-
   useEffect(() => {
-    if (configData) setWithdrawalConfig(configData);
-    if (qrData) setPaymentQrUrl(qrData);
-    if (privacyData) setPrivacyPolicy(privacyData);
-    if (helpData) setHelpSupport(helpData);
-  }, [configData, qrData, privacyData, helpData]);
+    if (configData) {
+      setWithdrawalConfig(configData);
+    }
+    if (qrData) {
+      setPaymentQrUrl(qrData);
+    }
+  }, [configData, qrData]);
 
   const saveRules = useMutation({
     mutationFn: (config: any) => settingsApi.set("withdrawal_config", config),
@@ -76,14 +55,6 @@ const SettingsPage = () => {
     onError: (error: Error) => toast.error(error.message)
   });
 
-  const saveContent = useMutation({
-    mutationFn: async () => {
-      await settingsApi.set("privacy_policy", privacyPolicy);
-      await settingsApi.set("help_support", helpSupport);
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
-    onError: (error: Error) => toast.error(error.message)
-  });
 
   const handleSave = () => {
     if (activeTab === 'withdrawal') {
@@ -92,9 +63,6 @@ const SettingsPage = () => {
     } else if (activeTab === 'payments') {
       saveQr.mutate(paymentQrUrl);
       toast.success("Payment settings saved successfully!");
-    } else if (activeTab === 'cms') {
-      saveContent.mutate();
-      toast.success("Content saved successfully!");
     } else {
       toast.success("Settings saved successfully!");
     }
@@ -157,14 +125,6 @@ const SettingsPage = () => {
                 onClick={() => handleTabChange('withdrawal')}
               >
                 Withdrawal Rules
-              </button>
-            </li>
-            <li className="nav-item">
-              <button 
-                className={`nav-link fw-semibold text-lg ${activeTab === 'cms' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
-                onClick={() => handleTabChange('cms')}
-              >
-                Content (CMS)
               </button>
             </li>
           </ul>
@@ -487,32 +447,6 @@ const SettingsPage = () => {
                   <p className="text-sm text-secondary-light mb-0 mt-2">
                     Users cannot request a withdrawal exceeding this amount in a single transaction.
                   </p>
-                </div>
-              </div>
-            )}
-
-            {/* CMS TAB */}
-            {activeTab === 'cms' && (
-              <div className="row gy-4">
-                <div className="col-12">
-                  <label className="form-label fw-semibold">Privacy Policy</label>
-                  <textarea 
-                    className="form-control font-monospace" 
-                    rows={10} 
-                    value={privacyPolicy} 
-                    onChange={e => setPrivacyPolicy(e.target.value)}
-                    placeholder="Enter Privacy Policy text here (newlines will be preserved in app)..." 
-                  />
-                </div>
-                <div className="col-12">
-                  <label className="form-label fw-semibold">Help & Support</label>
-                  <textarea 
-                    className="form-control font-monospace" 
-                    rows={10} 
-                    value={helpSupport} 
-                    onChange={e => setHelpSupport(e.target.value)}
-                    placeholder="Enter Help & Support instructions here..." 
-                  />
                 </div>
               </div>
             )}
