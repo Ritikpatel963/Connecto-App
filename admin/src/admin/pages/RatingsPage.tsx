@@ -28,13 +28,19 @@ const RatingsPage = () => {
       await ratingsApi.update(row.id, { review_text: "[APPROVED] " + getReviewText(row) });
       
       // 2. Actually update the user's rating in the app!
-      // For ponytail mode: just boost the rating slightly based on this review
-      const currentRating = Number(row.rating || 5);
-      const { data: user } = await supabase.from('users').select('rating').eq('id', row.rated_user_id).single();
-      const oldRating = user?.rating || 5.0;
-      const newRating = Number(((oldRating * 4 + currentRating) / 5).toFixed(1));
+      // Calculate true average of all approved ratings
+      const { data: allRatings } = await supabase.from('ratings').select('rating, review_text').eq('rated_user_id', row.rated_user_id);
       
-      await supabase.from('users').update({ rating: newRating }).eq('id', row.rated_user_id);
+      const approvedRatings = (allRatings || []).filter(r => (r.review_text || "").startsWith("[APPROVED] "));
+      // Include the one we are currently approving since it might not be in the fetch yet or we just updated it
+      if (!approvedRatings.find(r => r.id === row.id)) {
+        approvedRatings.push({ rating: Number(row.rating || 5) } as any);
+      }
+
+      const totalStars = approvedRatings.reduce((sum, r) => sum + Number(r.rating || 5), 0);
+      const newAverage = approvedRatings.length > 0 ? Number((totalStars / approvedRatings.length).toFixed(1)) : 5.0;
+      
+      await supabase.from('users').update({ rating: newAverage }).eq('id', row.rated_user_id);
       return row.id;
     },
     onSuccess: () => {
@@ -60,10 +66,24 @@ const RatingsPage = () => {
     mutationFn: async () => {
       if (!editing) return;
       const prefix = isRowApproved(editing) ? "[APPROVED] " : "";
-      return ratingsApi.update(editing.id, { 
+      await ratingsApi.update(editing.id, { 
         rating: editForm.rating, 
         review_text: prefix + editForm.review_text 
       });
+
+      // If it was already approved, we need to recalculate the user's average rating because the stars might have changed
+      if (isRowApproved(editing)) {
+        const { data: allRatings } = await supabase.from('ratings').select('id, rating, review_text').eq('rated_user_id', editing.rated_user_id);
+        const approvedRatings = (allRatings || []).filter(r => (r.review_text || "").startsWith("[APPROVED] "));
+        
+        // Update the current one in the array with our newly edited rating
+        const currentInArray = approvedRatings.find(r => r.id === editing.id);
+        if (currentInArray) currentInArray.rating = editForm.rating;
+
+        const totalStars = approvedRatings.reduce((sum, r) => sum + Number(r.rating || 5), 0);
+        const newAverage = approvedRatings.length > 0 ? Number((totalStars / approvedRatings.length).toFixed(1)) : 5.0;
+        await supabase.from('users').update({ rating: newAverage }).eq('id', editing.rated_user_id);
+      }
     },
     onSuccess: () => {
       toast.success("Rating updated");
