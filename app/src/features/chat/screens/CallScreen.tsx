@@ -313,7 +313,7 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
                       rated_user_id: profile.id,
                       rating,
                       review_text: review,
-                      call_id: `call-${Date.now()}`
+                      call_id: null
                     });
                   } catch (e) {
                     console.error('Failed to submit rating', e);
