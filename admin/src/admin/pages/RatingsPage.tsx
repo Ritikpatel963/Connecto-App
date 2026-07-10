@@ -12,8 +12,8 @@ import { supabase } from "../../lib/supabase";
 
 const ratingFilters: SelectFilter[] = [{ key: "rating", label: "Rating", options: [1, 2, 3, 4, 5].map((value) => ({ label: `${value} stars`, value: String(value) })) }];
 
-const isRowApproved = (row: BaseRecord) => row.review_text?.startsWith("[APPROVED]");
-const getReviewText = (row: BaseRecord) => row.review_text?.replace("[APPROVED] ", "") || "";
+const isRowApproved = (row: BaseRecord) => String(row.review_text || "").startsWith("[APPROVED]");
+const getReviewText = (row: BaseRecord) => String(row.review_text || "").replace("[APPROVED] ", "") || "";
 
 const RatingsPage = () => {
   const client = useQueryClient();
