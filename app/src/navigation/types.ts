@@ -13,6 +13,7 @@ export type RootStackParamList = {
   Referral: undefined;
   PrivacySecurity: undefined;
   Recharge: { amount?: number } | undefined;
+  Withdraw: undefined;
   Verification: undefined;
   Content: { title: string; contentKey: string };
 };

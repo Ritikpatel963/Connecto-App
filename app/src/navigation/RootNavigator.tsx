@@ -6,7 +6,7 @@ import { SplashScreen, OnboardingScreen, NotificationsScreen } from '../features
 import { LoginScreen, RoleSelectScreen, ProfileSetupScreen, WaitApprovalScreen } from '../features/auth/screens';
 import { ProfileScreen, PrivacySecurityScreen, VerificationScreen, ContentScreen } from '../features/profile/screens';
 import { CallScreen, ConversationScreen } from '../features/chat/screens';
-import { ReferralScreen, RechargeScreen } from '../features/wallet/screens';
+import { ReferralScreen, RechargeScreen, WithdrawScreen } from '../features/wallet/screens';
 import AppTabs from './AppTabs';
 import type { RootStackParamList } from './types';
 
@@ -34,6 +34,7 @@ const RootNavigator = () => (
       <Stack.Screen name="Referral" component={ReferralScreen} />
       <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
       <Stack.Screen name="Recharge" component={RechargeScreen} />
+      <Stack.Screen name="Withdraw" component={WithdrawScreen} />
       <Stack.Screen name="Verification" component={VerificationScreen} />
       <Stack.Screen name="Content" component={ContentScreen} />
     </Stack.Navigator>

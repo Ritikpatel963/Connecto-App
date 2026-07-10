@@ -354,6 +354,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             name,
             age: parseInt(age),
             city,
+            bio,
             avatar: profileImageBase64 || currentUser.avatar,
           });
           navigation.goBack();
@@ -364,7 +365,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             age: parseInt(age),
             avatar: profileImageBase64 || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=random&color=fff&size=256`,
             role: role || 'boy',
-            bio: 'Hi, I am new here!',
+            bio: bio || 'Hi, I am new here!',
             isOnline: true,
             isPremium: false,
             isVerified: false,
@@ -450,6 +451,20 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             />
           </View>
         </View>
+
+        {role === 'girl' && (
+          <View>
+            <Text style={styles.label}>BIO</Text>
+            <TextInput
+              value={bio}
+              onChangeText={setBio}
+              placeholder="Tell us about yourself..."
+              placeholderTextColor={Colors.mutedForeground}
+              style={[styles.input, { height: 80 }]}
+              multiline
+            />
+          </View>
+        )}
 
         <View style={styles.row}>
           <View style={styles.half}>

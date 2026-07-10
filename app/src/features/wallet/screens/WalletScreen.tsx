@@ -42,7 +42,10 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
         { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 92 },
       ]}>
       <Text style={styles.title}>Wallet</Text>
-      <WalletCard onRecharge={() => navigation.navigate('Recharge')} />
+      <WalletCard 
+        onRecharge={() => navigation.navigate('Recharge')} 
+        onWithdraw={() => navigation.navigate('Withdraw')}
+      />
 
       {role === 'boy' && (
         <View style={styles.rechargeSection}>
