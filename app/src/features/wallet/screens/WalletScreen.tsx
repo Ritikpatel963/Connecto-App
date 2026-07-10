@@ -6,7 +6,7 @@ import { Radius } from '../../../theme/spacing';
 import { useUser } from '../../../context/UserContext';
 import WalletCard from '../../../components/WalletCard';
 import TransactionRow from '../../../components/TransactionRow';
-import { useTransactions } from '../../../api/wallet';
+import { useTransactions, useWalletBalance } from '../../../api/wallet';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 import type { CompositeScreenProps } from '@react-navigation/native';
@@ -23,8 +23,11 @@ const rechargeAmounts = [100, 200, 500, 1000];
 
 const WalletScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { role, walletBalance, setWalletBalance } = useUser();
+  const { role, walletBalance } = useUser();
   const { data: transactions = [], isLoading } = useTransactions();
+  
+  // Fetch actual wallet balance from API to sync with context
+  useWalletBalance();
 
   return (
     <ScrollView
@@ -55,11 +58,19 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.txSection}>
         <Text style={styles.sectionLabel}>TRANSACTIONS</Text>
-        {isLoading ? <Text style={{color: Colors.mutedForeground}}>Loading...</Text> : transactions.map(tx => (
-          <View key={tx.id} style={styles.txRow}>
-            <TransactionRow tx={tx} />
+        {isLoading ? (
+          <Text style={{color: Colors.mutedForeground}}>Loading...</Text>
+        ) : transactions.length === 0 ? (
+          <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+            <Text style={{ color: Colors.mutedForeground, ...Typography.body }}>No transactions yet</Text>
           </View>
-        ))}
+        ) : (
+          transactions.map(tx => (
+            <View key={tx.id} style={styles.txRow}>
+              <TransactionRow tx={tx} />
+            </View>
+          ))
+        )}
       </View>
     </ScrollView>
   );

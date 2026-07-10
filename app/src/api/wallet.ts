@@ -11,13 +11,17 @@ export const useTransactions = () => {
       // For now, hardcode user ID 1 if context is missing, since we don't have auth yet
       const userId = id || 1; 
       
-      const { data: wallet } = await supabase.from('wallets').select('id').eq('user_id', userId).maybeSingle();
+      const { data: wallet } = await supabase
+        .from('wallets')
+        .select('id')
+        .or(`id.eq.${userId},user_id.eq.${userId}`)
+        .maybeSingle();
       const walletId = wallet?.id;
 
       const { data, error } = await supabase
         .from('wallet_transactions')
         .select('*')
-        .or(`wallet_id.eq.${userId}${walletId ? `,wallet_id.eq.${walletId}` : ''}`)
+        .or(`wallet_id.eq.${walletId || userId},wallet_id.eq.${userId}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -59,5 +63,30 @@ export const useReferralStats = () => {
         ]
       } as ReferralInfo;
     }
+  });
+};
+
+export const useWalletBalance = () => {
+  const { currentUser, setWalletBalance } = useUser(); 
+  const id = currentUser?.id;
+  
+  return useQuery({
+    queryKey: ['walletBalance', id],
+    queryFn: async () => {
+      const userId = id || 1;
+      const { data: wallet, error } = await supabase
+        .from('wallets')
+        .select('balance')
+        .or(`id.eq.${userId},user_id.eq.${userId}`)
+        .maybeSingle();
+        
+      if (error && error.code !== 'PGRST116') throw error; // ignore no rows error
+      
+      const balance = wallet?.balance || 0;
+      setWalletBalance(balance); // Sync local state
+      return balance;
+    },
+    // We can enable this even without ID if we fallback to 1 for demo purposes
+    // enabled: !!id, 
   });
 };

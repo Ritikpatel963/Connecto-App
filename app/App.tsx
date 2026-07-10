@@ -28,6 +28,8 @@ const BootGate = () => {
         }
         if (wallets?.[0]?.balance !== undefined) {
           setWalletBalance(Number(wallets[0].balance));
+        } else {
+          setWalletBalance(0);
         }
       }).catch(() => {});
     }

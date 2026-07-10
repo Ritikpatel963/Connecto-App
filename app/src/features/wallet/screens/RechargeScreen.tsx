@@ -15,6 +15,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
@@ -102,6 +103,8 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
   const finalAmount = selectedAmount ?? (customAmount ? Number(customAmount) : 0);
   const bonus = OFFERS.find(o => o.amount === finalAmount)?.bonus ?? 0;
 
+  const queryClient = useQueryClient();
+
   const handleRecharge = async () => {
     if (isSubmitting) return;
 
@@ -130,8 +133,6 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
           return;
         }
 
-        // We use raw base64 data to completely bypass external image hosts!
-        // This requires the payment_screenshot_url column in Supabase to be type TEXT instead of VARCHAR(255).
         const uploadedUrl = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
 
         const { error } = await supabase.from('wallet_transactions').insert({
@@ -144,6 +145,8 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         });
 
         if (error) throw error;
+        
+        queryClient.invalidateQueries({ queryKey: ['transactions'] });
 
         Alert.alert('Success', 'Recharge request submitted. Pending admin approval.', [
           { text: 'OK', onPress: () => navigation.goBack() },
@@ -165,8 +168,30 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Proceed',
-          onPress: () => {
+          onPress: async () => {
+            setIsSubmitting(true);
+            const userId = currentUser?.id || 1;
+            const { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
+            const walletId = wallet?.id || userId;
+            
+            await supabase.from('wallet_transactions').insert({
+              wallet_id: walletId,
+              transaction_type: 'recharge',
+              amount: finalAmount + bonus,
+              payment_method: 'razorpay',
+              verification_status: 'verified',
+            });
+            
+            if (wallet?.id) {
+               await supabase.from('wallets').update({ balance: walletBalance + finalAmount + bonus }).eq('id', wallet.id);
+            } else {
+               await supabase.from('wallets').insert({ id: walletId, user_id: userId, balance: finalAmount + bonus });
+            }
+            
             setWalletBalance(walletBalance + finalAmount + bonus);
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
+            setIsSubmitting(false);
             navigation.goBack();
           },
         },

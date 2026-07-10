@@ -182,6 +182,11 @@ const UserProfilePage = () => {
   const rateDisplay = currentPkg ? `${currentPkg.currency || 'INR'} ${currentPkg.price}/${currentPkg.billing_unit || 'minute'}` : `Not set`;
 
   const callRows = detail.calls as CallRecord[];
+  
+  const totalSpent = detail.transactions
+    .filter((t: any) => t.transaction_type === 'recharge' && (t.verification_status === 'verified' || t.status === 'verified' || t.status === 'completed'))
+    .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+
   const profileContent = <div className="row g-3">
     <div className="col-xl-8">
       <section className="profile-section-card h-100">
@@ -214,7 +219,7 @@ const UserProfilePage = () => {
   const tabContent: Record<Tab, React.ReactNode> = {
     Profile: profileContent,
     Verifications: <div className="row g-3"><div className="col-12"><section className="profile-section-card"><h5 className="mb-16">ID verification submissions</h5><MiniTable rows={detail.idVerifications} emptyLabel="ID submissions" hasImage={true} /></section></div>{user.gender !== 'male' && <div className="col-12"><section className="profile-section-card"><h5 className="mb-16">Voice verification submissions</h5><MiniTable rows={detail.voiceVerifications} emptyLabel="voice submissions" /></section></div>}</div>,
-    Wallet: <div><div className="profile-table-heading d-flex justify-content-between align-items-center"><div><h5>Wallet transactions</h5><p className="mb-0">Review this member's wallet activity and payment status.</p></div><div className="text-end"><span className="text-sm text-secondary-light d-block mb-1">Current Balance</span><h4 className="mb-0 text-primary-600"><MoneyCell value={detail.wallet?.balance} /></h4></div></div><AdminDataTable<BaseRecord> queryKey={["user-wallet-transactions", id]} queryFn={localList(detail.transactions)} columns={walletColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search wallet transactions..." /></div>,
+    Wallet: <div><div className="profile-table-heading d-flex justify-content-between align-items-center"><div><h5>Wallet transactions</h5><p className="mb-0">Review this member's wallet activity and payment status.</p></div><div className="text-end"><span className="text-sm text-secondary-light d-block mb-1">Current Balance</span><h4 className="mb-0 text-primary-600">{detail.wallet?.balance || 0} Coins</h4></div></div><AdminDataTable<BaseRecord> queryKey={["user-wallet-transactions", id]} queryFn={localList(detail.transactions)} columns={walletColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search wallet transactions..." /></div>,
     Calls: <div><div className="profile-table-heading"><h5>Call history</h5><p>Search, filter and review this member's calls.</p></div><AdminDataTable<CallRecord> queryKey={["user-calls", id]} queryFn={localList(callRows)} columns={callColumns} filters={callFilters} initialSort={{ key: "created_at", direction: "desc" }} defaultVisibleColumns={["caller", "receiver", "duration_seconds", "total_cost", "status", "created_at"]} searchPlaceholder="Search call history..." /></div>,
     Ratings: <div><div className="profile-table-heading"><h5>Ratings and reviews</h5><p>Feedback given by or received by this member.</p></div><AdminDataTable<BaseRecord> queryKey={["user-ratings", id]} queryFn={localList(detail.ratings)} columns={ratingColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search ratings and reviews..." /></div>,
     Referrals: <div><div className="profile-table-heading"><h5>Referral history</h5><p>Track users referred by or connected to this member.</p></div><AdminDataTable<BaseRecord> queryKey={["user-referrals", id]} queryFn={localList(detail.referrals)} columns={referralColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search referral history..." /></div>,
@@ -234,7 +239,8 @@ const UserProfilePage = () => {
     </section>
 
     <div className="row g-3 mb-24">
-      <Metric icon="solar:wallet-2-outline" label="Wallet balance" value={<MoneyCell value={detail.wallet?.balance} />} tone="primary" />
+      <Metric icon="solar:wallet-money-outline" label="Total recharged" value={<MoneyCell value={totalSpent} />} tone="success" />
+      <Metric icon="solar:wallet-2-outline" label="Coins balance" value={`${detail.wallet?.balance || 0} Coins`} tone="primary" />
       <Metric icon="solar:phone-calling-outline" label="Total calls" value={detail.calls.length} tone="info" />
       <Metric icon="solar:share-circle-outline" label="Referrals" value={user.total_referrals || 0} tone="primary" />
       <Metric icon="solar:gift-outline" label="Referral earnings" value={<MoneyCell value={user.referral_earnings || 0} />} tone="success" />
