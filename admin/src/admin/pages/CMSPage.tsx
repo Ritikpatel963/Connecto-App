@@ -53,6 +53,22 @@ const CMSPage = () => {
 
   return (
     <>
+      <style>{`
+        .quill-editor-container .ql-toolbar button {
+          padding: 3px 5px !important;
+          background: transparent !important;
+          border: none !important;
+          height: 24px !important;
+          width: 28px !important;
+        }
+        .quill-editor-container .ql-toolbar button svg {
+          display: block;
+        }
+        .quill-editor-container .ql-container {
+          min-height: 300px;
+          font-size: 16px;
+        }
+      `}</style>
       <PageHeader 
         title="Content Management" 
         description="Manage the content displayed in the mobile app screens like Privacy Policy and Help & Support." 
@@ -63,7 +79,7 @@ const CMSPage = () => {
         <div className="card-header bg-neutral-50 py-16 px-24 d-flex align-items-center justify-content-between">
           <h6 className="mb-0 text-lg">Privacy & Security Policy</h6>
         </div>
-        <div className="card-body p-24">
+        <div className="card-body p-24 quill-editor-container">
           {privacyLoading ? (
             <p>Loading...</p>
           ) : (
@@ -72,7 +88,6 @@ const CMSPage = () => {
               value={privacyPolicy} 
               onChange={setPrivacyPolicy} 
               modules={modules}
-              style={{ height: '300px', marginBottom: '50px' }}
             />
           )}
         </div>
@@ -82,7 +97,7 @@ const CMSPage = () => {
         <div className="card-header bg-neutral-50 py-16 px-24 d-flex align-items-center justify-content-between">
           <h6 className="mb-0 text-lg">Help & Support</h6>
         </div>
-        <div className="card-body p-24">
+        <div className="card-body p-24 quill-editor-container">
           {helpLoading ? (
             <p>Loading...</p>
           ) : (
@@ -91,7 +106,6 @@ const CMSPage = () => {
               value={helpSupport} 
               onChange={setHelpSupport} 
               modules={modules}
-              style={{ height: '300px', marginBottom: '50px' }}
             />
           )}
         </div>
