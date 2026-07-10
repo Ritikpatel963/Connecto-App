@@ -196,7 +196,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.profileInfo}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={styles.profileName}>{currentUser?.name || 'User'}</Text>
-            {currentUser?.isVerified && <BadgeCheckIcon size={16} color={Colors.primary} />}
+            {currentUser?.isVerified && <BadgeCheckIcon size={16} color="#10B981" />}
           </View>
           <Text style={styles.profileMeta}>
             {role === 'girl' ? 'Receiver' : 'Caller'} · {currentUser?.city || 'India'}
