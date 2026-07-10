@@ -7,6 +7,7 @@ import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
 import { useProfiles } from '../../../api/users';
 import { useUser } from '../../../context/UserContext';
+import { useSubmitRating } from '../../../api/ratings';
 import RatingStars from '../../../components/RatingStars';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
@@ -151,6 +152,8 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
   const [review, setReview] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTip, setActiveTip] = useState(0);
+  
+  const submitRating = useSubmitRating();
 
   const costPerMin = profile?.pricePerMinute || 10;
   const totalCost = Math.ceil(duration / 60) * costPerMin;
@@ -300,9 +303,19 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
               </View>
             </View>
             <TouchableOpacity
-              onPress={() => navigation.navigate('MainTabs')}
+              onPress={async () => {
+                if (rating > 0 || review.trim().length > 0) {
+                  await submitRating.mutateAsync({
+                    targetUserId: profile.id,
+                    rating,
+                    reviewText: review
+                  });
+                }
+                navigation.navigate('MainTabs');
+              }}
               activeOpacity={0.85}
-              style={styles.doneBtnPressable}>
+              style={styles.doneBtnPressable}
+              disabled={submitRating.isPending}>
               <LinearGradient
                 colors={[...Gradients.primary]}
                 start={{ x: 0, y: 0 }}
