@@ -257,7 +257,7 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
           {callState === 'ringing'
             ? 'Calling...'
             : callState === 'active'
-            ? `₹${costPerMin}/min`
+            ? `${costPerMin} Coins/min`
             : 'Call ended'}
         </Text>
 
@@ -266,7 +266,7 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={styles.timerBox}>
             <Text style={styles.timer}>{formatTime(duration)}</Text>
             {callState === 'active' && (
-              <Text style={styles.cost}>₹{totalCost} spent</Text>
+              <Text style={styles.cost}>{totalCost} Coins spent</Text>
             )}
           </View>
         )}
@@ -296,7 +296,7 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Cost</Text>
-                <Text style={[styles.summaryValue, { color: Colors.primary }]}>₹{totalCost}</Text>
+                <Text style={[styles.summaryValue, { color: Colors.primary }]}>{totalCost} Coins</Text>
               </View>
             </View>
             <TouchableOpacity
