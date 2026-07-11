@@ -61,8 +61,11 @@ const ArrowDownLeftIcon: React.FC<IconProps> = ({ color = '#FFFFFF', size = 16 }
   </Svg>
 );
 
+import { useMonthlyEarnings } from '../api/wallet';
+
 const WalletCard: React.FC<WalletCardProps> = ({ onRecharge, onWithdraw }) => {
   const { walletBalance, role } = useUser();
+  const { data: monthlyEarnings = 0 } = useMonthlyEarnings();
   const gradientColors = role === 'girl' ? [...Gradients.girl] : [...Gradients.primary];
 
   return (
@@ -85,12 +88,12 @@ const WalletCard: React.FC<WalletCardProps> = ({ onRecharge, onWithdraw }) => {
         {role === 'girl' && (
           <View style={styles.earningRow}>
             <CallIcon />
-            <Text style={styles.earningText}>{2450} Coins earned this month</Text>
+            <Text style={styles.earningText}>{monthlyEarnings} Coins earned this month</Text>
           </View>
         )}
 
         <View style={styles.buttonRow}>
-          {role === 'boy' ? (
+          {role !== 'girl' ? (
             <TouchableOpacity onPress={onRecharge} style={styles.actionBtn} activeOpacity={0.7}>
               <ArrowDownLeftIcon />
               <Text style={styles.actionBtnText}>Recharge</Text>

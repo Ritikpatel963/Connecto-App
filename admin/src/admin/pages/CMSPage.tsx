@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { toast } from "react-toastify";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// @ts-ignore
-import ReactQuill from "react-quill-new";
-import "react-quill-new/dist/quill.snow.css";
+import JoditEditor from "jodit-react";
 import PageHeader from "../components/PageHeader";
 import { settingsApi } from "../api/settings";
 
@@ -12,6 +10,15 @@ const CMSPage = () => {
   const queryClient = useQueryClient();
   const [privacyPolicy, setPrivacyPolicy] = useState<string>("");
   const [helpSupport, setHelpSupport] = useState<string>("");
+
+  const editorConfig = {
+    readonly: false,
+    height: 400,
+    showXPathInStatusbar: false,
+    showCharsCounter: false,
+    showWordsCounter: false,
+    toolbarAdaptive: false,
+  };
 
   const { data: privacyData, isLoading: privacyLoading } = useQuery({
     queryKey: ["settings", "privacy_policy"],
@@ -40,35 +47,8 @@ const CMSPage = () => {
     onError: (error: Error) => toast.error(error.message)
   });
 
-  // Basic modules for Quill
-  const modules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-      [{'list': 'ordered'}, {'list': 'bullet'}, {'indent': '-1'}, {'indent': '+1'}],
-      ['link', 'image'],
-      ['clean']
-    ],
-  };
-
   return (
     <>
-      <style>{`
-        .quill-editor-container .ql-toolbar button {
-          padding: 3px 5px !important;
-          background: transparent !important;
-          border: none !important;
-          height: 24px !important;
-          width: 28px !important;
-        }
-        .quill-editor-container .ql-toolbar button svg {
-          display: block;
-        }
-        .quill-editor-container .ql-container {
-          min-height: 300px;
-          font-size: 16px;
-        }
-      `}</style>
       <PageHeader 
         title="Content Management" 
         description="Manage the content displayed in the mobile app screens like Privacy Policy and Help & Support." 
@@ -79,15 +59,14 @@ const CMSPage = () => {
         <div className="card-header bg-neutral-50 py-16 px-24 d-flex align-items-center justify-content-between">
           <h6 className="mb-0 text-lg">Privacy & Security Policy</h6>
         </div>
-        <div className="card-body p-24 quill-editor-container">
+        <div className="card-body p-24">
           {privacyLoading ? (
             <p>Loading...</p>
           ) : (
-            <ReactQuill 
-              theme="snow" 
-              value={privacyPolicy} 
-              onChange={setPrivacyPolicy} 
-              modules={modules}
+            <JoditEditor
+              value={privacyPolicy}
+              config={editorConfig}
+              onBlur={newContent => setPrivacyPolicy(newContent)}
             />
           )}
         </div>
@@ -97,15 +76,14 @@ const CMSPage = () => {
         <div className="card-header bg-neutral-50 py-16 px-24 d-flex align-items-center justify-content-between">
           <h6 className="mb-0 text-lg">Help & Support</h6>
         </div>
-        <div className="card-body p-24 quill-editor-container">
+        <div className="card-body p-24">
           {helpLoading ? (
             <p>Loading...</p>
           ) : (
-            <ReactQuill 
-              theme="snow" 
-              value={helpSupport} 
-              onChange={setHelpSupport} 
-              modules={modules}
+            <JoditEditor
+              value={helpSupport}
+              config={editorConfig}
+              onBlur={newContent => setHelpSupport(newContent)}
             />
           )}
         </div>

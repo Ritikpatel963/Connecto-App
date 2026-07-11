@@ -60,6 +60,7 @@ const AdminDataTable = <T extends BaseRecord>({
     queryKey: [...queryKey, params],
     queryFn: () => queryFn(params),
     placeholderData: keepPreviousData,
+    refetchInterval: 5000,
   });
 
   const visibleColumns = columns.filter((column) => visible[String(column.key)] !== false);

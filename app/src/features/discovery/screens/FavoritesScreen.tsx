@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert } from 'react-native';
 import { Colors } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { useFavorites } from '../../../api/favorites';
@@ -48,7 +48,10 @@ const FavoritesScreen: React.FC<Props> = ({ navigation }) => {
             isFavorite
             role={role}
             onPress={() => navigation.navigate('Profile', { id: item.id })}
-            onCall={() => navigation.navigate('Call', { id: item.id })}
+            onCall={() => {
+              if (!item.packageName) return Alert.alert('Unavailable', 'Admin has not assigned a call package to this profile yet.');
+              navigation.navigate('Call', { id: item.id });
+            }}
           />
         )}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}

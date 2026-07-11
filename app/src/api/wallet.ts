@@ -4,11 +4,14 @@ import { Transaction, ReferralInfo } from '../shared/types/app';
 import { useUser } from '../context/UserContext';
 
 export const useTransactions = () => {
-  const { currentUser } = useUser(); const id = currentUser?.id;
+  const { currentUser } = useUser(); 
+  const id = currentUser?.id;
+  const role = currentUser?.role;
+
   return useQuery({
-    queryKey: ['transactions', id],
+    queryKey: ['transactions', id, role],
+    refetchInterval: 5000,
     queryFn: async () => {
-      // For now, hardcode user ID 1 if context is missing, since we don't have auth yet
       const userId = id || 1; 
       
       const { data: wallet } = await supabase
@@ -18,22 +21,54 @@ export const useTransactions = () => {
         .maybeSingle();
       const walletId = wallet?.id;
 
-      const { data, error } = await supabase
+      const txPromise = supabase
         .from('wallet_transactions')
         .select('*')
         .or(`wallet_id.eq.${walletId || userId},wallet_id.eq.${userId}`)
         .order('created_at', { ascending: false });
+        
+      const wdPromise = role === 'girl' 
+        ? supabase
+            .from('withdrawals')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+        : Promise.resolve({ data: [] });
 
-      if (error) throw error;
+      const [txRes, wdRes] = await Promise.all([txPromise, wdPromise]);
 
-      return (data || []).map((tx: any): Transaction => ({
-        id: String(tx.id),
-        type: (tx.transaction_type as any) || 'recharge',
-        amount: Number(tx.amount || 0),
-        description: String(tx.payment_method || 'Wallet Tx'),
-        timestamp: String(tx.created_at),
-        status: (tx.verification_status || tx.status) as any || 'completed'
-      }));
+      const txData = txRes.data || [];
+      const wdData = wdRes.data || [];
+
+      let transactions = [
+        ...txData.map((tx: any): Transaction => ({
+          id: String(tx.id),
+          type: (tx.transaction_type as any) || 'recharge',
+          amount: Number(tx.amount || 0),
+          description: String(tx.payment_method || 'Wallet Tx'),
+          timestamp: String(tx.created_at),
+          status: (tx.verification_status || tx.status) as any || 'completed'
+        })),
+        ...wdData.map((wd: any): Transaction => ({
+          id: `wd-${wd.id}`,
+          type: 'withdrawal',
+          amount: -(Number(wd.amount_coins || 0)),
+          description: `Withdraw to ${String(wd.payment_method).split(':')[0] || 'Account'}`,
+          timestamp: String(wd.created_at),
+          status: wd.status || 'pending'
+        }))
+      ];
+
+      // Enforce business rules: boys only recharge/debit, girls only withdraw/credit
+      transactions = transactions.filter(tx => {
+        if (role === 'girl') {
+          return ['withdrawal', 'earning', 'call_credit', 'referral_bonus'].includes(tx.type);
+        }
+        // Default to boy rules
+        return ['recharge', 'call_debit', 'referral_bonus'].includes(tx.type);
+      });
+
+      return transactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     }
   });
 };
@@ -79,6 +114,7 @@ export const useWalletBalance = () => {
   
   return useQuery({
     queryKey: ['walletBalance', id],
+    refetchInterval: 5000,
     queryFn: async () => {
       const userId = id || 1;
       const { data: wallet, error } = await supabase
@@ -97,6 +133,33 @@ export const useWalletBalance = () => {
     // enabled: !!id, 
   });
 };
+export const useMonthlyEarnings = () => {
+  const { currentUser } = useUser();
+  const id = currentUser?.id;
+  return useQuery({
+    queryKey: ['monthlyEarnings', id],
+    queryFn: async () => {
+      if (!id) return 0;
+      const { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${id},user_id.eq.${id}`).maybeSingle();
+      if (!wallet) return 0;
+      
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('wallet_transactions')
+        .select('amount')
+        .eq('wallet_id', wallet.id)
+        .eq('transaction_type', 'earning')
+        .gte('created_at', startOfMonth.toISOString());
+        
+      if (error) return 0;
+      return data.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+    }
+  });
+};
+
 export const useCoinPackages = () => {
   return useQuery({
     queryKey: ['coinPackages'],

@@ -140,7 +140,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         sampleRate: 16000,
         channels: 1,
         bitsPerSample: 16,
-        audioSource: 6,
+        audioSource: 1,
         wavFile: 'voice_verification.wav',
       });
       AudioRecord.start();
@@ -283,6 +283,17 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             user_id: newUserId,
             status: 'pending',
             id_image_url: idImageBase64 || 'https://images.unsplash.com/photo-1621252179027-94459d278660?w=200&h=150&fit=crop'
+          })
+        }));
+
+        // Insert initial wallet with 10 coins (Ponytail fix)
+        insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/wallets`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: newUserId,
+            user_id: newUserId,
+            balance: 10
           })
         }));
 

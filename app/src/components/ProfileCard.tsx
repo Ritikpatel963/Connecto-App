@@ -85,12 +85,14 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           <Text style={styles.listBio} numberOfLines={1}>{profile.bio}</Text>
           <View style={styles.listMeta}>
             <RatingStars rating={profile.rating} size={12} />
-            <Text style={styles.listPrice}>
-              {profile.pricePerMinute} Coins/min
-            </Text>
+            {role === 'boy' && (
+              <Text style={styles.listPrice}>
+                {profile.pricePerMinute} Coins/min
+              </Text>
+            )}
           </View>
         </View>
-        {role === 'boy' && (
+        {onCall && (
           <TouchableOpacity onPress={onCall} activeOpacity={0.8}>
             <LinearGradient
               colors={gradientColors}
@@ -128,11 +130,11 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           {profile.isVerified && <BadgeCheckIcon />}
         </View>
         <Text style={styles.gridSub}>
-          {profile.city} · {profile.pricePerMinute} Coins/min
+          {profile.city}{role === 'boy' ? ` · ${profile.pricePerMinute} Coins/min` : ''}
         </Text>
         <View style={styles.gridFooter}>
           <RatingStars rating={profile.rating} size={12} />
-          {role === 'boy' && (
+          {onCall && (
             <TouchableOpacity onPress={onCall} activeOpacity={0.8}>
               <LinearGradient
                 colors={gradientColors}

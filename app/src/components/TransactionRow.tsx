@@ -115,15 +115,20 @@ const TransactionRow: React.FC<{ tx: Transaction; conversionRate?: number }> = (
       </View>
       <View style={styles.amountCol}>
         <Text style={[styles.amount, { color: tx.status === 'pending' ? Colors.secondary : (isPositive ? Colors.accent : Colors.primary) }]}>
-          {isPositive ? '+' : ''}₹{Math.abs(tx.amount)}
+          {isPositive ? '+' : '-'}{tx.type === 'recharge' ? '₹' : ''}{Math.abs(tx.amount)}{tx.type !== 'recharge' ? ' Coins' : ''}
         </Text>
         {tx.type === 'recharge' && (tx.status === 'completed' || tx.status === 'verified') && (
           <Text style={[styles.status, { color: Colors.accent }]}>
             +{coins} Coins
           </Text>
         )}
-        {(tx.type !== 'recharge' || (tx.status !== 'completed' && tx.status !== 'verified')) && (
-          <Text style={[styles.status, tx.status === 'pending' && { color: Colors.secondary }]}>
+        {tx.status === 'pending' && (
+          <Text style={[styles.status, { color: Colors.secondary }]}>
+            Pending Approval
+          </Text>
+        )}
+        {(tx.type !== 'recharge' || (tx.status !== 'completed' && tx.status !== 'verified')) && tx.status !== 'pending' && (
+          <Text style={[styles.status, tx.status === 'rejected' && { color: Colors.primary }]}>
             {tx.status}
           </Text>
         )}

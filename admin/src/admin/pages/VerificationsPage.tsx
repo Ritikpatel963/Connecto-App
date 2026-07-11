@@ -26,9 +26,41 @@ const VerificationsPage = ({ type }: { type: "id" | "voice" }) => {
   const [action, setAction] = useState<{ row: Verification; mode: "view" | "approve" | "reject" } | null>(null);
 
   const mutation = useMutation({
-    mutationFn: (reason: string) => action?.mode === "reject" ? api.reject(action.row.id, reason) : api.approve(action!.row.id),
-    onSuccess: () => { toast.success("Verification updated"); setAction(null); client.invalidateQueries({ queryKey: [key] }); },
-    onError: (error: Error) => toast.error(error.message),
+    mutationFn: (variables: { reason: string; action: { row: Verification; mode: "view" | "approve" | "reject" } }) => variables.action.mode === "reject" ? api.reject(variables.action.row.id, variables.reason) : api.approve(variables.action.row.id),
+    onMutate: async ({ action }) => {
+      const { row, mode } = action;
+      
+      await client.cancelQueries({ queryKey: [key] });
+      const previousData = client.getQueriesData({ queryKey: [key] });
+
+      client.setQueriesData({ queryKey: [key] }, (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        const targetStatus = mode === "reject" ? "rejected" : "approved";
+        return {
+          ...oldData,
+          data: oldData.data.map((r: Verification) => 
+            r.id === row.id ? { ...r, status: targetStatus } : r
+          ),
+        };
+      });
+
+      setAction(null);
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          client.setQueryData(queryKey, data);
+        });
+      }
+      toast.error("Failed to update verification status.");
+    },
+    onSettled: () => {
+      client.invalidateQueries({ queryKey: [key] });
+    },
+    onSuccess: () => { 
+      toast.success("Verification updated"); 
+    },
   });
 
   const columns = [
@@ -54,7 +86,7 @@ const VerificationsPage = ({ type }: { type: "id" | "voice" }) => {
         {row.status === "pending" && <><IconButton icon="solar:check-circle-outline" title="Approve" tone="success" onClick={() => setAction({ row, mode: "approve" })} /><IconButton icon="solar:close-circle-outline" title="Reject" tone="danger" onClick={() => setAction({ row, mode: "reject" })} /></>}
       </>}
     />
-    <ActionModal open={Boolean(action)} title={action?.mode === "view" ? "Verification submission" : action?.mode === "approve" ? "Approve verification" : "Reject verification"} description={action ? `${action.row.id} \u00B7 ${action.row.user || `User #${action.row.user_id}`}` : ""} confirmLabel={action?.mode === "view" ? "Close" : action?.mode === "approve" ? "Approve" : "Reject"} tone={action?.mode === "reject" ? "danger" : "success"} requireReason={action?.mode === "reject"} onClose={() => setAction(null)} onConfirm={(reason) => action?.mode === "view" ? setAction(null) : mutation.mutate(reason)} loading={mutation.isPending}>
+    <ActionModal open={Boolean(action)} title={action?.mode === "view" ? "Verification submission" : action?.mode === "approve" ? "Approve verification" : "Reject verification"} description={action ? `${action.row.id} \u00B7 ${action.row.user || `User #${action.row.user_id}`}` : ""} confirmLabel={action?.mode === "view" ? "Close" : action?.mode === "approve" ? "Approve" : "Reject"} tone={action?.mode === "reject" ? "danger" : "success"} requireReason={action?.mode === "reject"} onClose={() => setAction(null)} onConfirm={(reason) => action?.mode === "view" ? setAction(null) : mutation.mutate({ reason, action: action! })} loading={mutation.isPending}>
       {action && <div className="bg-neutral-50 radius-12 p-20">
         {type === "id"
           ? hasUploadedAsset(action.row.id_image_url)

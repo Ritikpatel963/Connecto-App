@@ -14,14 +14,55 @@ const WithdrawalsPage = () => {
   const [action, setAction] = useState<{ row: WithdrawalRequest; mode: "approve" | "reject" | "complete" } | null>(null);
   
   const mutation = useMutation({
-    mutationFn: (reason: string) => 
-      action?.mode === "reject" ? withdrawalsApi.reject(action.row.id, reason) : 
-      action?.mode === "complete" ? withdrawalsApi.complete(action.row.id) : 
-      withdrawalsApi.approve(action!.row.id),
+    mutationFn: (variables: { reason: string; action: { row: WithdrawalRequest; mode: "approve" | "reject" | "complete" } }) => 
+      variables.action.mode === "reject" ? withdrawalsApi.reject(variables.action.row.id, variables.reason) : 
+      variables.action.mode === "complete" ? withdrawalsApi.complete(variables.action.row.id) : 
+      withdrawalsApi.approve(variables.action.row.id),
+    
+    // 1. Snapshot and Optimistically update
+    onMutate: async ({ action }) => {
+      const { row, mode } = action;
+      
+      // Cancel outgoing refetches so they don't overwrite our optimistic update
+      await client.cancelQueries({ queryKey: ["withdrawals"] });
+
+      // Snapshot the previous data for rollback
+      const previousData = client.getQueriesData({ queryKey: ["withdrawals"] });
+
+      // Optimistically update the cache for all pagination pages
+      client.setQueriesData({ queryKey: ["withdrawals"] }, (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        const targetStatus = mode === "reject" ? "rejected" : mode === "complete" ? "completed" : "approved";
+        return {
+          ...oldData,
+          data: oldData.data.map((r: WithdrawalRequest) => 
+            r.id === row.id ? { ...r, status: targetStatus } : r
+          ),
+        };
+      });
+
+      // Return context for rollback
+      return { previousData };
+    },
+
+    // 2. Rollback on failure
+    onError: (err, variables, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          client.setQueryData(queryKey, data);
+        });
+      }
+      toast.error("Failed to update status. Reverted change.");
+    },
+
+    // 3. Background sync on settle
+    onSettled: () => {
+      client.invalidateQueries({ queryKey: ["withdrawals"] });
+      setAction(null);
+    },
+
     onSuccess: () => { 
       toast.success("Withdrawal request updated"); 
-      setAction(null); 
-      client.invalidateQueries({ queryKey: ["withdrawals"] }); 
     },
   });
 
@@ -74,7 +115,7 @@ const WithdrawalsPage = () => {
         tone={action?.mode === "reject" ? "danger" : "success"} 
         requireReason={action?.mode === "reject"} 
         onClose={() => setAction(null)} 
-        onConfirm={(reason) => mutation.mutate(reason)} 
+        onConfirm={(reason) => mutation.mutate({ reason, action: action! })} 
         loading={mutation.isPending} 
       />
     </div>

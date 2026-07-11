@@ -154,6 +154,7 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Ponytail: User requested to remove this availability block
         {role === 'girl' && (
           <View style={styles.availabilityCard}>
             <View style={styles.availabilityInfo}>
@@ -229,6 +230,7 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
         )}
+        */}
 
         {showSearch && (
           <View style={styles.searchRow}>
@@ -243,9 +245,6 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
                 autoFocus
               />
             </View>
-            <TouchableOpacity style={styles.filterBtn}>
-              <Text style={{ fontSize: 14 }}>⚙️</Text>
-            </TouchableOpacity>
           </View>
         )}
 
@@ -292,6 +291,7 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
               role={role}
               onPress={() => navigation.navigate('Profile', { id: item.id, profile: item })}
               onCall={() => {
+                if (!item.packageName) return Alert.alert('Unavailable', 'Admin has not assigned a call package to this profile yet.');
                 if (!currentUser?.isVerified) return Alert.alert('Not Verified', 'Admin has not verified your profile yet.');
                 navigation.navigate('Call', { id: item.id });
               }}

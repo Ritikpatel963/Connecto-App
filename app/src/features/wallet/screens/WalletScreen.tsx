@@ -47,7 +47,7 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
         onWithdraw={() => navigation.navigate('Withdraw')}
       />
 
-      {role === 'boy' && (
+      {role !== 'girl' && (
         <View style={styles.rechargeSection}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>QUICK RECHARGE</Text>

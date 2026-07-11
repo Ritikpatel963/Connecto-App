@@ -13,9 +13,42 @@ const ManualRechargePage = () => {
   const client = useQueryClient();
   const [action, setAction] = useState<{ row: WalletTransaction; mode: "view" | "approve" | "reject" } | null>(null);
   const mutation = useMutation({
-    mutationFn: (reason: string) => action?.mode === "reject" ? walletTransactionsApi.reject(action.row.id, reason) : walletTransactionsApi.approve(action!.row),
-    onSuccess: () => { toast.success("Recharge request updated"); setAction(null); client.invalidateQueries({ queryKey: ["manual-recharges"] }); },
-    onError: (error: Error) => toast.error(error.message),
+    mutationFn: (variables: { reason: string; action: { row: WalletTransaction; mode: "view" | "approve" | "reject" } }) => 
+      variables.action.mode === "reject" ? walletTransactionsApi.reject(variables.action.row.id, variables.reason) : walletTransactionsApi.approve(variables.action.row),
+    onMutate: async ({ action }) => {
+      const { row, mode } = action;
+      
+      await client.cancelQueries({ queryKey: ["manual-recharges"] });
+      const previousData = client.getQueriesData({ queryKey: ["manual-recharges"] });
+
+      client.setQueriesData({ queryKey: ["manual-recharges"] }, (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        const targetStatus = mode === "reject" ? "rejected" : "verified";
+        return {
+          ...oldData,
+          data: oldData.data.map((r: WalletTransaction) => 
+            r.id === row.id ? { ...r, verification_status: targetStatus } : r
+          ),
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (err: any, variables, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          client.setQueryData(queryKey, data);
+        });
+      }
+      toast.error(`Failed to update recharge request: ${err?.message || err}`);
+    },
+    onSettled: () => {
+      client.invalidateQueries({ queryKey: ["manual-recharges"] });
+      setAction(null);
+    },
+    onSuccess: () => { 
+      toast.success("Recharge request updated"); 
+    },
   });
 
   const columns = [
@@ -31,7 +64,7 @@ const ManualRechargePage = () => {
       <IconButton icon="solar:gallery-wide-outline" title="View screenshot" onClick={() => setAction({ row, mode: "view" })} />
       {row.verification_status === "pending" && <><IconButton icon="solar:check-circle-outline" title="Approve" tone="success" onClick={() => setAction({ row, mode: "approve" })} /><IconButton icon="solar:close-circle-outline" title="Reject" tone="danger" onClick={() => setAction({ row, mode: "reject" })} /></>}
     </>} />
-    <ActionModal open={Boolean(action)} title={action?.mode === "view" ? "Payment screenshot" : action?.mode === "approve" ? "Approve recharge" : "Reject recharge"} description={action ? `${action.row.id} \u00B7 \u20B9${action.row.amount}` : ""} confirmLabel={action?.mode === "view" ? "Close" : action?.mode === "approve" ? "Approve & credit" : "Reject"} tone={action?.mode === "reject" ? "danger" : "success"} requireReason={action?.mode === "reject"} onClose={() => setAction(null)} onConfirm={(reason) => action?.mode === "view" ? setAction(null) : mutation.mutate(reason)} loading={mutation.isPending}>
+    <ActionModal open={Boolean(action)} title={action?.mode === "view" ? "Payment screenshot" : action?.mode === "approve" ? "Approve recharge" : "Reject recharge"} description={action ? `${action.row.id} \u00B7 \u20B9${action.row.amount}` : ""} confirmLabel={action?.mode === "view" ? "Close" : action?.mode === "approve" ? "Approve & credit" : "Reject"} tone={action?.mode === "reject" ? "danger" : "success"} requireReason={action?.mode === "reject"} onClose={() => setAction(null)} onConfirm={(reason) => action?.mode === "view" ? setAction(null) : mutation.mutate({ reason, action: action! })} loading={mutation.isPending}>
       {action && <div className="bg-neutral-50 radius-12 text-center py-40 flex-column align-items-center"><span className="w-64-px h-64-px rounded-circle bg-primary-50 text-primary-600 d-inline-flex align-items-center justify-content-center mb-12"><span className="text-2xl">{"\u20B9"}</span></span><p className="fw-semibold mb-4">Uploaded payment proof</p>{action.row.payment_screenshot_url && action.row.payment_screenshot_url !== 'test' ? <div className="w-100 d-flex flex-column align-items-center justify-content-center"><img src={action.row.payment_screenshot_url} alt="Payment proof" style={{ maxWidth: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 8, marginTop: 12, marginBottom: 8 }} onError={(e) => { e.currentTarget.src = 'https://placehold.co/600x200?text=Image+Load+Failed'; }} /><a href={action.row.payment_screenshot_url} target="_blank" rel="noreferrer" className="text-sm fw-medium text-primary-600 mb-12" download="payment-proof">Download / Open Full Size</a></div> : <p className="text-secondary mt-12 mb-12">No screenshot available</p>}<p className="text-xs text-secondary-light mt-12 mb-0">Approval will be tied to the current admin ID.</p></div>}
     </ActionModal>
   </div>;

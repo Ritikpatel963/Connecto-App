@@ -11,9 +11,13 @@ const SUPABASE_KEY = 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Content'>;
 
+import RenderHtml from 'react-native-render-html';
+import { useWindowDimensions } from 'react-native';
+
 const ContentScreen: React.FC<Props> = ({ navigation, route }) => {
   const { title, contentKey } = route.params;
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -45,7 +49,18 @@ const ContentScreen: React.FC<Props> = ({ navigation, route }) => {
         {loading ? (
           <ActivityIndicator color={Colors.primary} size="large" style={{ marginTop: 40 }} />
         ) : (
-          <Text style={styles.textContent}>{content}</Text>
+          <RenderHtml
+            contentWidth={width - 48}
+            source={{ html: content }}
+            tagsStyles={{
+              body: { color: Colors.foreground, fontSize: 16, lineHeight: 24 },
+              p: { color: Colors.foreground, fontSize: 16, lineHeight: 24, marginBottom: 12 },
+              h1: { color: Colors.foreground, marginTop: 16, marginBottom: 8 },
+              h2: { color: Colors.foreground, marginTop: 16, marginBottom: 8 },
+              h3: { color: Colors.foreground, marginTop: 16, marginBottom: 8 },
+              li: { color: Colors.foreground, fontSize: 16, lineHeight: 24 },
+            }}
+          />
         )}
       </ScrollView>
     </View>

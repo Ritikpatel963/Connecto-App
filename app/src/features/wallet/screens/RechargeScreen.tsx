@@ -198,7 +198,14 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         
         // 3. Payment Success - Add to wallet
         const userId = currentUser?.id || 1;
-        const { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
+        let { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
+        
+        // Lazily create wallet if it doesn't exist to prevent foreign key errors
+        if (!wallet) {
+           const { data: newWallet, error: createErr } = await supabase.from('wallets').insert({ id: userId, user_id: userId, balance: walletBalance }).select('id').single();
+           if (createErr) throw createErr;
+           wallet = newWallet;
+        }
         const walletId = wallet?.id || userId;
         
         await supabase.from('wallet_transactions').insert({
@@ -209,11 +216,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
           verification_status: 'verified',
         });
         
-        if (wallet?.id) {
-           await supabase.from('wallets').update({ balance: walletBalance + finalCoins }).eq('id', wallet.id);
-        } else {
-           await supabase.from('wallets').insert({ id: walletId, user_id: userId, balance: finalCoins });
-        }
+        await supabase.from('wallets').update({ balance: walletBalance + finalCoins }).eq('id', walletId);
         
         setWalletBalance(walletBalance + finalCoins);
         queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -237,22 +240,25 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
           onPress: async () => {
             setIsSubmitting(true);
             const userId = currentUser?.id || 1;
-            const { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
+            let { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
+            
+            // Lazily create wallet if it doesn't exist to prevent foreign key errors
+            if (!wallet) {
+               const { data: newWallet, error: createErr } = await supabase.from('wallets').insert({ id: userId, user_id: userId, balance: walletBalance }).select('id').single();
+               if (createErr) throw createErr;
+               wallet = newWallet;
+            }
             const walletId = wallet?.id || userId;
             
             await supabase.from('wallet_transactions').insert({
               wallet_id: walletId,
               transaction_type: 'recharge',
               amount: finalAmount,
-              payment_method: 'in_app',
+              payment_method: 'razorpay',
               verification_status: 'verified',
             });
             
-            if (wallet?.id) {
-               await supabase.from('wallets').update({ balance: walletBalance + finalCoins }).eq('id', wallet.id);
-            } else {
-               await supabase.from('wallets').insert({ id: walletId, user_id: userId, balance: finalCoins });
-            }
+            await supabase.from('wallets').update({ balance: walletBalance + finalCoins }).eq('id', walletId);
             
             setWalletBalance(walletBalance + finalCoins);
             queryClient.invalidateQueries({ queryKey: ['transactions'] });

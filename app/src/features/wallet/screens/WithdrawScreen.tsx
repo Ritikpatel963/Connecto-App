@@ -21,6 +21,7 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
   const { data: settings = {} } = useSettings();
   
   const [amountStr, setAmountStr] = useState('');
+  const [payoutMethod, setPayoutMethod] = useState('UPI');
   const [payoutDetails, setPayoutDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,23 +48,29 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
     setIsSubmitting(true);
     try {
       const userId = currentUser?.id || 1;
-      const { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
+      let { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
+      
+      // Lazily create wallet if it doesn't exist to prevent foreign key errors
+      if (!wallet) {
+         const { data: newWallet, error: createErr } = await supabase.from('wallets').insert({ id: userId, user_id: userId, balance: walletBalance }).select('id').single();
+         if (createErr) throw createErr;
+         wallet = newWallet;
+      }
       const walletId = wallet?.id || userId;
       
-      const { error } = await supabase.from('wallet_transactions').insert({
-        wallet_id: walletId,
-        transaction_type: 'withdraw',
-        amount: amount,
-        payment_method: payoutDetails,
-        verification_status: 'pending',
+      const { error } = await supabase.from('withdrawals').insert({
+        user_id: userId,
+        amount_coins: amount,
+        amount_fiat: amount / 10, // Assuming 10 coins = 1 fiat unit based on typical conversion, or whatever works
+        currency: 'INR',
+        payment_method: `${payoutMethod}: ${payoutDetails}`,
+        status: 'pending',
       });
       
       if (error) throw error;
       
       const newBalance = walletBalance - amount;
-      if (wallet?.id) {
-         await supabase.from('wallets').update({ balance: newBalance }).eq('id', wallet.id);
-      }
+      await supabase.from('wallets').update({ balance: newBalance }).eq('id', walletId);
       
       setWalletBalance(newBalance);
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -107,11 +114,26 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
           onChangeText={setAmountStr}
         />
 
-        <Text style={styles.inputLabel}>Payout Account Details</Text>
+        <Text style={styles.inputLabel}>Select Payout Method</Text>
+        <View style={styles.methodRow}>
+          {['UPI', 'Debit Card', 'Bank Transfer'].map(method => (
+            <TouchableOpacity 
+              key={method}
+              style={[styles.methodBtn, payoutMethod === method && styles.methodBtnActive]}
+              onPress={() => setPayoutMethod(method)}
+            >
+              <Text style={[styles.methodBtnText, payoutMethod === method && styles.methodBtnTextActive]}>
+                {method}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.inputLabel}>{payoutMethod} Details</Text>
         <TextInput
           style={[styles.input, { height: 80 }]}
           multiline
-          placeholder="Enter UPI ID, Bank Account, or Card Details"
+          placeholder={`Enter your ${payoutMethod} details...`}
           placeholderTextColor={Colors.mutedForeground}
           value={payoutDetails}
           onChangeText={setPayoutDetails}
@@ -142,6 +164,11 @@ const styles = StyleSheet.create({
   balance: { ...Typography.h2, color: Colors.foreground, marginVertical: 8 },
   ruleText: { ...Typography.small, color: Colors.primary },
   inputLabel: { ...Typography.label, color: Colors.foreground, marginBottom: 8, marginTop: 12 },
+  methodRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  methodBtn: { flex: 1, paddingVertical: 10, borderRadius: Radius.md, backgroundColor: Colors.card, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center' },
+  methodBtnActive: { borderColor: Colors.primary, backgroundColor: 'rgba(233,64,87,0.1)' },
+  methodBtnText: { ...Typography.small, color: Colors.mutedForeground },
+  methodBtnTextActive: { color: Colors.primary, fontWeight: 'bold' },
   input: { backgroundColor: Colors.card, borderRadius: Radius.lg, padding: 16, color: Colors.foreground, ...Typography.body },
   submitBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, padding: 16, alignItems: 'center', marginTop: 32 },
   submitBtnText: { ...Typography.bodyBold, color: '#FFFFFF' },
