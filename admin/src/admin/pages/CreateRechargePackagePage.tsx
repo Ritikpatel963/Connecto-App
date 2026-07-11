@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import PageHeader from "../components/PageHeader";
 import { coinPackagesApi } from "../api/coinPackages";
+import { settingsApi } from "../api/settings";
 import { CoinPackage } from "../types";
 
 const CreateRechargePackagePage = () => {
@@ -16,11 +17,19 @@ const CreateRechargePackagePage = () => {
     currency: "INR",
     is_active: true,
   });
+  const [isDefault, setIsDefault] = useState(false);
 
   const mutation = useMutation({
-    mutationFn: (data: Partial<CoinPackage>) => coinPackagesApi.create(data),
+    mutationFn: async (data: Partial<CoinPackage>) => {
+      const created = await coinPackagesApi.create(data);
+      if (isDefault && created?.id) {
+        await settingsApi.set("default_package_id", created.id);
+      }
+      return created;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["coin-packages"] });
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
       navigate("/recharge-packages");
     },
   });
@@ -99,16 +108,33 @@ const CreateRechargePackagePage = () => {
               </div>
             </div>
 
-            <div className="mb-4">
-              <label className="form-label fw-semibold">Status</label>
-              <select
-                className="form-select"
-                value={formData.is_active ? "active" : "inactive"}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.value === "active" })}
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+            <div className="row mb-4">
+              <div className="col-6">
+                <label className="form-label fw-semibold">Status</label>
+                <select
+                  className="form-select"
+                  value={formData.is_active ? "active" : "inactive"}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.value === "active" })}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div className="col-6 d-flex flex-column justify-content-center">
+                <label className="form-label fw-semibold">Default Package</label>
+                <div className="form-switch switch-primary mt-2">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    checked={isDefault}
+                    onChange={(e) => setIsDefault(e.target.checked)}
+                  />
+                  <label className="form-check-label ms-2">
+                    {isDefault ? "Yes, always selected" : "No"}
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="d-flex gap-2">

@@ -47,11 +47,7 @@ type PaymentMethod = {
 
 const QUICK_AMOUNTS = [50, 100, 200, 500, 1000, 2000];
 
-const OFFERS = [
-  { id: '1', amount: 500, bonus: 50, tag: 'Popular', color: Colors.primary },
-  { id: '2', amount: 1000, bonus: 150, tag: 'Best Value', color: Colors.accent },
-  { id: '3', amount: 2000, bonus: 400, tag: 'Hot Deal', color: Colors.secondary },
-] as const;
+
 
 const PAYMENT_METHODS: PaymentMethod[] = [
   { id: 'razorpay', label: 'Razorpay', subtitle: 'UPI, Cards, Netbanking' },
@@ -103,15 +99,40 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethodId>('razorpay');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const queryClient = useQueryClient();
+
+  // Auto-select the default package
+  React.useEffect(() => {
+    if (selectedAmount === null && !customAmount && coinPackages.length > 0) {
+      if (settings?.default_package_id) {
+        const defaultAdminPkg = coinPackages.find(p => String(p.id) === String(settings.default_package_id));
+        if (defaultAdminPkg) {
+          setSelectedAmount(defaultAdminPkg.price);
+          return;
+        }
+      }
+
+      // Prioritize packages with a bonus as default, fallback to the first available package
+      const baseRule = coinPackages[0];
+      const conversionRate = (baseRule && baseRule.coins > 0) ? (baseRule.price / baseRule.coins) : 1;
+      const defaultPkg = coinPackages.find(p => p.coins > Math.floor(p.price / conversionRate)) || coinPackages[0];
+      
+      if (defaultPkg) {
+        setSelectedAmount(defaultPkg.price);
+      }
+    }
+  }, [coinPackages, selectedAmount, customAmount, settings?.default_package_id]);
+
   const finalAmount = selectedAmount ?? (customAmount ? Number(customAmount) : 0);
-  const bonus = OFFERS.find(o => o.amount === finalAmount)?.bonus ?? 0;
   
   // Calculate conversion rate: price per coin. Fallback to 1 if no rule.
   const baseRule = coinPackages[0];
   const conversionRate = (baseRule && baseRule.coins > 0) ? (baseRule.price / baseRule.coins) : 1;
-  const finalCoins = Math.floor(finalAmount / conversionRate) + bonus;
-
-  const queryClient = useQueryClient();
+  
+  const pkg = coinPackages.find(p => p.price === finalAmount);
+  const baseCoins = Math.floor(finalAmount / conversionRate);
+  const bonus = (pkg && pkg.coins > baseCoins) ? pkg.coins - baseCoins : 0;
+  const finalCoins = baseCoins + bonus;
 
   const handleRecharge = async () => {
     if (isSubmitting) return;
@@ -124,6 +145,10 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
     setIsSubmitting(true);
 
     const paymentLabel = PAYMENT_METHODS.find(p => p.id === selectedPayment)?.label ?? 'UPI';
+    const pkg = coinPackages.find(p => p.price === finalAmount);
+    
+    const isSpecial = pkg && pkg.coins > Math.floor(pkg.price / conversionRate);
+    const paymentMethodDbString = selectedPayment === 'manual' ? 'manual_upload' : 'razorpay';
 
     if (selectedPayment === 'manual') {
       try {
@@ -146,8 +171,8 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         const { error } = await supabase.from('wallet_transactions').insert({
           wallet_id: currentUser?.id || 1,
           transaction_type: 'recharge',
-          amount: finalAmount, // Store fiat amount in transactions so total spent is correct
-          payment_method: 'manual_upload',
+          amount: finalAmount, 
+          payment_method: paymentMethodDbString,
           payment_screenshot_url: uploadedUrl || 'https://placehold.co/600x400?text=Upload+Failed',
           verification_status: 'pending',
         });
@@ -172,7 +197,6 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
     if (selectedPayment === 'razorpay') {
       try {
         setIsSubmitting(true);
-        // 1. Create order on backend
         const res = await fetch('http://10.0.2.2:4100/api/app/v1/payments/razorpay/order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -182,7 +206,6 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         if (!res.ok) throw new Error("Failed to create order");
         const order = await res.json();
         
-        // 2. Open Razorpay Checkout
         const options = {
           description: 'Recharge Wallet',
           image: 'https://placehold.co/100x100?text=Logo',
@@ -196,11 +219,9 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         
         const data = await RazorpayCheckout.open(options);
         
-        // 3. Payment Success - Add to wallet
         const userId = currentUser?.id || 1;
         let { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
         
-        // Lazily create wallet if it doesn't exist to prevent foreign key errors
         if (!wallet) {
            const { data: newWallet, error: createErr } = await supabase.from('wallets').insert({ id: userId, user_id: userId, balance: walletBalance }).select('id').single();
            if (createErr) throw createErr;
@@ -212,7 +233,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
           wallet_id: walletId,
           transaction_type: 'recharge',
           amount: finalAmount,
-          payment_method: 'razorpay',
+          payment_method: paymentMethodDbString,
           verification_status: 'verified',
         });
         
@@ -242,7 +263,6 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
             const userId = currentUser?.id || 1;
             let { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
             
-            // Lazily create wallet if it doesn't exist to prevent foreign key errors
             if (!wallet) {
                const { data: newWallet, error: createErr } = await supabase.from('wallets').insert({ id: userId, user_id: userId, balance: walletBalance }).select('id').single();
                if (createErr) throw createErr;
@@ -254,7 +274,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
               wallet_id: walletId,
               transaction_type: 'recharge',
               amount: finalAmount,
-              payment_method: 'razorpay',
+              payment_method: paymentMethodDbString,
               verification_status: 'verified',
             });
             
@@ -346,35 +366,44 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
 
         <Text style={styles.sectionTitle}>Special Offers</Text>
-        {OFFERS.map(offer => (
-          <TouchableOpacity
-            key={offer.id}
-            activeOpacity={0.7}
-            onPress={() => {
-              setSelectedAmount(offer.amount);
-              setCustomAmount('');
-            }}
-            style={[
-              styles.offerCard,
-              selectedAmount === offer.amount && { borderColor: offer.color, borderWidth: 1.5 },
-            ]}>
-            <View style={[styles.offerTag, { backgroundColor: `${offer.color}22` }]}>
-              <Text style={[styles.offerTagText, { color: offer.color }]}>{offer.tag}</Text>
-            </View>
-            <View style={styles.offerRow}>
-              <View>
-                <Text style={styles.offerAmount}>Rs {offer.amount}</Text>
-                <Text style={styles.offerBonus}>+Rs {offer.bonus} bonus coins</Text>
+        {coinPackages.map((pkg, index) => {
+          const baseCoinsForPrice = Math.floor(pkg.price / conversionRate);
+          const pkgBonus = pkg.coins > baseCoinsForPrice ? pkg.coins - baseCoinsForPrice : 0;
+          
+          if (pkgBonus <= 0) return null; // Only show as special offer if there's a bonus
+          
+          const offerColor = [Colors.primary, Colors.accent, Colors.secondary][index % 3];
+          
+          return (
+            <TouchableOpacity
+              key={`pkg-${pkg.id}`}
+              activeOpacity={0.7}
+              onPress={() => {
+                setSelectedAmount(pkg.price);
+                setCustomAmount('');
+              }}
+              style={[
+                styles.offerCard,
+                selectedAmount === pkg.price && { borderColor: offerColor, borderWidth: 1.5 },
+              ]}>
+              <View style={[styles.offerTag, { backgroundColor: `${offerColor}22` }]}>
+                <Text style={[styles.offerTagText, { color: offerColor }]}>{pkg.name || 'Special Offer'}</Text>
               </View>
-              <View style={styles.offerTotal}>
-                <Text style={styles.offerTotalLabel}>You get</Text>
-                <Text style={[styles.offerTotalAmount, { color: offer.color }]}>
-                  {Math.floor(offer.amount / conversionRate) + offer.bonus} Coins
-                </Text>
+              <View style={styles.offerRow}>
+                <View>
+                  <Text style={styles.offerAmount}>Rs {pkg.price}</Text>
+                  <Text style={styles.offerBonus}>+Rs {pkgBonus} bonus coins</Text>
+                </View>
+                <View style={styles.offerTotal}>
+                  <Text style={styles.offerTotalLabel}>You get</Text>
+                  <Text style={[styles.offerTotalAmount, { color: offerColor }]}>
+                    {pkg.coins} Coins
+                  </Text>
+                </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          );
+        })}
 
         <Text style={styles.sectionTitle}>Payment Method</Text>
         {PAYMENT_METHODS.map(method => {

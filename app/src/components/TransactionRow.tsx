@@ -5,6 +5,7 @@ import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Radius } from '../theme/spacing';
 import type { Transaction } from '../shared/types/app';
+import { useCoinPackages } from '../api/wallet';
 
 type IconProps = {
   color?: string;
@@ -85,7 +86,14 @@ const TransactionRow: React.FC<{ tx: Transaction; conversionRate?: number }> = (
   const isPositive = tx.amount > 0;
   const colors = colorMap[tx.type] || colorMap.recharge;
   
-  const coins = Math.floor(Math.abs(tx.amount) / conversionRate);
+  const { data: coinPackages = [] } = useCoinPackages();
+  
+  // Find if this transaction amount matches a special offer package
+  const pkg = coinPackages.find(p => p.price === Math.abs(tx.amount));
+  const defaultCoins = Math.floor(Math.abs(tx.amount) / conversionRate);
+  
+  const coins = (tx.type === 'recharge' && pkg) ? pkg.coins : defaultCoins;
+  const isSpecialOffer = tx.type === 'recharge' && pkg && pkg.coins > defaultCoins;
 
   const renderIcon = () => {
     switch (tx.type) {
@@ -102,13 +110,18 @@ const TransactionRow: React.FC<{ tx: Transaction; conversionRate?: number }> = (
     }
   };
 
+  let cleanDescription = tx.description.replace(/\s*\(.*?\)/g, '');
+  if (cleanDescription === 'razorpay') cleanDescription = 'Razorpay';
+  if (cleanDescription === 'manual' || cleanDescription === 'manual_upload') cleanDescription = 'Manual Recharge';
+  if (isSpecialOffer) cleanDescription = 'Special Offer - ' + cleanDescription;
+
   return (
     <View style={styles.row}>
       <View style={[styles.iconBox, { backgroundColor: colors.bg }]}>
         {renderIcon()}
       </View>
       <View style={styles.info}>
-        <Text style={styles.description} numberOfLines={1}>{tx.description}</Text>
+        <Text style={styles.description} numberOfLines={1}>{cleanDescription}</Text>
         <Text style={styles.date}>
           {date.toLocaleDateString()} · {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </Text>

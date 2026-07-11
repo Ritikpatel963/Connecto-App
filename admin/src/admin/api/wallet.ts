@@ -22,7 +22,11 @@ export const walletTransactionsApi = {
     const { data: coinPackages } = await supabase.from('coin_packages').select('*').eq('is_active', true).order('price', { ascending: true });
     const baseRule = coinPackages?.[0];
     const conversionRate = (baseRule && baseRule.coins > 0) ? (baseRule.price / baseRule.coins) : 1;
-    const finalCoins = Math.floor(Number(row.amount || 0) / conversionRate);
+    
+    // Exact match for package or fallback to base conversion
+    const pkg = coinPackages?.find(p => p.price === Number(row.amount));
+    const defaultCoins = Math.floor(Number(row.amount || 0) / conversionRate);
+    const finalCoins = pkg ? pkg.coins : defaultCoins;
 
     if (wallet?.id) {
       await supabase.from('wallets').update({ balance: currentBalance + finalCoins }).eq('id', wallet.id);
