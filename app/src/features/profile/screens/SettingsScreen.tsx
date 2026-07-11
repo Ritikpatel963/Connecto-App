@@ -178,7 +178,10 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       <Text style={styles.title}>Settings</Text>
 
       {/* Profile header */}
-      <View style={styles.profileCard}>
+      <TouchableOpacity 
+        style={styles.profileCard} 
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate('ProfileSetup' as any, { isEdit: true })}>
         <View>
           <View style={styles.avatarBox}>
             {currentUser?.avatar ? (
@@ -199,12 +202,12 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
             {currentUser?.isVerified && <BadgeCheckIcon size={16} color="#10B981" />}
           </View>
           <Text style={styles.profileMeta}>
-            {role === 'girl' ? 'Receiver' : 'Caller'} · {currentUser?.city || 'India'}
+            {role === 'girl' ? 'Female' : 'Male'} · {currentUser?.city || 'India'}
           </Text>
 
         </View>
         <Text style={{ fontSize: 16, color: Colors.mutedForeground }}>›</Text>
-      </View>
+      </TouchableOpacity>
 
       {/* Menu */}
       <View style={styles.menu}>

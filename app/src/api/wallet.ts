@@ -25,7 +25,8 @@ export const useTransactions = () => {
         .from('wallet_transactions')
         .select('*')
         .or(`wallet_id.eq.${walletId || userId},wallet_id.eq.${userId}`)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(15);
         
       const wdPromise = role === 'girl' 
         ? supabase
@@ -33,6 +34,7 @@ export const useTransactions = () => {
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
+            .limit(15)
         : Promise.resolve({ data: [] });
 
       const [txRes, wdRes] = await Promise.all([txPromise, wdPromise]);
@@ -47,7 +49,10 @@ export const useTransactions = () => {
           amount: Number(tx.amount || 0),
           description: String(tx.payment_method || 'Wallet Tx'),
           timestamp: String(tx.created_at),
-          status: (tx.verification_status || tx.status) as any || 'completed'
+          status: (tx.verification_status || tx.status) as any || 'completed',
+          paymentGateway: String(tx.payment_method || '').split(':')[0],
+          txnId: String(tx.payment_method || '').split(':')[1]?.trim() || '',
+          screenshotUrl: tx.payment_screenshot_url || undefined
         })),
         ...wdData.map((wd: any): Transaction => ({
           id: `wd-${wd.id}`,
@@ -55,7 +60,9 @@ export const useTransactions = () => {
           amount: -(Number(wd.amount_coins || 0)),
           description: `Withdraw to ${String(wd.payment_method).split(':')[0] || 'Account'}`,
           timestamp: String(wd.created_at),
-          status: wd.status || 'pending'
+          status: wd.status || 'pending',
+          paymentGateway: String(wd.payment_method || '').split(':')[0],
+          txnId: String(wd.payment_method || '').split(':')[1]?.trim() || ''
         }))
       ];
 
@@ -93,7 +100,7 @@ export const useReferralStats = () => {
         const session = await supabase.auth.getSession();
         const token = session.data.session?.access_token;
         
-        const res = await fetch('http://10.0.2.2:4100/api/app/v1/users/referral-code', {
+        const res = await fetch('http://192.168.1.6:4100/api/app/v1/users/referral-code', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

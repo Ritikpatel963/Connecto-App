@@ -19,7 +19,7 @@ export function useHeartbeat(userId: string | null) {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
       
-      await fetch('http://10.0.2.2:4100/api/app/v1/users/presence', {
+      await fetch('http://192.168.1.6:4100/api/app/v1/users/presence', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

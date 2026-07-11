@@ -81,9 +81,14 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         ) : (
           paginatedTransactions.map(tx => (
-            <View key={tx.id} style={styles.txRow}>
+            <TouchableOpacity 
+              key={tx.id} 
+              style={styles.txRow} 
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('TransactionDetails' as any, { tx })}
+            >
               <TransactionRow tx={tx} conversionRate={conversionRate} />
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </View>

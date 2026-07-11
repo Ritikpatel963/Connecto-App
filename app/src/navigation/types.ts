@@ -16,6 +16,7 @@ export type RootStackParamList = {
   Withdraw: undefined;
   Verification: undefined;
   Content: { title: string; contentKey: string };
+  TransactionDetails: { tx: any };
 };
 
 export type TabParamList = {

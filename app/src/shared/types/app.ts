@@ -18,6 +18,8 @@ export interface UserProfile {
   languages: string[];
   interests: string[];
   city: string;
+  state?: string;
+  country?: string;
   lastSeen?: string;
 }
 
@@ -44,6 +46,9 @@ export interface Transaction {
   description: string;
   timestamp: string;
   status: 'completed' | 'pending' | 'failed' | 'verified' | 'rejected';
+  txnId?: string;
+  paymentGateway?: string;
+  screenshotUrl?: string;
 }
 
 export interface CallSession {

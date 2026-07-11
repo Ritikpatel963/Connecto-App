@@ -83,6 +83,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               languages: u.languages || ['English', 'Hindi'],
               interests: u.interests || ['Music', 'Movies', 'Travel'],
               city: u.city || 'Unknown',
+              state: u.state || '',
+              country: u.country || '',
               lastSeen: u.last_seen_at || undefined
             });
             setRole(u.gender === 'female' ? 'girl' : 'boy');

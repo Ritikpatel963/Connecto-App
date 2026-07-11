@@ -170,7 +170,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         const token = session.data.session?.access_token;
         const uploadedUrl = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
 
-        const res = await fetch('http://10.0.2.2:4100/api/app/v1/wallet/recharge', {
+        const res = await fetch('http://192.168.1.6:4100/api/app/v1/wallet/recharge', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -203,7 +203,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
     if (selectedPayment === 'razorpay') {
       try {
         setIsSubmitting(true);
-        const res = await fetch('http://10.0.2.2:4100/api/app/v1/payments/razorpay/order', {
+        const res = await fetch('http://192.168.1.6:4100/api/app/v1/payments/razorpay/order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: finalAmount })
@@ -228,7 +228,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         const session = await supabase.auth.getSession();
         const token = session.data.session?.access_token;
         
-        const rechargeRes = await fetch('http://10.0.2.2:4100/api/app/v1/wallet/recharge', {
+        const rechargeRes = await fetch('http://192.168.1.6:4100/api/app/v1/wallet/recharge', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -236,7 +236,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
           },
           body: JSON.stringify({ 
             amount: finalAmount, 
-            paymentMethod: paymentMethodDbString 
+            paymentMethod: `razorpay:${data.razorpay_payment_id}` 
           })
         });
 
@@ -267,7 +267,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
             const session = await supabase.auth.getSession();
             const token = session.data.session?.access_token;
 
-            const rechargeRes = await fetch('http://10.0.2.2:4100/api/app/v1/wallet/recharge', {
+            const rechargeRes = await fetch('http://192.168.1.6:4100/api/app/v1/wallet/recharge', {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
@@ -458,13 +458,15 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
       </ScrollView>
 
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}> 
-        <View>
-            <Text style={styles.ctaLabel}>Total</Text>
-            <Text style={styles.ctaAmount}>
-              Rs {finalAmount}
-              <Text style={styles.ctaBonus}>  → {finalCoins} Coins</Text>
-            </Text>
-          </View>
+        <View style={{ flex: 1, paddingRight: 16 }}>
+          <Text style={{ ...Typography.caption, color: Colors.mutedForeground, textTransform: 'uppercase', letterSpacing: 0.5 }}>Amount to Pay</Text>
+          <Text style={{ ...Typography.h2, color: Colors.foreground, marginVertical: 4 }}>₹{finalAmount}</Text>
+          {finalAmount > 0 && (
+            <View style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+              <Text style={{ ...Typography.smallSemibold, color: '#10B981' }}>GET {finalCoins} COINS</Text>
+            </View>
+          )}
+        </View>
           <TouchableOpacity
           onPress={handleRecharge}
           disabled={!finalAmount || isSubmitting}

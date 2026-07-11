@@ -48,8 +48,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
   const [age, setAge] = useState(isEdit && currentUser ? String(currentUser.age) : '');
   const [bio, setBio] = useState(isEdit && currentUser ? currentUser.bio : '');
   const [city, setCity] = useState(isEdit && currentUser ? currentUser.city || '' : '');
-  const [state, setState] = useState('');
-  const [country, setCountry] = useState('');
+  const [state, setState] = useState(isEdit && currentUser ? currentUser.state || '' : '');
+  const [country, setCountry] = useState(isEdit && currentUser ? currentUser.country || '' : '');
   const [languages, setLanguages] = useState(isEdit && currentUser ? currentUser.languages?.join(', ') || '' : '');
   const [interests, setInterests] = useState(isEdit && currentUser ? currentUser.interests?.join(', ') || '' : '');
   const [referralCodeInput, setReferralCodeInput] = useState(initialReferral);
@@ -58,7 +58,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
   // Verification state (only used for setup)
   const [idUploaded, setIdUploaded] = useState(false);
   const [idImageUri, setIdImageUri] = useState<string | null>(null);
-  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const [profileImageUri, setProfileImageUri] = useState<string | null>(isEdit && currentUser ? currentUser.avatar : null);
   const [idImageBase64, setIdImageBase64] = useState<string | null>(null);
   const [profileImageBase64, setProfileImageBase64] = useState<string | null>(null);
   const [voiceRecorded, setVoiceRecorded] = useState(false);
@@ -399,6 +399,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             name,
             age: parseInt(age),
             city,
+            state,
+            country,
             bio,
             avatar: profileImageBase64 || currentUser.avatar,
           });
@@ -420,6 +422,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             languages: [],
             interests: [],
             city,
+            state,
+            country,
           });
           // Profile setup complete - go straight to app
           navigation.replace('MainTabs');
@@ -497,9 +501,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         </View>
 
-        {role === 'girl' && (
-          <View>
-            <Text style={styles.label}>BIO</Text>
+        <View>
+          <Text style={styles.label}>BIO</Text>
             <TextInput
               value={bio}
               onChangeText={setBio}
@@ -509,7 +512,6 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
               multiline
             />
           </View>
-        )}
 
         <View style={styles.row}>
           <View style={styles.half}>

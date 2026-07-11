@@ -36,7 +36,7 @@ type Props = CompositeScreenProps<
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48 - 12) / 2;
 
-const filters = ['All', 'Online', 'Premium', 'Verified', 'New'];
+const filters = ['All', 'Online', 'Verified', 'New'];
 
 const SEARCH_ICON_SIZE = 18;
 const ACTION_ICON_SIZE = 18;
@@ -116,8 +116,7 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
     switch (activeFilterName) {
       case 'Online':
         return p.isOnline;
-      case 'Premium':
-        return p.isPremium;
+
       case 'Verified':
         return p.isVerified;
       case 'New':
