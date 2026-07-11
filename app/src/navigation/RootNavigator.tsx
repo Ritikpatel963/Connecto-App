@@ -12,8 +12,17 @@ import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const linking = {
+  prefixes: ['connecto://'],
+  config: {
+    screens: {
+      ProfileSetup: 'invite/:referralCode',
+    },
+  },
+};
+
 const RootNavigator = () => (
-  <NavigationContainer>
+  <NavigationContainer linking={linking}>
     <Stack.Navigator
       screenOptions={{
         headerShown: false,

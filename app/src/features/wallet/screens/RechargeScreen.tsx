@@ -239,6 +239,17 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         
         await supabase.from('wallets').update({ balance: walletBalance + finalCoins }).eq('id', walletId);
         
+        // Ponytail: Lazily mark referral as successful on first successful recharge
+        fetch('https://whypwqhdfxtjjenkhkwt.supabase.co/rest/v1/referrals?referred_user_id=eq.' + userId + '&status=eq.pending', {
+          method: 'PATCH',
+          headers: {
+            'apikey': 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
+            'Authorization': 'Bearer sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status: 'successful' })
+        }).catch(() => {});
+
         setWalletBalance(walletBalance + finalCoins);
         queryClient.invalidateQueries({ queryKey: ['transactions'] });
         queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
@@ -280,6 +291,17 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
             
             await supabase.from('wallets').update({ balance: walletBalance + finalCoins }).eq('id', walletId);
             
+            // Ponytail: Lazily mark referral as successful on first successful recharge
+            fetch('https://whypwqhdfxtjjenkhkwt.supabase.co/rest/v1/referrals?referred_user_id=eq.' + userId + '&status=eq.pending', {
+              method: 'PATCH',
+              headers: {
+                'apikey': 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
+                'Authorization': 'Bearer sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ status: 'successful' })
+            }).catch(() => {});
+
             setWalletBalance(walletBalance + finalCoins);
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
             queryClient.invalidateQueries({ queryKey: ['walletBalance'] });

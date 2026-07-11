@@ -41,6 +41,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ProfileSetup'>;
 
 const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
   const isEdit = route.params?.isEdit;
+  const initialReferral = route.params?.referralCode || '';
   const insets = useSafeAreaInsets();
   const { role, phoneNumber, currentUser, setCurrentUser, setIsAuthenticated } = useUser();
   const [name, setName] = useState(isEdit && currentUser ? currentUser.name : '');
@@ -51,6 +52,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
   const [country, setCountry] = useState('');
   const [languages, setLanguages] = useState(isEdit && currentUser ? currentUser.languages?.join(', ') || '' : '');
   const [interests, setInterests] = useState(isEdit && currentUser ? currentUser.interests?.join(', ') || '' : '');
+  const [referralCodeInput, setReferralCodeInput] = useState(initialReferral);
+  const [referralError, setReferralError] = useState('');
   
   // Verification state (only used for setup)
   const [idUploaded, setIdUploaded] = useState(false);
@@ -197,6 +200,24 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
     try {
+      setReferralError('');
+      let referrerId = null;
+
+      if (!isEdit && referralCodeInput.trim()) {
+        const refRes = await fetch(`${SUPABASE_URL}/rest/v1/users?referral_code=eq.${referralCodeInput.trim()}&select=id`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        const refData = await refRes.json();
+        if (!refData || refData.length === 0) {
+          setReferralError('Invalid referral code');
+          Alert.alert('Invalid Code', 'The referral code you entered is invalid. Please check and try again, or leave it blank.');
+          return;
+        }
+        referrerId = refData[0].id;
+      }
+
+      const generatedReferralCode = isEdit ? undefined : `${name.substring(0, 4).toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`;
+
       const payload = {
         name,
         phone_number: phoneNumber,
@@ -210,6 +231,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         call_rate: role === 'girl' ? 8 : 0,
         average_rating: 0,
         is_active: false, // For admin approval
+        ...(isEdit ? {} : { referral_code: generatedReferralCode, referred_by_user_id: referrerId }),
       };
 
       let newUserId = isEdit ? currentUser?.id : null;
@@ -296,6 +318,18 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             balance: 10
           })
         }));
+
+        if (referrerId) {
+          insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/referrals`, {
+            method: 'POST',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              referrer_user_id: referrerId,
+              referred_user_id: newUserId,
+              status: 'pending'
+            })
+          }));
+        }
 
         // Insert voice verification if girl — upload file to Storage first
         if (role === 'girl' && voiceRecorded && voiceFilePath) {
@@ -521,6 +555,21 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             style={styles.input}
           />
         </View>
+
+        {!isEdit && (
+          <View>
+            <Text style={styles.label}>REFERRAL CODE (Optional)</Text>
+            <TextInput
+              value={referralCodeInput}
+              onChangeText={(t) => { setReferralCodeInput(t); setReferralError(''); }}
+              placeholder="e.g. ALEX1234"
+              placeholderTextColor={Colors.mutedForeground}
+              style={[styles.input, referralError ? { borderColor: 'red', borderWidth: 1 } : {}]}
+              autoCapitalize="characters"
+            />
+            {referralError ? <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{referralError}</Text> : null}
+          </View>
+        )}
 
         {!isEdit && (
           <View style={styles.voiceCard}>

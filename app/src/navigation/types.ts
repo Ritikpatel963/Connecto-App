@@ -3,7 +3,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
   RoleSelect: undefined;
-  ProfileSetup: { isEdit?: boolean } | undefined;
+  ProfileSetup: { isEdit?: boolean; referralCode?: string } | undefined;
   WaitApproval: undefined;
   MainTabs: undefined;
   Profile: { id: string; profile?: any };

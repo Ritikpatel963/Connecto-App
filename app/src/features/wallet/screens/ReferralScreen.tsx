@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Share, Clipboard, Alert } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 import { Colors, Gradients } from '../../../theme/colors';
@@ -76,6 +76,25 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
+  const history = (info as any).history || [];
+  const pendingCount = history.filter((h: any) => h.status === 'pending').length;
+  const successfulCount = history.filter((h: any) => h.status === 'successful' || h.status === 'completed').length;
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Join me on Connecto! Use my referral code ${info.code} when signing up. \nLink: connecto://invite/${info.code}`,
+      });
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    }
+  };
+
+  const handleCopy = () => {
+    Clipboard.setString(info.code);
+    Alert.alert('Copied!', 'Referral code copied to clipboard.');
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
@@ -102,10 +121,10 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.codeBox}>
           <Text style={styles.codeText}>{info.code}</Text>
           <View style={styles.codeActions}>
-            <TouchableOpacity style={styles.codeBtn}>
+            <TouchableOpacity style={styles.codeBtn} onPress={handleCopy}>
               <CopyIcon />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.codeBtn}>
+            <TouchableOpacity style={styles.codeBtn} onPress={handleShare}>
               <ShareIcon />
             </TouchableOpacity>
           </View>
@@ -121,6 +140,18 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.statCard}>
           <Text style={[styles.statValue, { color: Colors.accent }]}>₹{info.totalEarnings}</Text>
           <Text style={styles.statLabel}>Total Earned</Text>
+        </View>
+      </View>
+      
+      {/* Ponytail: Add Pending/Successful Summary */}
+      <View style={[styles.statsRow, { marginTop: 8 }]}>
+        <View style={styles.statCard}>
+          <Text style={[styles.statValue, { color: '#eab308' }]}>{pendingCount}</Text>
+          <Text style={styles.statLabel}>Pending</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={[styles.statValue, { color: '#22c55e' }]}>{successfulCount}</Text>
+          <Text style={styles.statLabel}>Successful</Text>
         </View>
       </View>
 
@@ -155,8 +186,8 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={styles.historyDate}>{new Date(ref.created_at).toLocaleDateString()}</Text>
                 </View>
               </View>
-              <View style={[styles.statusBadge, ref.status === 'completed' && styles.statusBadgeCompleted]}>
-                <Text style={[styles.statusText, ref.status === 'completed' && styles.statusTextCompleted]}>
+              <View style={[styles.statusBadge, (ref.status === 'completed' || ref.status === 'successful') && styles.statusBadgeCompleted]}>
+                <Text style={[styles.statusText, (ref.status === 'completed' || ref.status === 'successful') && styles.statusTextCompleted]}>
                   {ref.status || 'pending'}
                 </Text>
               </View>

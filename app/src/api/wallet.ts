@@ -86,15 +86,22 @@ export const useReferralStats = () => {
         .single();
 
       if (error) throw error;
+      
+      let userCode = data?.referral_code;
+      if (!userCode) {
+        // Ponytail: Auto-generate deterministic referral code for existing users if missing
+        userCode = `USER${userId}${Math.abs(userId * 7391) % 10000}`;
+        supabase.from('users').update({ referral_code: userCode }).eq('id', userId).then();
+      }
 
       const { data: historyData } = await supabase
         .from('referrals')
-        .select('*, referred:referred_id(name, phone_number)')
-        .eq('referrer_id', userId)
+        .select('*, referred:referred_user_id(name, phone_number)')
+        .eq('referrer_user_id', userId)
         .order('created_at', { ascending: false });
 
       return {
-        code: data?.referral_code || 'N/A',
+        code: userCode,
         totalReferred: data?.total_referrals || 0,
         totalEarnings: data?.referral_earnings || 0,
         milestones: [
