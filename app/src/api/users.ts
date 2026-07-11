@@ -41,3 +41,26 @@ export const useProfiles = () => {
     }
   });
 };
+
+export const useCallHistoryWithUser = (currentUserId?: string, targetUserId?: string) => {
+  return useQuery({
+    queryKey: ['call_history', currentUserId, targetUserId],
+    enabled: !!currentUserId && !!targetUserId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('calls')
+        .select('duration_seconds')
+        .or(`and(caller_user_id.eq.${currentUserId},receiver_user_id.eq.${targetUserId}),and(caller_user_id.eq.${targetUserId},receiver_user_id.eq.${currentUserId})`)
+        .eq('status', 'completed');
+        
+      if (error) throw error;
+      
+      const totalSeconds = data?.reduce((acc: number, call: any) => acc + (call.duration_seconds || 0), 0) || 0;
+      
+      if (totalSeconds === 0) return '0m';
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      return m > 0 ? `${m}m ${s}s` : `${s}s`;
+    }
+  });
+};

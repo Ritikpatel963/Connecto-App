@@ -15,7 +15,7 @@ import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
 import BackArrowIcon from '../../../components/BackArrowIcon';
-import { useProfiles } from '../../../api/users';
+import { useProfiles, useCallHistoryWithUser } from '../../../api/users';
 import { useFavorites, useToggleFavorite } from '../../../api/favorites';
 import { useUser } from '../../../context/UserContext';
 import OnlineIndicator from '../../../components/OnlineIndicator';
@@ -105,6 +105,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const toggleFavorite = useToggleFavorite();
   
   const profile = route.params.profile || profiles.find(p => String(p.id) === String(id));
+  const { data: callTime = '0m' } = useCallHistoryWithUser(currentUser?.id, profile?.id);
   const isFavorited = profile ? favorites.some(f => String(f.id) === String(profile.id)) : false;
 
   if (!profile) {
@@ -114,6 +115,24 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       </View>
     );
   }
+
+  const formatLastSeen = (isoString?: string) => {
+    if (!isoString) return 'Offline';
+    if (isoString.toLowerCase().includes('ago') || isoString.toLowerCase().includes('now')) return isoString;
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return isoString;
+    
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 60) return `Last seen ${diffMins} min ago`;
+    if (diffHours < 24) return `Last seen ${diffHours} hr ago`;
+    if (diffDays === 1) return `Last seen yesterday`;
+    return `Last seen ${date.toLocaleDateString()}`;
+  };
 
   return (
     <ScrollView
@@ -136,7 +155,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={styles.onlineRow}>
             <OnlineIndicator isOnline={profile.isOnline} />
             <Text style={styles.onlineText}>
-              {profile.isOnline ? 'Online' : profile.lastSeen || 'Offline'}
+              {profile.isOnline ? 'Online now' : formatLastSeen(profile.lastSeen)}
             </Text>
           </View>
           <View style={styles.nameRow}>
@@ -217,16 +236,14 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             </View>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{profile.totalCalls}</Text>
-            <Text style={styles.statLabel}>Calls</Text>
+            <Text style={styles.statValue}>{callTime}</Text>
+            <Text style={styles.statLabel}>Time Together</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>
-              {profile.pricePerMinute} Coins
-            </Text>
-            <Text style={styles.statLabel}>
-              Rate
-            </Text>
+          <View style={[styles.statCard, { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.3)', borderWidth: 1 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={[styles.statValue, { color: '#D97706', fontSize: 16 }]}>{profile.pricePerMinute} 🪙</Text>
+            </View>
+            <Text style={[styles.statLabel, { color: '#D97706' }]}>Per min</Text>
           </View>
         </View>
 

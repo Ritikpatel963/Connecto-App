@@ -226,6 +226,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         city,
         state,
         country,
+        bio,
         profile_image_url: profileImageBase64 || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=random&color=fff&size=256`,
         is_online: true,
         call_rate: role === 'girl' ? 8 : 0,
@@ -245,7 +246,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             'Authorization': `Bearer ${SUPABASE_KEY}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ name, age: parseInt(age), city, state, country })
+          body: JSON.stringify({ name, age: parseInt(age), city, state, country, bio })
         });
         if (!res.ok) {
           Alert.alert('Error', 'Failed to update profile');

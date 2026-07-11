@@ -52,9 +52,20 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>QUICK RECHARGE</Text>
             {baseRule && (
-              <Text style={{ ...Typography.smallSemibold, color: Colors.primary }}>
-                {baseRule.coins} Coin = ₹{baseRule.price}
-              </Text>
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                backgroundColor: 'rgba(245,158,11,0.15)',
+                paddingHorizontal: 10, 
+                paddingVertical: 4, 
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: 'rgba(245,158,11,0.3)'
+              }}>
+                <Text style={{ ...Typography.smallSemibold, color: '#D97706' }}>
+                  💰 {baseRule.coins} Coins = ₹{baseRule.price}
+                </Text>
+              </View>
             )}
           </View>
           <View style={styles.rechargeGrid}>
