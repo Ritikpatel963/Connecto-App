@@ -7,7 +7,9 @@ export const useProfiles = () => {
     queryKey: ['profiles'],
     queryFn: async () => {
       const [{ data: users, error: usersError }, { data: packages, error: packagesError }] = await Promise.all([
-        supabase.from('users').select('*, user_languages(language), user_interests(interest)'),
+        supabase.from('users').select('*, user_languages(language), user_interests(interest)')
+          .eq('is_active', true)
+          .eq('is_id_verified', true),
         supabase.from('packages').select('*')
       ]);
 
