@@ -28,8 +28,8 @@ const ReferralsPage = () => {
   });
 
   const total = allReferrals?.length || 0;
-  const pending = allReferrals?.filter(r => r.status === 'pending').length || 0;
-  const successful = allReferrals?.filter(r => r.status === 'successful' || r.status === 'completed').length || 0;
+  const pending = allReferrals?.filter((r: any) => r.status === 'pending').length || 0;
+  const successful = allReferrals?.filter((r: any) => r.status === 'successful' || r.status === 'completed').length || 0;
   const conversionRate = total > 0 ? Math.round((successful / total) * 100) : 0;
 
   const metrics = [
