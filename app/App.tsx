@@ -46,7 +46,7 @@ const BootGate = () => {
       const interval = setInterval(checkStatus, 5000); // Ponytail: poll for admin updates
       
       // Connect to WebSocket Server
-      const socket = io('http://10.0.2.2:4100');
+      const socket = io('https://connecto.yashsoni.me');
       socket.on('connect', () => {
         console.log('Connected to WebSocket Server:', socket.id);
       });

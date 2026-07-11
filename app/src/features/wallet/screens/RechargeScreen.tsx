@@ -197,7 +197,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
     if (selectedPayment === 'razorpay') {
       try {
         setIsSubmitting(true);
-        const res = await fetch('http://10.0.2.2:4100/api/app/v1/payments/razorpay/order', {
+        const res = await fetch('https://connecto.yashsoni.me/api/app/v1/payments/razorpay/order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: finalAmount })
