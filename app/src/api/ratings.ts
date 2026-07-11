@@ -9,19 +9,27 @@ export const useSubmitRating = () => {
   return useMutation({
     mutationFn: async ({ targetUserId, rating, reviewText }: { targetUserId: string | number, rating: number, reviewText: string }) => {
       if (!userId) return false;
-      const { data, error } = await supabase
-        .from('ratings')
-        .insert({
-          rater_user_id: userId,
-          rated_user_id: targetUserId,
-          rating,
-          review_text: reviewText,
-          call_id: `call-${Date.now()}` // Mock call ID since we don't have a real one in this context
-        });
 
-      if (error) {
-        throw error;
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      const res = await fetch('http://10.0.2.2:4100/api/app/v1/ratings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          targetUserId,
+          rating,
+          reviewText
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to submit rating");
       }
+      
       return true;
     }
   });

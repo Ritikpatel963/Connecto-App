@@ -166,18 +166,24 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
           return;
         }
 
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
         const uploadedUrl = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
 
-        const { error } = await supabase.from('wallet_transactions').insert({
-          wallet_id: currentUser?.id || 1,
-          transaction_type: 'recharge',
-          amount: finalAmount, 
-          payment_method: paymentMethodDbString,
-          payment_screenshot_url: uploadedUrl || 'https://placehold.co/600x400?text=Upload+Failed',
-          verification_status: 'pending',
+        const res = await fetch('http://10.0.2.2:4100/api/app/v1/wallet/recharge', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+          },
+          body: JSON.stringify({ 
+            amount: finalAmount, 
+            paymentMethod: paymentMethodDbString, 
+            screenshotUrl: uploadedUrl 
+          })
         });
 
-        if (error) throw error;
+        if (!res.ok) throw new Error("Failed to submit request");
         
         queryClient.invalidateQueries({ queryKey: ['transactions'] });
 
@@ -197,7 +203,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
     if (selectedPayment === 'razorpay') {
       try {
         setIsSubmitting(true);
-        const res = await fetch('https://connecto.yashsoni.me/api/app/v1/payments/razorpay/order', {
+        const res = await fetch('http://10.0.2.2:4100/api/app/v1/payments/razorpay/order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: finalAmount })
@@ -219,38 +225,25 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         
         const data = await RazorpayCheckout.open(options);
         
-        const userId = currentUser?.id || 1;
-        let { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
         
-        if (!wallet) {
-           const { data: newWallet, error: createErr } = await supabase.from('wallets').insert({ id: userId, user_id: userId, balance: walletBalance }).select('id').single();
-           if (createErr) throw createErr;
-           wallet = newWallet;
-        }
-        const walletId = wallet?.id || userId;
-        
-        await supabase.from('wallet_transactions').insert({
-          wallet_id: walletId,
-          transaction_type: 'recharge',
-          amount: finalAmount,
-          payment_method: paymentMethodDbString,
-          verification_status: 'verified',
-        });
-        
-        await supabase.from('wallets').update({ balance: walletBalance + finalCoins }).eq('id', walletId);
-        
-        // Ponytail: Lazily mark referral as successful on first successful recharge
-        fetch('https://whypwqhdfxtjjenkhkwt.supabase.co/rest/v1/referrals?referred_user_id=eq.' + userId + '&status=eq.pending', {
-          method: 'PATCH',
-          headers: {
-            'apikey': 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
-            'Authorization': 'Bearer sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
-            'Content-Type': 'application/json'
+        const rechargeRes = await fetch('http://10.0.2.2:4100/api/app/v1/wallet/recharge', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
           },
-          body: JSON.stringify({ status: 'successful' })
-        }).catch(() => {});
+          body: JSON.stringify({ 
+            amount: finalAmount, 
+            paymentMethod: paymentMethodDbString 
+          })
+        });
 
-        setWalletBalance(walletBalance + finalCoins);
+        if (!rechargeRes.ok) throw new Error("Failed to process recharge");
+        const rechargeData = await rechargeRes.json();
+
+        setWalletBalance(rechargeData.newBalance);
         queryClient.invalidateQueries({ queryKey: ['transactions'] });
         queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
         setIsSubmitting(false);
@@ -271,38 +264,25 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
           text: 'Proceed',
           onPress: async () => {
             setIsSubmitting(true);
-            const userId = currentUser?.id || 1;
-            let { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
-            
-            if (!wallet) {
-               const { data: newWallet, error: createErr } = await supabase.from('wallets').insert({ id: userId, user_id: userId, balance: walletBalance }).select('id').single();
-               if (createErr) throw createErr;
-               wallet = newWallet;
-            }
-            const walletId = wallet?.id || userId;
-            
-            await supabase.from('wallet_transactions').insert({
-              wallet_id: walletId,
-              transaction_type: 'recharge',
-              amount: finalAmount,
-              payment_method: paymentMethodDbString,
-              verification_status: 'verified',
-            });
-            
-            await supabase.from('wallets').update({ balance: walletBalance + finalCoins }).eq('id', walletId);
-            
-            // Ponytail: Lazily mark referral as successful on first successful recharge
-            fetch('https://whypwqhdfxtjjenkhkwt.supabase.co/rest/v1/referrals?referred_user_id=eq.' + userId + '&status=eq.pending', {
-              method: 'PATCH',
-              headers: {
-                'apikey': 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
-                'Authorization': 'Bearer sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ status: 'successful' })
-            }).catch(() => {});
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
 
-            setWalletBalance(walletBalance + finalCoins);
+            const rechargeRes = await fetch('http://10.0.2.2:4100/api/app/v1/wallet/recharge', {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+              },
+              body: JSON.stringify({ 
+                amount: finalAmount, 
+                paymentMethod: paymentMethodDbString 
+              })
+            });
+
+            if (!rechargeRes.ok) throw new Error("Failed to process recharge");
+            const rechargeData = await rechargeRes.json();
+
+            setWalletBalance(rechargeData.newBalance);
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
             queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
             setIsSubmitting(false);

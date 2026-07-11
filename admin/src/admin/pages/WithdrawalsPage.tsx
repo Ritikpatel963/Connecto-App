@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import { withdrawalsApi } from "../api/withdrawals";
 import ActionModal from "../components/ActionModal";
 import AdminDataTable from "../components/AdminDataTable";
-import { DateCell, IconButton, MoneyCell, PersonCell } from "../components/Cells";
+import { DateCell, IconButton, PersonCell } from "../components/Cells";
 import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import { WithdrawalRequest, SelectFilter } from "../types";

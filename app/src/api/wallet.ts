@@ -89,9 +89,21 @@ export const useReferralStats = () => {
       
       let userCode = data?.referral_code;
       if (!userCode) {
-        // Ponytail: Auto-generate deterministic referral code for existing users if missing
-        userCode = `USER${userId}${Math.abs(userId * 7391) % 10000}`;
-        supabase.from('users').update({ referral_code: userCode }).eq('id', userId).then();
+        // Ponytail: Auto-generate deterministic referral code via backend safely
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        
+        const res = await fetch('http://10.0.2.2:4100/api/app/v1/users/referral-code', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          userCode = resData.code;
+        }
       }
 
       const { data: historyData } = await supabase

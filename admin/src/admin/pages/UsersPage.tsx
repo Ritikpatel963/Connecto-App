@@ -7,7 +7,7 @@ import { usersApi } from "../api/users";
 import { packagesApi } from "../api/packages";
 import AdminDataTable from "../components/AdminDataTable";
 import ActionModal from "../components/ActionModal";
-import { DateCell, IconButton, MoneyCell, PersonCell, RatingCell } from "../components/Cells";
+import { DateCell, IconButton, PersonCell, RatingCell } from "../components/Cells";
 import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import ThemeModal from "../components/ThemeModal";

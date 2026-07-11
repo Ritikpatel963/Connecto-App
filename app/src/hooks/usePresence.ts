@@ -10,16 +10,23 @@ const HEARTBEAT_INTERVAL = 25000; // 25 seconds
  * Cleans up the interval to avoid memory leaks.
  */
 export function useHeartbeat(userId: string | null) {
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isOnlineRef = useRef(false);
 
   const pingBackend = async (isOnline: boolean) => {
     if (!userId) return;
     try {
-      await supabase.from('users').update({ 
-        is_online: isOnline, 
-        last_seen_at: new Date().toISOString() 
-      }).eq('id', userId);
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      await fetch('http://10.0.2.2:4100/api/app/v1/users/presence', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isOnline })
+      });
     } catch (e) {
       console.warn('Ping failed', e);
     }

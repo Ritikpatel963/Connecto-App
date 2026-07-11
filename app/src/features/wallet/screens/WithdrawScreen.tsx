@@ -47,30 +47,28 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
 
     setIsSubmitting(true);
     try {
-      const userId = currentUser?.id || 1;
-      let { data: wallet } = await supabase.from('wallets').select('id').or(`id.eq.${userId},user_id.eq.${userId}`).maybeSingle();
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
       
-      // Lazily create wallet if it doesn't exist to prevent foreign key errors
-      if (!wallet) {
-         const { data: newWallet, error: createErr } = await supabase.from('wallets').insert({ id: userId, user_id: userId, balance: walletBalance }).select('id').single();
-         if (createErr) throw createErr;
-         wallet = newWallet;
-      }
-      const walletId = wallet?.id || userId;
-      
-      const { error } = await supabase.from('withdrawals').insert({
-        user_id: userId,
-        amount_coins: amount,
-        amount_fiat: amount / 10, // Assuming 10 coins = 1 fiat unit based on typical conversion, or whatever works
-        currency: 'INR',
-        payment_method: `${payoutMethod}: ${payoutDetails}`,
-        status: 'pending',
+      const res = await fetch('http://10.0.2.2:4100/api/app/v1/wallet/withdraw', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: amount,
+          payoutMethod: payoutMethod,
+          payoutDetails: payoutDetails
+        })
       });
-      
-      if (error) throw error;
-      
-      const newBalance = walletBalance - amount;
-      await supabase.from('wallets').update({ balance: newBalance }).eq('id', walletId);
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to submit withdrawal request");
+      }
+
+      const { newBalance } = await res.json();
       
       setWalletBalance(newBalance);
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
