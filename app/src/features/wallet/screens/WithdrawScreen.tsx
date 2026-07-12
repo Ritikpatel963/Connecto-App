@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, StatusBar, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { Colors } from '../../../theme/colors';
@@ -142,9 +142,11 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
           onPress={handleWithdraw}
           disabled={isSubmitting}
         >
-          <Text style={styles.submitBtnText}>
-            {isSubmitting ? 'Submitting...' : 'Submit Request'}
-          </Text>
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={styles.submitBtnText}>Submit Request</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>

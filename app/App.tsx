@@ -68,12 +68,15 @@ const BootGate = () => {
   return <AppNavigator />;
 };
 
+import { GlobalAlert } from './src/components/GlobalAlert';
+
 const App = () => (
   <SafeAreaProvider>
     <QueryClientProvider client={queryClient}>
       <UserProvider>
         <StatusBar barStyle="light-content" backgroundColor="#0F0F11" />
         <BootGate />
+        <GlobalAlert />
       </UserProvider>
     </QueryClientProvider>
   </SafeAreaProvider>

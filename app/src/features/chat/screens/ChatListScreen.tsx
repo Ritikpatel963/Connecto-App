@@ -25,6 +25,7 @@ import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { TabParamList } from '../../../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Chats'>,
@@ -39,7 +40,7 @@ const ChatListScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleOpenChat = (chatId: string) => {
     if (!currentUser?.isVerified) {
-      return Alert.alert('Not Verified', 'Admin has not verified your profile yet.');
+      return useAlertStore.getState().show('Not Verified', 'Admin has not verified your profile yet.');
     }
     navigation.navigate('Conversation', { id: chatId });
   };

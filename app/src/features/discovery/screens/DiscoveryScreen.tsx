@@ -20,6 +20,7 @@ import { useUser } from '../../../context/UserContext';
 import { supabase } from '../../../api/supabase';
 import OnlineIndicator from '../../../components/OnlineIndicator';
 import ProfileCard from '../../../components/ProfileCard';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
@@ -290,8 +291,8 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
               role={role}
               onPress={() => navigation.navigate('Profile', { id: item.id, profile: item })}
               onCall={() => {
-                if (!item.packageName) return Alert.alert('Unavailable', 'Admin has not assigned a call package to this profile yet.');
-                if (!currentUser?.isVerified) return Alert.alert('Not Verified', 'Admin has not verified your profile yet.');
+                if (!item.packageName) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
+                if (!currentUser?.isVerified) return useAlertStore.getState().show('Not Verified', 'Admin has not verified your profile yet.');
                 navigation.navigate('Call', { id: item.id });
               }}
             />

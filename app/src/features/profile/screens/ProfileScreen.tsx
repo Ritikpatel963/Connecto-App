@@ -24,6 +24,7 @@ import RatingStars from '../../../components/RatingStars';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
@@ -178,8 +179,8 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           {role === 'boy' && (
             <TouchableOpacity
               onPress={() => {
-                if (!profile.packageName) return Alert.alert('Unavailable', 'Admin has not assigned a call package to this profile yet.');
-                if (!currentUser?.isVerified) return Alert.alert('Not Verified', 'Admin has not verified your profile yet.');
+                if (!profile.packageName) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
+                if (!currentUser?.isVerified) return useAlertStore.getState().show('Not Verified', 'Admin has not verified your profile yet.');
                 navigation.navigate('Call', { id: profile.id });
               }}
               activeOpacity={0.8}
@@ -211,8 +212,8 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              if (!profile.packageName) return Alert.alert('Unavailable', 'Admin has not assigned a call package to this profile yet.');
-              if (!currentUser?.isVerified) return Alert.alert('Not Verified', 'Admin has not verified your profile yet.');
+              if (!profile.packageName) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
+              if (!currentUser?.isVerified) return useAlertStore.getState().show('Not Verified', 'Admin has not verified your profile yet.');
               navigation.navigate('Conversation', { id: `chat-${profile.id}`, profile });
             }}
             style={styles.iconBtn}>

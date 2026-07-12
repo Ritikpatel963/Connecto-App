@@ -9,6 +9,7 @@ import {
   Image,
   PermissionsAndroid,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -48,6 +49,7 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
   const [recordingTime, setRecordingTime] = useState<number | null>(null);
   const [voiceFilePath, setVoiceFilePath] = useState<string | null>(null);
   const [recordingPhase, setRecordingPhase] = useState<'idle' | 'countdown' | 'recording'>('idle');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const pickDocument = async () => {
     const result = await launchImageLibrary({
@@ -154,6 +156,7 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
     if (!idUploaded || (role === 'girl' && !voiceRecorded)) {
       return;
     }
+    setIsSubmitting(true);
     try {
       const insertPromises = [];
 
@@ -223,6 +226,8 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
     } catch (err) {
       console.log('Error submitting verification', err);
       Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -292,9 +297,13 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
         )}
       </View>
 
-      <TouchableOpacity onPress={handleComplete} disabled={!idUploaded || (role === 'girl' && !voiceRecorded)} activeOpacity={0.8}>
-        <LinearGradient colors={[...Gradients.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.submitBtn, (!idUploaded || (role === 'girl' && !voiceRecorded)) && styles.disabled]}>
-          <Text style={styles.submitText}>Submit for Verification</Text>
+      <TouchableOpacity onPress={handleComplete} disabled={isSubmitting || !idUploaded || (role === 'girl' && !voiceRecorded)} activeOpacity={0.8}>
+        <LinearGradient colors={[...Gradients.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.submitBtn, (isSubmitting || !idUploaded || (role === 'girl' && !voiceRecorded)) && styles.disabled]}>
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={styles.submitText}>Submit for Verification</Text>
+          )}
         </LinearGradient>
       </TouchableOpacity>
     </ScrollView>

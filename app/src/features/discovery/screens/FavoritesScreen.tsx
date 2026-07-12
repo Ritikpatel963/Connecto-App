@@ -12,6 +12,7 @@ import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { TabParamList } from '../../../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Favorites'>,
@@ -49,7 +50,7 @@ const FavoritesScreen: React.FC<Props> = ({ navigation }) => {
             role={role}
             onPress={() => navigation.navigate('Profile', { id: item.id })}
             onCall={() => {
-              if (!item.packageName) return Alert.alert('Unavailable', 'Admin has not assigned a call package to this profile yet.');
+              if (!item.packageName) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
               navigation.navigate('Call', { id: item.id });
             }}
           />
