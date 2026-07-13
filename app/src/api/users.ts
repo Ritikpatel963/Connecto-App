@@ -25,7 +25,7 @@ export const useProfiles = () => {
           avatar: u.profile_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=random&color=fff&size=256`,
           role: u.gender === 'female' ? 'girl' : 'boy',
           bio: u.bio || 'Hi, I am new here!',
-          isOnline: u.last_seen_at ? (new Date().getTime() - new Date(u.last_seen_at).getTime() < 60000) : false,
+          isOnline: u.is_online,
           isPremium: false,
           isVerified: u.is_id_verified && u.is_active,
           rating: parseFloat(u.average_rating) || 0,
