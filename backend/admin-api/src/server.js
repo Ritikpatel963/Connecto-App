@@ -25,6 +25,7 @@ const server = http.createServer(async (req, res) => {
       await route(req, res, parsedUrl);
     }
   } catch (error) {
+    console.error("Uncaught error:", error);
     fail(res, error);
   }
 });

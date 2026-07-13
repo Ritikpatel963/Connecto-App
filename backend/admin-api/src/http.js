@@ -21,7 +21,7 @@ export function fail(res, error) {
     success: false,
     data: null,
     meta: null,
-    error: { message: status === 500 ? "Internal server error" : error.message },
+    error: { message: error.message || "Internal server error" },
   });
 }
 

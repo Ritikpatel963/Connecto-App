@@ -59,11 +59,12 @@ export async function appRoute(req, res, url) {
     const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
     if (!token) throw new HttpError(401, "Missing auth token");
     
-    const userRes = await fetch(`${config.supabaseUrl}/auth/v1/user`, {
-      headers: { apikey: config.supabaseAnonKey, authorization: `Bearer ${token}` },
+    const userRes = await fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${token}`, {
+      headers: { apikey: config.supabaseServiceRoleKey, authorization: `Bearer ${config.supabaseServiceRoleKey}` },
     });
-    if (!userRes.ok) throw new HttpError(401, "Invalid auth token");
-    const user = await userRes.json();
+    const users = await userRes.json();
+    if (!userRes.ok || !users || users.length === 0) throw new HttpError(401, "Invalid auth token");
+    const user = users[0];
     const userId = user.id;
 
     // 2. Fetch packages to calculate coins server-side
@@ -91,7 +92,7 @@ export async function appRoute(req, res, url) {
     };
 
     // 3. Ensure Wallet Exists
-    let walletRes = await fetch(`${config.supabaseUrl}/rest/v1/wallets?id=eq.${userId}&select=id,balance`, { headers: serviceHeaders });
+    let walletRes = await fetch(`${config.supabaseUrl}/rest/v1/wallets?user_id=eq.${userId}&select=id,balance`, { headers: serviceHeaders });
     let walletData = await walletRes.json();
     let wallet = walletData[0];
     
@@ -131,12 +132,29 @@ export async function appRoute(req, res, url) {
         body: JSON.stringify({ balance: newBalance })
       });
 
-      // 6. Update Referral (Idempotent)
-      await fetch(`${config.supabaseUrl}/rest/v1/referrals?referred_user_id=eq.${userId}&status=eq.pending`, {
-        method: "PATCH",
-        headers: serviceHeaders,
-        body: JSON.stringify({ status: 'successful' })
-      });
+      // 6. Update Referral & Reward
+      const refRes = await fetch(`${config.supabaseUrl}/rest/v1/referrals?referred_user_id=eq.${userId}&status=eq.pending&select=referrer_user_id`, { headers: serviceHeaders });
+      const pendingRefs = await refRes.json();
+      if (pendingRefs && pendingRefs.length > 0) {
+        const referrerId = pendingRefs[0].referrer_user_id;
+        
+        await fetch(`${config.supabaseUrl}/rest/v1/referrals?referred_user_id=eq.${userId}&status=eq.pending`, {
+          method: "PATCH",
+          headers: serviceHeaders,
+          body: JSON.stringify({ status: 'successful' })
+        });
+
+        // ponytail: naive 4-step REST reward. RPC would be safer, but this keeps logic here without SQL migrations.
+        const rwRes = await fetch(`${config.supabaseUrl}/rest/v1/wallets?id=eq.${referrerId}&select=balance`, { headers: serviceHeaders });
+        const rwData = await rwRes.json();
+        if (rwData && rwData.length > 0) {
+          await fetch(`${config.supabaseUrl}/rest/v1/wallets?id=eq.${referrerId}`, {
+            method: "PATCH",
+            headers: serviceHeaders,
+            body: JSON.stringify({ balance: rwData[0].balance + (parseInt(settings.referral_reward_coins) || 50) })
+          });
+        }
+      }
     }
 
     return ok(res, { newBalance, status });
@@ -152,11 +170,12 @@ export async function appRoute(req, res, url) {
     const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
     if (!token) throw new HttpError(401, "Missing auth token");
     
-    const userRes = await fetch(`${config.supabaseUrl}/auth/v1/user`, {
-      headers: { apikey: config.supabaseAnonKey, authorization: `Bearer ${token}` },
+    const userRes = await fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${token}`, {
+      headers: { apikey: config.supabaseServiceRoleKey, authorization: `Bearer ${config.supabaseServiceRoleKey}` },
     });
-    if (!userRes.ok) throw new HttpError(401, "Invalid auth token");
-    const user = await userRes.json();
+    const users = await userRes.json();
+    if (!userRes.ok || !users || users.length === 0) throw new HttpError(401, "Invalid auth token");
+    const user = users[0];
     const userId = user.id;
 
     const serviceHeaders = {
@@ -166,7 +185,7 @@ export async function appRoute(req, res, url) {
       Prefer: "return=representation"
     };
 
-    let walletRes = await fetch(`${config.supabaseUrl}/rest/v1/wallets?id=eq.${userId}&select=id,balance`, { headers: serviceHeaders });
+    let walletRes = await fetch(`${config.supabaseUrl}/rest/v1/wallets?user_id=eq.${userId}&select=id,balance`, { headers: serviceHeaders });
     let walletData = await walletRes.json();
     let wallet = walletData[0];
     
@@ -184,7 +203,7 @@ export async function appRoute(req, res, url) {
       throw new HttpError(400, "Insufficient balance");
     }
 
-    await fetch(`${config.supabaseUrl}/rest/v1/withdrawals`, {
+    const wRes = await fetch(`${config.supabaseUrl}/rest/v1/withdrawals`, {
       method: "POST",
       headers: serviceHeaders,
       body: JSON.stringify({
@@ -196,13 +215,22 @@ export async function appRoute(req, res, url) {
         status: 'pending'
       })
     });
+      if (!wRes.ok) {
+        const errObj = await wRes.json().catch(()=>null);
+        console.error("Failed to insert withdrawal:", errObj);
+        throw new HttpError(500, "Failed to record withdrawal request");
+      }
 
-    const newBalance = wallet.balance - amount;
-    await fetch(`${config.supabaseUrl}/rest/v1/wallets?id=eq.${wallet.id}`, {
-      method: "PATCH",
-      headers: serviceHeaders,
-      body: JSON.stringify({ balance: newBalance })
-    });
+      let newBalance = wallet.balance - amount;
+      let wUpdateRes = await fetch(`${config.supabaseUrl}/rest/v1/wallets?id=eq.${wallet.id}`, {
+        method: "PATCH",
+        headers: serviceHeaders,
+        body: JSON.stringify({ balance: newBalance, updated_at: new Date().toISOString() })
+      });
+      if (!wUpdateRes.ok) {
+        const errObj = await wUpdateRes.json().catch(()=>null);
+        throw new HttpError(500, "Failed to update wallet balance");
+      }
 
     return ok(res, { newBalance });
   }
@@ -216,11 +244,12 @@ export async function appRoute(req, res, url) {
     const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
     if (!token) throw new HttpError(401, "Missing auth token");
     
-    const userRes = await fetch(`${config.supabaseUrl}/auth/v1/user`, {
-      headers: { apikey: config.supabaseAnonKey, authorization: `Bearer ${token}` },
+    const userRes = await fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${token}`, {
+      headers: { apikey: config.supabaseServiceRoleKey, authorization: `Bearer ${config.supabaseServiceRoleKey}` },
     });
-    if (!userRes.ok) throw new HttpError(401, "Invalid auth token");
-    const user = await userRes.json();
+    const users = await userRes.json();
+    if (!userRes.ok || !users || users.length === 0) throw new HttpError(401, "Invalid auth token");
+    const user = users[0];
     const userId = user.id;
 
     const serviceHeaders = {
@@ -250,11 +279,12 @@ export async function appRoute(req, res, url) {
     const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
     if (!token) throw new HttpError(401, "Missing auth token");
     
-    const userRes = await fetch(`${config.supabaseUrl}/auth/v1/user`, {
-      headers: { apikey: config.supabaseAnonKey, authorization: `Bearer ${token}` },
+    const userRes = await fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${token}`, {
+      headers: { apikey: config.supabaseServiceRoleKey, authorization: `Bearer ${config.supabaseServiceRoleKey}` },
     });
-    if (!userRes.ok) throw new HttpError(401, "Invalid auth token");
-    const user = await userRes.json();
+    const users = await userRes.json();
+    if (!userRes.ok || !users || users.length === 0) throw new HttpError(401, "Invalid auth token");
+    const user = users[0];
     const userId = user.id;
 
     const serviceHeaders = {
@@ -288,11 +318,12 @@ export async function appRoute(req, res, url) {
     const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
     if (!token) throw new HttpError(401, "Missing auth token");
     
-    const userRes = await fetch(`${config.supabaseUrl}/auth/v1/user`, {
-      headers: { apikey: config.supabaseAnonKey, authorization: `Bearer ${token}` },
+    const userRes = await fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${token}`, {
+      headers: { apikey: config.supabaseServiceRoleKey, authorization: `Bearer ${config.supabaseServiceRoleKey}` },
     });
-    if (!userRes.ok) throw new HttpError(401, "Invalid auth token");
-    const user = await userRes.json();
+    const users = await userRes.json();
+    if (!userRes.ok || !users || users.length === 0) throw new HttpError(401, "Invalid auth token");
+    const user = users[0];
     const userId = user.id;
 
     const serviceHeaders = {

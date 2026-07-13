@@ -11,6 +11,8 @@ import { supabase } from '../../../api/supabase';
 import { useSettings } from '../../../api/wallet';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
+import { ENV } from '../../../config/env';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Withdraw'>;
 
@@ -23,6 +25,7 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
   const [amountStr, setAmountStr] = useState('');
   const [payoutMethod, setPayoutMethod] = useState('UPI');
   const [payoutDetails, setPayoutDetails] = useState('');
+  const [ifscCode, setIfscCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const withdrawConfig = settings.withdrawal_config || { min: 100, max: 10000 };
@@ -47,10 +50,10 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
 
     setIsSubmitting(true);
     try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
+      const token = currentUser?.id;
+      if (!token) throw new Error("Session expired. Please log in again.");
       
-      const res = await fetch('http://192.168.1.6:4100/api/app/v1/wallet/withdraw', {
+      const res = await fetch(`${ENV.API_URL}/api/app/v1/wallet/withdraw`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,18 +62,24 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
         body: JSON.stringify({
           amount: amount,
           payoutMethod: payoutMethod,
-          payoutDetails: payoutDetails
+          payoutDetails: payoutMethod === 'Bank Transfer' ? `A/C: ${payoutDetails}, IFSC: ${ifscCode}` : payoutDetails
         })
       });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.error || "Failed to submit withdrawal request");
+        const msg = errorData?.error?.message || errorData?.message || errorData?.error || "Failed to submit withdrawal request";
+        throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
       }
 
-      const { newBalance } = await res.json();
+      const responseJson = await res.json();
+      const newBalance = responseJson.data?.newBalance ?? responseJson.newBalance;
       
       setWalletBalance(newBalance);
+      
+      await AsyncStorage.setItem('savedPayoutMethod', payoutMethod);
+      await AsyncStorage.setItem('savedPayoutDetails', payoutDetails);
+      if (payoutMethod === 'Bank Transfer') await AsyncStorage.setItem('savedIfscCode', ifscCode);
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
       
@@ -114,7 +123,7 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
 
         <Text style={styles.inputLabel}>Select Payout Method</Text>
         <View style={styles.methodRow}>
-          {['UPI', 'Debit Card', 'Bank Transfer'].map(method => (
+          {['UPI', 'Bank Transfer'].map(method => (
             <TouchableOpacity 
               key={method}
               style={[styles.methodBtn, payoutMethod === method && styles.methodBtnActive]}
@@ -127,15 +136,39 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
           ))}
         </View>
 
-        <Text style={styles.inputLabel}>{payoutMethod} Details</Text>
-        <TextInput
-          style={[styles.input, { height: 80 }]}
-          multiline
-          placeholder={`Enter your ${payoutMethod} details...`}
-          placeholderTextColor={Colors.mutedForeground}
-          value={payoutDetails}
-          onChangeText={setPayoutDetails}
-        />
+        {payoutMethod === 'UPI' ? (
+          <>
+            <Text style={styles.inputLabel}>UPI ID</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your UPI ID (e.g., phone@upi)"
+              placeholderTextColor={Colors.mutedForeground}
+              value={payoutDetails}
+              onChangeText={setPayoutDetails}
+            />
+          </>
+        ) : (
+          <>
+            <Text style={styles.inputLabel}>Bank Account Number</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your Bank Account Number"
+              placeholderTextColor={Colors.mutedForeground}
+              value={payoutDetails}
+              onChangeText={setPayoutDetails}
+            />
+            
+            <Text style={[styles.inputLabel, { marginTop: 16 }]}>IFSC Code</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Bank IFSC Code"
+              placeholderTextColor={Colors.mutedForeground}
+              value={ifscCode}
+              onChangeText={setIfscCode}
+              autoCapitalize="characters"
+            />
+          </>
+        )}
 
         <TouchableOpacity 
           style={[styles.submitBtn, isSubmitting && { opacity: 0.7 }]} 
