@@ -14,9 +14,12 @@ const queryClient = new QueryClient({
   },
 });
 
+import { usePushNotifications } from './src/hooks/usePushNotifications';
+
 const BootGate = () => {
   const { hasHydrated, currentUser, setCurrentUser, setWalletBalance, resetSession } = useUser();
   useHeartbeat(currentUser?.id || null);
+  usePushNotifications(currentUser?.id);
 
   React.useEffect(() => {
     if (hasHydrated && currentUser?.id) {
@@ -28,10 +31,6 @@ const BootGate = () => {
           fetch(`https://whypwqhdfxtjjenkhkwt.supabase.co/rest/v1/wallets?user_id=eq.${currentUser.id}&select=balance`, { headers }).then(r => r.json())
         ]).then(([users, wallets]) => {
           if (users?.[0]) {
-            if (users[0].is_active === false) {
-              resetSession();
-              return;
-            }
             setCurrentUser({ ...currentUser, isVerified: users[0].is_id_verified && users[0].is_active });
           }
           if (wallets?.[0]?.balance !== undefined) {

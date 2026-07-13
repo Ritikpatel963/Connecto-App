@@ -344,5 +344,30 @@ export async function appRoute(req, res, url) {
     return ok(res, { success: true });
   }
 
+  // Update FCM Token
+  const fcmTokenMatch = path.match(/^\/users\/([^/]+)\/fcm-token$/);
+  if (req.method === "PATCH" && fcmTokenMatch) {
+    const userIdToUpdate = fcmTokenMatch[1];
+    const body = await readJson(req);
+    const { fcm_token } = body;
+
+    const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    if (!token || token !== userIdToUpdate) throw new HttpError(401, "Unauthorized");
+
+    const serviceHeaders = {
+      apikey: config.supabaseServiceRoleKey,
+      Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
+      "Content-Type": "application/json"
+    };
+
+    await fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${userIdToUpdate}`, {
+      method: "PATCH",
+      headers: serviceHeaders,
+      body: JSON.stringify({ fcm_token })
+    });
+
+    return ok(res, { success: true });
+  }
+
   throw new HttpError(404, "Route not found");
 }
