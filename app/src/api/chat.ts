@@ -15,6 +15,8 @@ export const useChats = () => {
         .select('*')
         .neq('id', id || 0)
         .eq('gender', oppositeGender)
+        .eq('is_active', true)
+        .eq('is_id_verified', true)
         .limit(20);
       if (error) throw error;
 
