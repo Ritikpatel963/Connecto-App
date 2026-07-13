@@ -1,5 +1,5 @@
 {
-  "name": "Connecto",
+  "name": "snappo",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -37,6 +37,7 @@
     "react-native-url-polyfill": "^3.0.0",
     "react-native-vector-icons": "^10.3.0",
     "react-native-worklets": "^0.8.1",
+    "rn-emoji-keyboard": "^1.7.0",
     "socket.io-client": "^4.8.3",
     "zustand": "^5.0.12"
   },

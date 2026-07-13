@@ -23,6 +23,7 @@ import type { ChatMessage } from '../../../shared/types/app';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import EmojiPicker from 'rn-emoji-keyboard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Conversation'>;
 
@@ -99,6 +100,7 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
     unreadCount: 0
   } : undefined);
   const [input, setInput] = useState('');
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: 'm1', senderId: chat?.user.id || '', text: 'Hey! How are you doing? 😊', timestamp: new Date(Date.now() - 300000).toISOString(), type: 'text', isRead: true },
     { id: 'm2', senderId: 'me', text: "I'm great! Would love to chat", timestamp: new Date(Date.now() - 240000).toISOString(), type: 'text', isRead: true },
@@ -106,6 +108,8 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
     { id: 'm4', senderId: 'me', text: 'How about a call later? 🎉', timestamp: new Date(Date.now() - 120000).toISOString(), type: 'text', isRead: true },
     { id: 'm5', senderId: chat?.user.id || '', text: 'That was sweet! 😄', timestamp: new Date(Date.now() - 60000).toISOString(), type: 'text', isRead: false },
   ]);
+
+  const inputRef = React.useRef<TextInput>(null);
 
   if (!chat) return null;
 
@@ -172,6 +176,7 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
       <View style={[styles.inputBar, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.inputRow}>
           <TextInput
+            ref={inputRef}
             value={input}
             onChangeText={setInput}
             onSubmitEditing={handleSend}
@@ -180,7 +185,7 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
             style={styles.textInput}
             returnKeyType="send"
           />
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => { setIsEmojiPickerOpen(true); }}>
             <SmileIcon />
           </TouchableOpacity>
         </View>
@@ -194,6 +199,24 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+      <EmojiPicker 
+        onEmojiSelected={(emojiObj) => setInput(prev => prev + emojiObj.emoji)} 
+        open={isEmojiPickerOpen} 
+        onClose={() => setIsEmojiPickerOpen(false)} 
+        theme={{
+          backdrop: '#00000088',
+          knob: Colors.primary,
+          container: Colors.background,
+          header: Colors.foreground,
+          skinTonesContainer: Colors.muted,
+          category: {
+            icon: Colors.foreground,
+            iconActive: Colors.primary,
+            container: Colors.background,
+            containerActive: Colors.muted,
+          },
+        }}
+      />
     </KeyboardAvoidingView>
   );
 };
