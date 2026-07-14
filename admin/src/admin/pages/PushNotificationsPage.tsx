@@ -16,7 +16,11 @@ const PushNotificationsPage = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("admin_token");
-      const baseUrl = process.env.REACT_APP_ADMIN_API_BASE_URL || "http://localhost:4000/api/admin/v1";
+      let baseUrl = process.env.REACT_APP_ADMIN_API_BASE_URL || "http://localhost:4100";
+      // If we are testing on a local network (e.g., from a phone) but base URL is localhost, replace it with the actual hostname so it connects to the PC
+      if (baseUrl.includes("localhost") && window.location.hostname !== "localhost") {
+        baseUrl = baseUrl.replace("localhost", window.location.hostname);
+      }
       const res = await fetch(`${baseUrl}/notifications/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
