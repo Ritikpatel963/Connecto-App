@@ -47,5 +47,31 @@ export async function route(req, res, url) {
     return subscriptions.patch(req, res, url, { id: subscriptionMatch[1] });
   }
 
+  if (req.method === "POST" && path === "/notifications/send") {
+    await requireAdmin(req);
+    const body = await readJson(req);
+    const { userId, title, message } = body;
+    
+    const { sendPushNotification } = await import("../lib/firebase.js");
+    
+    let tokens = [];
+    if (userId) {
+      const dbRes = await fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${userId}&select=fcm_token`, { headers: { apikey: config.supabaseServiceRoleKey, Authorization: `Bearer ${config.supabaseServiceRoleKey}` }});
+      const data = await dbRes.json();
+      if (data[0] && data[0].fcm_token) tokens.push(data[0].fcm_token);
+    } else {
+      const dbRes = await fetch(`${config.supabaseUrl}/rest/v1/users?select=fcm_token&fcm_token=not.is.null`, { headers: { apikey: config.supabaseServiceRoleKey, Authorization: `Bearer ${config.supabaseServiceRoleKey}` }});
+      const data = await dbRes.json();
+      tokens = data.map(u => u.fcm_token).filter(Boolean);
+    }
+    
+    let sentCount = 0;
+    for (const token of tokens) {
+      if (await sendPushNotification(token, title, message)) sentCount++;
+    }
+    
+    return ok(res, { success: true, sentCount });
+  }
+
   throw new HttpError(404, "Route not found");
 }

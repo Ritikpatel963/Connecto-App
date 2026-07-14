@@ -1,0 +1,1 @@
+import { config } from './src/config.js'; async function run() { const res = await fetch(config.supabaseUrl + '/rest/v1/users?limit=1', { headers: { apikey: config.supabaseServiceRoleKey, Authorization: 'Bearer ' + config.supabaseServiceRoleKey }}); const data = await res.json(); console.log(Object.keys(data[0])); } run();

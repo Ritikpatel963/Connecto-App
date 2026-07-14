@@ -281,7 +281,7 @@ export const sidebarSections = [
     id: "communication",
     label: "Communication",
     icon: "solar:chat-round-dots-outline",
-    items: [["calls", "Voice Calls"], ["conversations", "Conversations"], ["messages", "Messages"]],
+    items: [["calls", "Voice Calls"], ["conversations", "Conversations"], ["messages", "Messages"], ["push-notifications", "Push Notifications"]],
   },
   {
     id: "finance",

@@ -270,6 +270,13 @@ export async function appRoute(req, res, url) {
             headers: serviceHeaders,
             body: JSON.stringify({ balance: rwData[0].balance + (parseInt(settings.referral_reward_coins) || 50) })
           });
+          
+          const { sendPushNotification } = await import("../lib/firebase.js");
+          const fcmRes = await fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${referrerId}&select=fcm_token`, { headers: serviceHeaders });
+          const fcmData = await fcmRes.json();
+          if (fcmData?.[0]?.fcm_token) {
+            sendPushNotification(fcmData[0].fcm_token, "Referral Successful! 🎉", `Your friend completed their first purchase and you earned ${parseInt(settings.referral_reward_coins) || 50} coins!`);
+          }
         }
       }
     }
@@ -464,7 +471,7 @@ export async function appRoute(req, res, url) {
 
   // Update FCM Token
   const fcmTokenMatch = path.match(/^\/users\/([^/]+)\/fcm-token$/);
-  if (req.method === "PATCH" && fcmTokenMatch) {
+  if (req.method === "POST" && fcmTokenMatch) {
     const userIdToUpdate = fcmTokenMatch[1];
     const body = await readJson(req);
     const { fcm_token } = body;

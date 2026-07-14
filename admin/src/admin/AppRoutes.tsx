@@ -8,6 +8,7 @@ import ChatProfilePage from "./pages/ChatProfilePage";
 import DashboardPage from "./pages/DashboardPage";
 import ManualRechargePage from "./pages/ManualRechargePage";
 import NotificationsPage from "./pages/NotificationsPage";
+import PushNotificationsPage from "./pages/PushNotificationsPage";
 import RatingsPage from "./pages/RatingsPage";
 import RedemptionsPage from "./pages/RedemptionsPage";
 import ReferralTiersPage from "./pages/ReferralTiersPage";
@@ -47,6 +48,7 @@ const AppRoutes = () => (
         <Route path="/packages/create" element={<CreatePackagePage />} />
         <Route path="/packages/edit/:id" element={<EditPackagePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/push-notifications" element={<PushNotificationsPage />} />
         <Route path="/wallet/transactions" element={<WalletTransactionsPage />} />
         <Route path="/wallet/manual-approvals" element={<ManualRechargePage />} />
         <Route path="/recharge-packages" element={<RechargePackagesPage />} />
