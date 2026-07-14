@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
@@ -27,6 +27,26 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
   const [payoutDetails, setPayoutDetails] = useState('');
   const [ifscCode, setIfscCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastUpi, setLastUpi] = useState('');
+  const [lastBank, setLastBank] = useState('');
+
+  useEffect(() => {
+    Promise.all([
+      AsyncStorage.getItem('savedPayoutMethod'),
+      AsyncStorage.getItem('savedUpiDetails'),
+      AsyncStorage.getItem('savedBankDetails'),
+      AsyncStorage.getItem('savedIfscCode')
+    ]).then(([m, u, b, i]) => {
+      const activeMethod = m || 'UPI';
+      setPayoutMethod(activeMethod);
+      if (u) setLastUpi(u);
+      if (b) setLastBank(b);
+      if (i) setIfscCode(i);
+      
+      if (activeMethod === 'UPI' && u) setPayoutDetails(u);
+      if (activeMethod === 'Bank Transfer' && b) setPayoutDetails(b);
+    });
+  }, []);
 
   const withdrawConfig = settings.withdrawal_config || { min: 100, max: 10000 };
   const min = Number(withdrawConfig.min);
@@ -78,8 +98,14 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
       setWalletBalance(newBalance);
       
       await AsyncStorage.setItem('savedPayoutMethod', payoutMethod);
-      await AsyncStorage.setItem('savedPayoutDetails', payoutDetails);
-      if (payoutMethod === 'Bank Transfer') await AsyncStorage.setItem('savedIfscCode', ifscCode);
+      if (payoutMethod === 'UPI') {
+        await AsyncStorage.setItem('savedUpiDetails', payoutDetails);
+        setLastUpi(payoutDetails);
+      } else {
+        await AsyncStorage.setItem('savedBankDetails', payoutDetails);
+        await AsyncStorage.setItem('savedIfscCode', ifscCode);
+        setLastBank(payoutDetails);
+      }
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
       
@@ -87,7 +113,11 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to submit withdrawal');
+      let msg = err.message || 'Failed to submit withdrawal';
+      if (msg === 'Network request failed') {
+        msg = `Cannot reach server at ${ENV.API_URL}. If on Android Emulator, use 10.0.2.2 instead of localhost/IP.`;
+      }
+      Alert.alert('Error', msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -127,11 +157,21 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
             <TouchableOpacity 
               key={method}
               style={[styles.methodBtn, payoutMethod === method && styles.methodBtnActive]}
-              onPress={() => setPayoutMethod(method)}
+              onPress={() => {
+                setPayoutMethod(method);
+                if (method === 'UPI') setPayoutDetails(lastUpi);
+                if (method === 'Bank Transfer') setPayoutDetails(lastBank);
+              }}
             >
               <Text style={[styles.methodBtnText, payoutMethod === method && styles.methodBtnTextActive]}>
                 {method}
               </Text>
+              {method === 'UPI' && lastUpi ? (
+                <Text style={styles.methodBtnSubtext} numberOfLines={1}>{lastUpi}</Text>
+              ) : null}
+              {method === 'Bank Transfer' && lastBank ? (
+                <Text style={styles.methodBtnSubtext} numberOfLines={1}>{lastBank}</Text>
+              ) : null}
             </TouchableOpacity>
           ))}
         </View>
@@ -202,6 +242,7 @@ const styles = StyleSheet.create({
   methodBtnActive: { borderColor: Colors.primary, backgroundColor: 'rgba(233,64,87,0.1)' },
   methodBtnText: { ...Typography.small, color: Colors.mutedForeground },
   methodBtnTextActive: { color: Colors.primary, fontWeight: 'bold' },
+  methodBtnSubtext: { ...Typography.tiny, color: Colors.mutedForeground, marginTop: 4, textAlign: 'center', opacity: 0.7 },
   input: { backgroundColor: Colors.card, borderRadius: Radius.lg, padding: 16, color: Colors.foreground, ...Typography.body },
   submitBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, padding: 16, alignItems: 'center', marginTop: 32 },
   submitBtnText: { ...Typography.bodyBold, color: '#FFFFFF' },
