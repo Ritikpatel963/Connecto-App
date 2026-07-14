@@ -17,6 +17,10 @@ const server = http.createServer(async (req, res) => {
 
   try {
     const parsedUrl = new URL(req.url || "/", `http://${req.headers.host}`);
+    if (parsedUrl.pathname === "/") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ status: "success", message: "Yes API works perfectly" }));
+    }
     if (parsedUrl.pathname.startsWith("/api/app")) {
       await appRoute(req, res, parsedUrl);
     } else {
