@@ -6,7 +6,7 @@ import { Radius } from '../../../theme/spacing';
 import { useUser } from '../../../context/UserContext';
 import WalletCard from '../../../components/WalletCard';
 import TransactionRow from '../../../components/TransactionRow';
-import { useTransactions, useWalletBalance, useCoinPackages } from '../../../api/wallet';
+import { useTransactions, useWalletBalance, useCoinPackages, useWalletRealtime } from '../../../api/wallet';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 import type { CompositeScreenProps } from '@react-navigation/native';
@@ -33,6 +33,9 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
   
   // Fetch actual wallet balance from API to sync with context
   useWalletBalance();
+  
+  // Realtime Supabase sync for transactions & balance
+  useWalletRealtime();
 
   return (
     <ScrollView

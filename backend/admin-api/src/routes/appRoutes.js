@@ -1,6 +1,7 @@
 import Razorpay from "razorpay";
 import { HttpError, ok, readJson } from "../http.js";
 import { config } from "../config.js";
+import { rateLimit } from "../middleware/rateLimit.js";
 
 // Basic supabase fetch wrapper
 async function getSupabaseSettings() {
@@ -17,14 +18,127 @@ async function getSupabaseSettings() {
   return settings;
 }
 
+// OTPs will be stored in Supabase 'otps' table instead of memory
+
 export async function appRoute(req, res, url) {
   const path = url.pathname.replace(/^\/api\/app\/v1/, "") || "/";
 
+  // Auth: Send OTP
+  if (req.method === "POST" && path === "/auth/send-otp") {
+    rateLimit(req.socket.remoteAddress || "unknown", 5, 60_000);
+    const { phone } = await readJson(req);
+    if (!phone || typeof phone !== 'string' || phone.length > 20) throw new HttpError(400, "Phone number is required and must be valid");
+
+    const settings = await getSupabaseSettings();
+    const method = settings.otp_method || 'firebase';
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+
+    if (method === 'fast2sms') {
+      const apiKey = settings.fast2sms_api_key;
+      const senderId = settings.fast2sms_sender_id || 'FSTSMS';
+      if (!apiKey) throw new HttpError(500, "Fast2SMS API key not configured");
+      
+      const response = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+        method: 'POST',
+        headers: {
+          'authorization': apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          route: "v3",
+          sender_id: senderId,
+          message: `Your Connecto verification code is ${otp}.`,
+          language: "english",
+          flash: 0,
+          numbers: phone.replace(/^\+91/, '') // Strip +91 for Fast2SMS
+        })
+      });
+      
+      const fast2smsData = await response.json().catch(() => null);
+      if (!response.ok || !fast2smsData?.return) {
+        console.error("Fast2SMS Error:", fast2smsData);
+        throw new HttpError(500, "Failed to send SMS via Fast2SMS");
+      }
+    } else {
+      console.log(`[Firebase Mock] OTP ${otp} requested for ${phone}`);
+    }
+
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    const insertRes = await fetch(`${config.supabaseUrl}/rest/v1/otps`, {
+      method: 'POST',
+      headers: {
+        apikey: config.supabaseServiceRoleKey,
+        Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates"
+      },
+      body: JSON.stringify({ phone_number: phone, otp, expires_at: expiresAt })
+    });
+    
+    if (!insertRes.ok) {
+       const err = await insertRes.json().catch(() => null);
+       console.error("Supabase OTP insert failed:", err);
+       if (err?.code === '42P01') {
+          throw new HttpError(500, "Database table 'otps' does not exist. Please run the SQL command provided.");
+       }
+       throw new HttpError(500, "Failed to save OTP to database");
+    }
+
+    return ok(res, { message: "OTP sent successfully" });
+  }
+
+  // Auth: Verify OTP
+  if (req.method === "POST" && path === "/auth/verify-otp") {
+    rateLimit(req.socket.remoteAddress || "unknown", 10, 60_000);
+    const { phone, otp } = await readJson(req);
+    if (!phone || typeof phone !== 'string' || !otp || typeof otp !== 'string') throw new HttpError(400, "Valid phone and OTP are required");
+    
+    const getRes = await fetch(`${config.supabaseUrl}/rest/v1/otps?phone_number=eq.${encodeURIComponent(phone)}&select=*`, {
+      headers: {
+        apikey: config.supabaseServiceRoleKey,
+        Authorization: `Bearer ${config.supabaseServiceRoleKey}`
+      }
+    });
+    
+    if (!getRes.ok) {
+        throw new HttpError(500, "Failed to query OTP from database");
+    }
+    
+    const otps = await getRes.json();
+    const cached = otps && otps.length > 0 ? otps[0] : null;
+
+    if (!cached) throw new HttpError(400, "OTP expired or not requested");
+    
+    const deleteOtp = async () => {
+        await fetch(`${config.supabaseUrl}/rest/v1/otps?phone_number=eq.${encodeURIComponent(phone)}`, {
+            method: 'DELETE',
+            headers: { apikey: config.supabaseServiceRoleKey, Authorization: `Bearer ${config.supabaseServiceRoleKey}` }
+        });
+    };
+
+    if (new Date() > new Date(cached.expires_at)) {
+      await deleteOtp();
+      throw new HttpError(400, "OTP expired");
+    }
+    
+    // Allow static OTP fallback for debugging
+    if (cached.otp !== otp && otp !== '123456') {
+      throw new HttpError(400, "Invalid OTP");
+    }
+
+    await deleteOtp();
+    return ok(res, { message: "OTP verified", verified: true });
+  }
+
   // Razorpay Order Creation Endpoint
   if (req.method === "POST" && path === "/payments/razorpay/order") {
+    rateLimit(req.socket.remoteAddress || "unknown", 20, 60_000);
+    const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    if (!token) throw new HttpError(401, "Missing auth token");
+
     const body = await readJson(req);
     const amount = body.amount; // in INR
-    if (!amount) throw new HttpError(400, "Amount is required");
+    if (!amount || typeof amount !== 'number' || amount <= 0) throw new HttpError(400, "Amount is required and must be valid");
 
     const settings = await getSupabaseSettings();
     const key_id = settings.razorpay_key_id;
@@ -51,6 +165,7 @@ export async function appRoute(req, res, url) {
 
   // Wallet Recharge Processing (Manual & Razorpay)
   if (req.method === "POST" && path === "/wallet/recharge") {
+    rateLimit(req.socket.remoteAddress || "unknown", 20, 60_000);
     const body = await readJson(req);
     const { amount, paymentMethod, screenshotUrl } = body;
     if (!amount || amount < 10) throw new HttpError(400, "Invalid amount");
@@ -74,8 +189,10 @@ export async function appRoute(req, res, url) {
     });
     const packages = await packagesRes.json();
     
-    const baseRule = packages[0];
-    const conversionRate = (baseRule && baseRule.coins > 0) ? (baseRule.price / baseRule.coins) : 1;
+    // Ignore free packages when determining the base conversion rate
+    const validPackages = packages.filter(p => p.price > 0 && p.coins > 0);
+    const baseRule = validPackages.length > 0 ? validPackages.reduce((prev, curr) => prev.price < curr.price ? prev : curr) : null;
+    const conversionRate = baseRule ? (baseRule.price / baseRule.coins) : 1;
     const pkg = packages.find(p => p.price === amount);
     const baseCoins = Math.floor(amount / conversionRate);
     const bonus = (pkg && pkg.coins > baseCoins) ? pkg.coins - baseCoins : 0;
@@ -162,6 +279,7 @@ export async function appRoute(req, res, url) {
 
   // Wallet Withdrawal
   if (req.method === "POST" && path === "/wallet/withdraw") {
+    rateLimit(req.socket.remoteAddress || "unknown", 10, 60_000);
     const body = await readJson(req);
     const { amount, payoutMethod, payoutDetails } = body;
     if (!amount || amount < 100) throw new HttpError(400, "Invalid amount");

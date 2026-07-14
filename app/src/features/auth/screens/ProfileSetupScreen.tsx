@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 import {
   View,
   Text,
@@ -10,6 +11,7 @@ import {
   Image,
   PermissionsAndroid,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -22,9 +24,10 @@ import { useUser } from '../../../context/UserContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
+import { ENV } from '../../../config/env';
 
-const SUPABASE_URL = 'https://whypwqhdfxtjjenkhkwt.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ';
+const SUPABASE_URL = ENV.SUPABASE_URL;
+const SUPABASE_KEY = ENV.SUPABASE_KEY;
 
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
 const atob = (input: string = '') => {
@@ -54,7 +57,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
   const [interests, setInterests] = useState(isEdit && currentUser ? currentUser.interests?.join(', ') || '' : '');
   const [referralCodeInput, setReferralCodeInput] = useState(initialReferral);
   const [referralError, setReferralError] = useState('');
-  
+
   // Verification state (only used for setup)
   const [idUploaded, setIdUploaded] = useState(false);
   const [idImageUri, setIdImageUri] = useState<string | null>(null);
@@ -63,6 +66,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
   const [profileImageBase64, setProfileImageBase64] = useState<string | null>(null);
   const [voiceRecorded, setVoiceRecorded] = useState(false);
   const [recordingTime, setRecordingTime] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const pickProfileImage = async () => {
     const result = await launchImageLibrary({
@@ -94,7 +98,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         setIdImageBase64(`data:${result.assets[0].type || 'image/jpeg'};base64,${result.assets[0].base64}`);
       }
       setIdUploaded(true);
-      Alert.alert('Document Selected', 'Your ID document has been attached.');
+      useAlertStore.getState().show('Document Selected', 'Your ID document has been attached.');
     }
   };
 
@@ -113,7 +117,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
           PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
         );
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert('Permission Required', 'Microphone permission is needed to verify your voice.');
+          useAlertStore.getState().show('Permission Required', 'Microphone permission is needed to verify your voice.');
           return;
         }
       } catch (err) {
@@ -184,12 +188,12 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
       setVoiceRecorded(true);
       setRecordingPhase('idle');
       setRecordingTime(null);
-      Alert.alert('Voice Recorded ✓', 'Your voice sample is ready. Complete the form to submit for review.');
+      useAlertStore.getState().show('Voice Recorded ✓', 'Your voice sample is ready. Complete the form to submit for review.');
     } catch (e: any) {
       console.warn('Recording error', e);
       setRecordingPhase('idle');
       setRecordingTime(null);
-      Alert.alert('Recording Failed', e.message || 'Could not record audio. Please try again.');
+      useAlertStore.getState().show('Recording Failed', e.message || 'Could not record audio. Please try again.');
     }
   };
 
@@ -199,6 +203,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
     if (!isEdit && (!phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded))) {
       return;
     }
+
+    setIsSubmitting(true);
     try {
       setReferralError('');
       let referrerId = null;
@@ -210,7 +216,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         const refData = await refRes.json();
         if (!refData || refData.length === 0) {
           setReferralError('Invalid referral code');
-          Alert.alert('Invalid Code', 'The referral code you entered is invalid. Please check and try again, or leave it blank.');
+          useAlertStore.getState().show('Invalid Code', 'The referral code you entered is invalid. Please check and try again, or leave it blank.');
+          setIsSubmitting(false);
           return;
         }
         referrerId = refData[0].id;
@@ -236,7 +243,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
       };
 
       let newUserId = isEdit ? currentUser?.id : null;
-      
+
       if (isEdit) {
         // Just update existing profile
         const res = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${newUserId}`, {
@@ -249,7 +256,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
           body: JSON.stringify({ name, age: parseInt(age), city, state, country, bio })
         });
         if (!res.ok) {
-          Alert.alert('Error', 'Failed to update profile');
+          useAlertStore.getState().show('Error', 'Failed to update profile');
+          setIsSubmitting(false);
           return;
         }
       } else {
@@ -266,7 +274,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         });
         const resBody = await res.text();
         if (!res.ok) {
-          Alert.alert('Error', `Failed to save profile: ${resBody}`);
+          useAlertStore.getState().show('Error', `Failed to save profile: ${resBody}`);
+          setIsSubmitting(false);
           return;
         }
         try {
@@ -385,7 +394,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             RNFS.unlink(voiceFilePath).catch(() => { });
           } catch (voiceErr: any) {
             console.warn('Voice upload error', voiceErr);
-            Alert.alert('Voice Upload Failed', `Could not upload voice: ${voiceErr.message}\n\nPlease try again.`);
+            useAlertStore.getState().show('Voice Upload Failed', `Could not upload voice: ${voiceErr.message}\n\nPlease try again.`);
+            setIsSubmitting(false);
             return; // Don't navigate away — let them retry
           }
         }
@@ -432,7 +442,9 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
       }
     } catch (err) {
       console.log('Error creating profile', err);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      useAlertStore.getState().show('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -504,15 +516,15 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
 
         <View>
           <Text style={styles.label}>BIO</Text>
-            <TextInput
-              value={bio}
-              onChangeText={setBio}
-              placeholder="Tell us about yourself..."
-              placeholderTextColor={Colors.mutedForeground}
-              style={[styles.input, { height: 80 }]}
-              multiline
-            />
-          </View>
+          <TextInput
+            value={bio}
+            onChangeText={setBio}
+            placeholder="Tell us about yourself..."
+            placeholderTextColor={Colors.mutedForeground}
+            style={[styles.input, { height: 80 }]}
+            multiline
+          />
+        </View>
 
         <View style={styles.row}>
           <View style={styles.half}>
@@ -617,7 +629,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Text style={styles.voiceTitle}>Voice Verification</Text>
                 <Text style={styles.voiceSubtitle}>Please read the following text aloud to get verified:</Text>
                 <Text style={{ ...Typography.small, color: Colors.primary, marginTop: 4, fontStyle: 'italic' }}>
-                  "Hello, I am setting up my profile to join Connecto."
+                  "Hello, I am setting up my profile to join Snappo."
                 </Text>
               </View>
             </View>
@@ -642,7 +654,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <TouchableOpacity
         onPress={handleComplete}
-        disabled={!name || !age || !city || (!isEdit && (!phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded)))}
+        disabled={isSubmitting || !name || !age || !city || (!isEdit && (!phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded)))}
         activeOpacity={0.8}>
         <LinearGradient
           colors={[...Gradients.primary]}
@@ -650,9 +662,13 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
           end={{ x: 1, y: 1 }}
           style={[
             styles.submitBtn,
-            (!name || !age || !city || (!isEdit && (!phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded)))) && styles.disabled
+            (isSubmitting || !name || !age || !city || (!isEdit && (!phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded)))) && styles.disabled
           ]}>
-          <Text style={styles.submitText}>{isEdit ? 'Save Changes' : 'Complete Setup →'}</Text>
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.submitText}>{isEdit ? 'Save Changes' : 'Complete Setup →'}</Text>
+          )}
         </LinearGradient>
       </TouchableOpacity>
     </ScrollView>

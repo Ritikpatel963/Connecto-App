@@ -1,5 +1,5 @@
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
 import { walletTransactionsApi } from "../api/wallet";
 import AdminDataTable from "../components/AdminDataTable";
@@ -14,7 +14,18 @@ const filters: SelectFilter[] = [
 ];
 
 const WalletTransactionsPage = () => {
+  const queryClient = useQueryClient();
   const { data: coinPackages } = useQuery({ queryKey: ["coin-packages"], queryFn: async () => { const res = await supabase.from('coin_packages').select('*').eq('is_active', true); return res.data || []; } });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin_wallet_transactions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["wallet-transactions"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const columns = [
     { key: "id", label: "Transaction" }, { key: "wallet_id", label: "Wallet" },

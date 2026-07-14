@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 import { useUser } from '../../../context/UserContext';
+import { ENV } from '../../../config/env';
+import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -28,82 +30,118 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [confirm, setConfirm] = useState<FirebaseAuthTypes.ConfirmationResult | null>(null);
   const otpRefs = useRef<(TextInput | null)[]>([]);
 
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     if (phone.length !== 10) return;
 
     setLoading(true);
     setError('');
 
-    // Simulate API call with 500ms delay
-    setTimeout(() => {
-      setStep('otp');
+    try {
+      // Fetch settings to decide OTP method
+      const settingsRes = await fetch(`${ENV.SUPABASE_URL}/rest/v1/settings?key=eq.otp_method&select=value`, {
+        headers: { apikey: ENV.SUPABASE_KEY, Authorization: `Bearer ${ENV.SUPABASE_KEY}` }
+      });
+      const settingsData = await settingsRes.json().catch(() => []);
+      const otpMethod = settingsData[0]?.value || 'firebase';
+
+      if (otpMethod === 'firebase') {
+        const confirmation = await auth().signInWithPhoneNumber('+91' + phone);
+        setConfirm(confirmation);
+        setStep('otp');
+      } else {
+        const res = await fetch(`${ENV.API_URL}/api/app/v1/auth/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          const errMsg = data?.error?.message || data?.message || (typeof data?.error === 'string' ? data.error : 'Failed to send OTP');
+          throw new Error(errMsg);
+        }
+        setStep('otp');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error');
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     if (otp.some(digit => !digit)) return;
 
     setLoading(true);
     setError('');
     const enteredOtp = otp.join('');
 
-    // Simulate API call
-    setTimeout(async () => {
-      if (enteredOtp === STATIC_OTP) {
-        const fullPhone = `+91${phone}`;
-        setPhoneNumber(fullPhone);
-
-        try {
-          const res = await fetch(`https://whypwqhdfxtjjenkhkwt.supabase.co/rest/v1/users?phone_number=eq.${encodeURIComponent(fullPhone)}&select=*`, {
-            headers: {
-              'apikey': 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
-              'Authorization': 'Bearer sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ'
-            }
-          });
-          const users = await res.json();
-
-          if (users && users.length > 0) {
-            const u = users[0];
-            setCurrentUser({
-              id: u.id,
-              name: u.name || 'Unknown',
-              age: u.age || 20,
-              avatar: u.profile_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=random&color=fff&size=256`,
-              role: u.gender === 'female' ? 'girl' : 'boy',
-              bio: u.bio || 'Hi, I am new here!',
-              isOnline: u.is_online,
-              isPremium: false,
-              isVerified: u.is_id_verified && u.is_active,
-              rating: parseFloat(u.average_rating) || 0,
-              totalCalls: u.total_ratings || 0,
-              pricePerMinute: parseFloat(u.call_rate) || 0,
-              languages: u.languages || ['English', 'Hindi'],
-              interests: u.interests || ['Music', 'Movies', 'Travel'],
-              city: u.city || 'Unknown',
-              state: u.state || '',
-              country: u.country || '',
-              lastSeen: u.last_seen_at || undefined
-            });
-            setRole(u.gender === 'female' ? 'girl' : 'boy');
-            setIsAuthenticated(true);
-            navigation.replace('MainTabs');
-          } else {
-            setIsAuthenticated(true);
-            navigation.replace('RoleSelect');
-          }
-        } catch (e) {
-          console.error(e);
-          setIsAuthenticated(true);
-          navigation.replace('RoleSelect');
-        }
+    try {
+      if (confirm) {
+        // Firebase Verification
+        await confirm.confirm(enteredOtp);
       } else {
-        setError('Invalid OTP. Use 123456 for testing.');
+        // Fast2SMS Verification via Backend
+        const verifyRes = await fetch(`${ENV.API_URL}/api/app/v1/auth/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, otp: enteredOtp })
+        });
+        const verifyData = await verifyRes.json().catch(() => null);
+        if (!verifyRes.ok || !verifyData?.verified) {
+          const errMsg = verifyData?.error?.message || verifyData?.message || (typeof verifyData?.error === 'string' ? verifyData.error : 'Invalid OTP');
+          throw new Error(errMsg);
+        }
       }
+
+      const fullPhone = `+91${phone}`;
+      setPhoneNumber(fullPhone);
+
+      const res = await fetch(`${ENV.SUPABASE_URL}/rest/v1/users?phone_number=eq.${encodeURIComponent(fullPhone)}&select=*`, {
+        headers: {
+          'apikey': ENV.SUPABASE_KEY,
+          'Authorization': `Bearer ${ENV.SUPABASE_KEY}`
+        }
+      });
+      const users = await res.json();
+
+      if (users && users.length > 0) {
+        const u = users[0];
+        setCurrentUser({
+          id: u.id,
+          name: u.name || 'Unknown',
+          age: u.age || 20,
+          avatar: u.profile_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=random&color=fff&size=256`,
+          role: u.gender === 'female' ? 'girl' : 'boy',
+          bio: u.bio || 'Hi, I am new here!',
+          isOnline: u.is_online,
+          isPremium: false,
+          isVerified: u.is_id_verified && u.is_active,
+          rating: parseFloat(u.average_rating) || 0,
+          totalCalls: u.total_ratings || 0,
+          pricePerMinute: parseFloat(u.call_rate) || 0,
+          languages: u.languages || ['English', 'Hindi'],
+          interests: u.interests || ['Music', 'Movies', 'Travel'],
+          city: u.city || 'Unknown',
+          state: u.state || '',
+          country: u.country || '',
+          lastSeen: u.last_seen_at || undefined
+        });
+        setRole(u.gender === 'female' ? 'girl' : 'boy');
+        setIsAuthenticated(true);
+        navigation.replace('MainTabs');
+      } else {
+        setIsAuthenticated(true);
+        navigation.replace('RoleSelect');
+      }
+    } catch (e: any) {
+      console.error(e);
+      setError(e.message || 'Invalid OTP or network error');
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   const handleOtpChange = (value: string, index: number) => {

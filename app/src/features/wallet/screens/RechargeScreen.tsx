@@ -24,6 +24,7 @@ import { Radius } from '../../../theme/spacing';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import { useUser } from '../../../context/UserContext';
 import { supabase } from '../../../api/supabase';
+import { ENV } from '../../../config/env';
 import { useCoinPackages, useSettings } from '../../../api/wallet';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
@@ -101,6 +102,15 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const queryClient = useQueryClient();
 
+  const activePaymentMethods = React.useMemo(() => {
+    return PAYMENT_METHODS.filter(method => {
+      if (method.id === 'razorpay') return settings?.razorpay_enabled !== 'false';
+      if (method.id === 'in_app') return settings?.in_app_enabled === 'true';
+      if (method.id === 'manual') return settings?.manual_enabled !== 'false';
+      return true;
+    });
+  }, [settings]);
+
   // Auto-select the default package
   React.useEffect(() => {
     if (selectedAmount === null && !customAmount && coinPackages.length > 0) {
@@ -113,8 +123,9 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
       }
 
       // Prioritize packages with a bonus as default, fallback to the first available package
-      const baseRule = coinPackages[0];
-      const conversionRate = (baseRule && baseRule.coins > 0) ? (baseRule.price / baseRule.coins) : 1;
+      const validPackages = coinPackages.filter(p => p.price > 0 && p.coins > 0);
+      const baseRule = validPackages.length > 0 ? validPackages.reduce((prev, curr) => prev.price < curr.price ? prev : curr) : null;
+      const conversionRate = baseRule ? (baseRule.price / baseRule.coins) : 1;
       const defaultPkg = coinPackages.find(p => p.coins > Math.floor(p.price / conversionRate)) || coinPackages[0];
       
       if (defaultPkg) {
@@ -126,8 +137,9 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
   const finalAmount = selectedAmount ?? (customAmount ? Number(customAmount) : 0);
   
   // Calculate conversion rate: price per coin. Fallback to 1 if no rule.
-  const baseRule = coinPackages[0];
-  const conversionRate = (baseRule && baseRule.coins > 0) ? (baseRule.price / baseRule.coins) : 1;
+  const validPackages = coinPackages.filter(p => p.price > 0 && p.coins > 0);
+  const baseRule = validPackages.length > 0 ? validPackages.reduce((prev, curr) => prev.price < curr.price ? prev : curr) : null;
+  const conversionRate = baseRule ? (baseRule.price / baseRule.coins) : 1;
   
   const pkg = coinPackages.find(p => p.price === finalAmount);
   const baseCoins = Math.floor(finalAmount / conversionRate);
@@ -170,7 +182,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         const token = session.data.session?.access_token;
         const uploadedUrl = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
 
-        const res = await fetch('http://192.168.1.6:4100/api/app/v1/wallet/recharge', {
+        const res = await fetch(`${ENV.API_URL}/api/app/v1/wallet/recharge`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -203,7 +215,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
     if (selectedPayment === 'razorpay') {
       try {
         setIsSubmitting(true);
-        const res = await fetch('http://192.168.1.6:4100/api/app/v1/payments/razorpay/order', {
+        const res = await fetch(`${ENV.API_URL}/api/app/v1/payments/razorpay/order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: finalAmount })
@@ -228,7 +240,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         const session = await supabase.auth.getSession();
         const token = session.data.session?.access_token;
         
-        const rechargeRes = await fetch('http://192.168.1.6:4100/api/app/v1/wallet/recharge', {
+        const rechargeRes = await fetch(`${ENV.API_URL}/api/app/v1/wallet/recharge`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -267,7 +279,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
             const session = await supabase.auth.getSession();
             const token = session.data.session?.access_token;
 
-            const rechargeRes = await fetch('http://192.168.1.6:4100/api/app/v1/wallet/recharge', {
+            const rechargeRes = await fetch(`${ENV.API_URL}/api/app/v1/wallet/recharge`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
@@ -408,7 +420,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
         })}
 
         <Text style={styles.sectionTitle}>Payment Method</Text>
-        {PAYMENT_METHODS.map(method => {
+        {activePaymentMethods.map(method => {
           const isSelected = selectedPayment === method.id;
           return (
             <View key={method.id}>

@@ -36,7 +36,7 @@ const InAppPurchase = () => {
                                 className="form-control radius-8"
                                 id="packageName"
                                 placeholder="com.example.app"
-                                defaultValue="com.connecto.app"
+                                defaultValue="com.snappo.inc"
                             />
                         </div>
                         <div className="col-sm-6">

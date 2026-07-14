@@ -13,7 +13,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
 const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { isAuthenticated } = useUser();
+  const { isAuthenticated, currentUser } = useUser();
   const scale = useRef(new Animated.Value(0.8)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const titleY = useRef(new Animated.Value(20)).current;
@@ -33,9 +33,17 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
       Animated.timing(dotsOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
     ]).start();
 
-    const timer = setTimeout(() => navigation.replace(isAuthenticated ? 'MainTabs' : 'Onboarding'), 2500);
+    const timer = setTimeout(() => {
+      if (!isAuthenticated) {
+        navigation.replace('Onboarding');
+      } else if (!currentUser) {
+        navigation.replace('RoleSelect');
+      } else {
+        navigation.replace('MainTabs');
+      }
+    }, 2500);
     return () => clearTimeout(timer);
-  }, [dotsOpacity, isAuthenticated, navigation, opacity, scale, subtitleOpacity, titleY]);
+  }, [dotsOpacity, isAuthenticated, currentUser, navigation, opacity, scale, subtitleOpacity, titleY]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
@@ -53,7 +61,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
         </LinearGradient>
 
         <Animated.Text style={[styles.title, { transform: [{ translateY: titleY }] }]}>
-          Connecto
+          Snappo
         </Animated.Text>
         <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
           Enjoy and Connect Through Voice or Chats

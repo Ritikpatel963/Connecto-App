@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Share, Clipboard, Alert } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
@@ -71,28 +72,28 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
   if (isLoading || !info) {
     return (
       <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
-        <Text style={{color: Colors.mutedForeground}}>Loading...</Text>
+        <Text style={{ color: Colors.mutedForeground }}>Loading...</Text>
       </View>
     );
   }
 
   const history = (info as any).history || [];
   const pendingCount = history.filter((h: any) => h.status === 'pending').length;
-  const successfulCount = history.filter((h: any) => h.status === 'successful' || h.status === 'completed').length;
+  const successfulCount = history.filter((h: any) => h.status === 'qualified' || h.status === 'successful' || h.status === 'completed').length;
 
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Join me on Connecto! Use my referral code ${info.code} when signing up. \nLink: connecto://invite/${info.code}`,
+        message: `Join me on Snappos! Use my referral code ${info.code} when signing up. \nLink: connecto://invite/${info.code}`,
       });
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      useAlertStore.getState().show('Error', error.message);
     }
   };
 
   const handleCopy = () => {
     Clipboard.setString(info.code);
-    Alert.alert('Copied!', 'Referral code copied to clipboard.');
+    useAlertStore.getState().show('Copied!', 'Referral code copied to clipboard.');
   };
 
   return (
@@ -142,7 +143,7 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.statLabel}>Total Earned</Text>
         </View>
       </View>
-      
+
       {/* Ponytail: Add Pending/Successful Summary */}
       <View style={[styles.statsRow, { marginTop: 8 }]}>
         <View style={styles.statCard}>

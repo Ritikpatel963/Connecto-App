@@ -4,7 +4,8 @@ export interface AlertState {
   visible: boolean;
   title: string;
   message: string;
-  show: (title: string, message: string) => void;
+  buttons?: Array<{ text: string; style?: 'cancel' | 'destructive' | 'default'; onPress?: () => void }>;
+  show: (title: string, message: string, buttons?: Array<{ text: string; style?: 'cancel' | 'destructive' | 'default'; onPress?: () => void }>) => void;
   hide: () => void;
 }
 
@@ -12,6 +13,7 @@ export const useAlertStore = create<AlertState>((set) => ({
   visible: false,
   title: '',
   message: '',
-  show: (title, message) => set({ visible: true, title, message }),
-  hide: () => set({ visible: false, title: '', message: '' }),
+  buttons: undefined,
+  show: (title, message, buttons) => set({ visible: true, title, message, buttons }),
+  hide: () => set({ visible: false, title: '', message: '', buttons: undefined }),
 }));

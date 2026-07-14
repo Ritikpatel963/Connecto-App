@@ -28,6 +28,7 @@ import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { TabParamList } from '../../../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ENV } from '../../../config/env';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Discover'>,
@@ -170,11 +171,11 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
                 onPress={() => {
                   setIsOnline(true);
                   if (currentUser) {
-                    fetch(`https://whypwqhdfxtjjenkhkwt.supabase.co/rest/v1/users?id=eq.${currentUser.id}`, {
+                    fetch(`${ENV.SUPABASE_URL}/rest/v1/users?id=eq.${currentUser.id}`, {
                       method: 'PATCH',
                       headers: {
-                        'apikey': 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
-                        'Authorization': 'Bearer sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
+                        'apikey': ENV.SUPABASE_KEY,
+                        'Authorization': `Bearer ${ENV.SUPABASE_KEY}`,
                         'Content-Type': 'application/json'
                       },
                       body: JSON.stringify({ is_online: true })
@@ -201,11 +202,11 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
                 onPress={() => {
                   setIsOnline(false);
                   if (currentUser) {
-                    fetch(`https://whypwqhdfxtjjenkhkwt.supabase.co/rest/v1/users?id=eq.${currentUser.id}`, {
+                    fetch(`${ENV.SUPABASE_URL}/rest/v1/users?id=eq.${currentUser.id}`, {
                       method: 'PATCH',
                       headers: {
-                        'apikey': 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
-                        'Authorization': 'Bearer sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ',
+                        'apikey': ENV.SUPABASE_KEY,
+                        'Authorization': `Bearer ${ENV.SUPABASE_KEY}`,
                         'Content-Type': 'application/json'
                       },
                       body: JSON.stringify({ is_online: false })

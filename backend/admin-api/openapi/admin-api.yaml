@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Connecto Admin API
+  title: Snappo Admin API
   version: 1.0.0
 servers:
   - url: /api/admin/v1

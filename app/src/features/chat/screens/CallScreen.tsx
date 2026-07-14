@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 import { View, Text, Image, TouchableOpacity, StyleSheet, TextInput, Alert, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Dimensions } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
@@ -181,13 +182,13 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const reportUser = useCallback(() => {
     setMenuOpen(false);
-    Alert.alert('Report submitted', 'Thanks for reporting. Our moderation team will review this call.');
+    useAlertStore.getState().show('Report submitted', 'Thanks for reporting. Our moderation team will review this call.');
   }, []);
 
   const goOffline = useCallback(() => {
     setMenuOpen(false);
     setIsOnline(false);
-    Alert.alert('Status updated', 'You are now offline and will not receive new calls.');
+    useAlertStore.getState().show('Status updated', 'You are now offline and will not receive new calls.');
   }, [setIsOnline]);
 
   const formatTime = (s: number) =>

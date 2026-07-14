@@ -8,7 +8,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { Gradients } from '../theme/colors';
 
 export const GlobalAlert = () => {
-  const { visible, title, message, hide } = useAlertStore();
+  const { visible, title, message, buttons, hide } = useAlertStore();
 
   return (
     <Modal transparent visible={visible} animationType="fade">
@@ -16,16 +16,53 @@ export const GlobalAlert = () => {
         <View style={styles.alertBox}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
-          <TouchableOpacity onPress={hide} activeOpacity={0.8} style={styles.buttonContainer}>
-            <LinearGradient
-              colors={[...Gradients.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.button}
-            >
-              <Text style={styles.buttonText}>OK</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            {buttons && buttons.length > 0 ? (
+              buttons.map((btn, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => {
+                    hide();
+                    if (btn.onPress) btn.onPress();
+                  }}
+                  activeOpacity={0.8}
+                  style={[
+                    styles.button,
+                    btn.style === 'cancel' && { backgroundColor: Colors.muted, marginTop: 8 },
+                    btn.style === 'destructive' && { backgroundColor: 'rgba(239,68,68,0.1)', marginTop: 8 },
+                  ]}
+                >
+                  {btn.style !== 'cancel' && btn.style !== 'destructive' ? (
+                    <LinearGradient
+                      colors={[...Gradients.primary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.gradientBtn}
+                    >
+                      <Text style={styles.buttonText}>{btn.text}</Text>
+                    </LinearGradient>
+                  ) : (
+                    <Text style={[
+                      styles.buttonText,
+                      btn.style === 'cancel' && { color: Colors.foreground },
+                      btn.style === 'destructive' && { color: Colors.destructive },
+                    ]}>{btn.text}</Text>
+                  )}
+                </TouchableOpacity>
+              ))
+            ) : (
+              <TouchableOpacity onPress={hide} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={[...Gradients.primary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.button, styles.gradientBtn]}
+                >
+                  <Text style={styles.buttonText}>OK</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
     </Modal>
@@ -62,8 +99,15 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     width: '100%',
+    gap: 8,
   },
   button: {
+    width: '100%',
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  gradientBtn: {
     width: '100%',
     paddingVertical: 14,
     borderRadius: Radius.lg,

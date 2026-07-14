@@ -220,7 +220,9 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.menuIconBox}>
               {renderMenuIcon(item.icon)}
             </View>
-            <Text style={styles.menuLabel}>{item.label}</Text>
+            <Text style={styles.menuLabel}>
+              {item.screen === 'Verification' && currentUser?.isVerified ? 'Re-verification' : item.label}
+            </Text>
             <Text style={{ fontSize: 14, color: Colors.mutedForeground }}>›</Text>
           </TouchableOpacity>
         ))}

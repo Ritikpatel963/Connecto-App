@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { supabase } from '../api/supabase';
+import { ENV } from '../config/env';
 
 const HEARTBEAT_INTERVAL = 25000; // 25 seconds
 
@@ -16,14 +17,11 @@ export function useHeartbeat(userId: string | null) {
   const pingBackend = async (isOnline: boolean) => {
     if (!userId) return;
     try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      
-      await fetch('http://192.168.1.6:4100/api/app/v1/users/presence', {
+      await fetch(`${ENV.API_URL}/api/app/v1/users/presence`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${userId}`
         },
         body: JSON.stringify({ isOnline })
       });

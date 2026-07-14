@@ -43,7 +43,7 @@ export const dashboardApi = {
     () => ({
       id: 1,
       name: "Neha Verma",
-      email: "neha@connecto.app",
+      email: "neha@snappo.inc",
       role: "Super admin",
       permissions: ["verify_id", "verify_voice", "approve_wallet_recharge", "approve_referral_redemption", "manage_users", "manage_admins"],
     })

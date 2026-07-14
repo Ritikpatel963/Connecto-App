@@ -210,7 +210,7 @@ const AdminLayout = () => {
         </div>
 
         <div className="dashboard-main-body"><Outlet /></div>
-        <footer className="d-footer"><div className="d-flex flex-wrap justify-content-between gap-2"><p className="mb-0">Copyright {new Date().getFullYear()} Connecto</p><p className="mb-0 text-secondary-light">Created by <a href="https://crescitasoftware.com/" target="_blank" rel="noopener noreferrer" className="text-primary-600 fw-semibold">Crescita Software</a></p></div></footer>
+        <footer className="d-footer"><div className="d-flex flex-wrap justify-content-between gap-2"><p className="mb-0">Copyright {new Date().getFullYear()} Snappo</p><p className="mb-0 text-secondary-light">Created by <a href="https://crescitasoftware.com/" target="_blank" rel="noopener noreferrer" className="text-primary-600 fw-semibold">Crescita Software</a></p></div></footer>
       </main>
     </section>
   );

@@ -52,7 +52,7 @@ const useUserStore = create<UserContextType>()(
         }),
     }),
     {
-      name: 'connecto-app-store',
+      name: 'Snappo-app-store',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: state => ({
         role: state.role,

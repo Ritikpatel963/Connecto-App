@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 import {
   View,
   Text,
@@ -22,9 +23,10 @@ import { useUser } from '../../../context/UserContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
+import { ENV } from '../../../config/env';
 
-const SUPABASE_URL = 'https://whypwqhdfxtjjenkhkwt.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ';
+const SUPABASE_URL = ENV.SUPABASE_URL;
+const SUPABASE_KEY = ENV.SUPABASE_KEY;
 
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
 const atob = (input: string = '') => {
@@ -65,7 +67,7 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
         setIdImageBase64(`data:${result.assets[0].type || 'image/jpeg'};base64,${result.assets[0].base64}`);
       }
       setIdUploaded(true);
-      Alert.alert('Document Selected', 'Your ID document has been attached.');
+      useAlertStore.getState().show('Document Selected', 'Your ID document has been attached.');
     }
   };
 
@@ -78,7 +80,7 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
           PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
         );
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert('Permission Required', 'Microphone permission is needed to verify your voice.');
+          useAlertStore.getState().show('Permission Required', 'Microphone permission is needed to verify your voice.');
           return;
         }
       } catch (err) {
@@ -143,33 +145,36 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
       setVoiceRecorded(true);
       setRecordingPhase('idle');
       setRecordingTime(null);
-      Alert.alert('Voice Recorded ✓', 'Your voice sample is ready.');
+      useAlertStore.getState().show('Voice Recorded ✓', 'Your voice sample is ready.');
     } catch (e: any) {
       console.warn('Recording error', e);
       setRecordingPhase('idle');
       setRecordingTime(null);
-      Alert.alert('Recording Failed', e.message || 'Could not record audio. Please try again.');
+      useAlertStore.getState().show('Recording Failed', e.message || 'Could not record audio. Please try again.');
     }
   };
 
   const handleComplete = async () => {
-    if (!idUploaded || (role === 'girl' && !voiceRecorded)) {
+    const isUploadDisabled = role === 'girl' ? (!idUploaded && !voiceRecorded) : !idUploaded;
+    if (isUploadDisabled) {
       return;
     }
     setIsSubmitting(true);
     try {
       const insertPromises = [];
 
-      // Insert ID verification
-      insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/id_verifications`, {
-        method: 'POST',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: currentUser?.id,
-          status: 'pending',
-          id_image_url: idImageBase64 || 'https://images.unsplash.com/photo-1621252179027-94459d278660?w=200&h=150&fit=crop'
-        })
-      }));
+      // Insert ID verification only if uploaded
+      if (idUploaded) {
+        insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/id_verifications`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: currentUser?.id,
+            status: currentUser?.isVerified ? 'reverification' : 'pending',
+            id_image_url: idImageBase64 || 'https://images.unsplash.com/photo-1621252179027-94459d278660?w=200&h=150&fit=crop'
+          })
+        }));
+      }
 
       // Insert voice verification if girl
       if (role === 'girl' && voiceRecorded && voiceFilePath) {
@@ -208,24 +213,25 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               user_id: currentUser?.id,
-              status: 'pending',
+              status: currentUser?.isVerified ? 'reverification' : 'pending',
               voice_audio_url: voiceAudioUrl,
             })
           }));
 
           RNFS.unlink(voiceFilePath).catch(() => { });
         } catch (voiceErr: any) {
-          Alert.alert('Voice Upload Failed', `Could not upload voice. Please try again.`);
+          useAlertStore.getState().show('Voice Upload Failed', `Could not upload voice. Please try again.`);
           return; 
         }
       }
 
       await Promise.all(insertPromises);
-      Alert.alert('Success', 'Verification request submitted successfully!');
-      navigation.goBack();
+      useAlertStore.getState().show('Success', 'Verification request submitted successfully!', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
     } catch (err) {
       console.log('Error submitting verification', err);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      useAlertStore.getState().show('Error', 'Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -280,7 +286,7 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.voiceTitle}>Voice Verification</Text>
                 <Text style={styles.voiceSubtitle}>Please read the following text aloud to get verified:</Text>
                 <Text style={{ ...Typography.small, color: Colors.primary, marginTop: 4, fontStyle: 'italic' }}>
-                  "Hello, I am verifying my profile for Connecto."
+                  "Hello, I am verifying my profile for Snappo."
                 </Text>
               </View>
             </View>
@@ -297,8 +303,8 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
         )}
       </View>
 
-      <TouchableOpacity onPress={handleComplete} disabled={isSubmitting || !idUploaded || (role === 'girl' && !voiceRecorded)} activeOpacity={0.8}>
-        <LinearGradient colors={[...Gradients.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.submitBtn, (isSubmitting || !idUploaded || (role === 'girl' && !voiceRecorded)) && styles.disabled]}>
+      <TouchableOpacity onPress={handleComplete} disabled={isSubmitting || (role === 'girl' ? (!idUploaded && !voiceRecorded) : !idUploaded)} activeOpacity={0.8}>
+        <LinearGradient colors={[...Gradients.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.submitBtn, (isSubmitting || (role === 'girl' ? (!idUploaded && !voiceRecorded) : !idUploaded)) && styles.disabled]}>
           {isSubmitting ? (
             <ActivityIndicator color="#FFF" />
           ) : (

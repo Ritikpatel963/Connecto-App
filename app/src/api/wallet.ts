@@ -1,7 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
 import { Transaction, ReferralInfo } from '../shared/types/app';
 import { useUser } from '../context/UserContext';
+import { ENV } from '../config/env';
+import { useEffect } from 'react';
 
 export const useTransactions = () => {
   const { currentUser } = useUser(); 
@@ -10,7 +12,6 @@ export const useTransactions = () => {
 
   return useQuery({
     queryKey: ['transactions', id, role],
-    refetchInterval: 5000,
     queryFn: async () => {
       const userId = id || 1; 
       
@@ -96,15 +97,11 @@ export const useReferralStats = () => {
       
       let userCode = data?.referral_code;
       if (!userCode) {
-        // Ponytail: Auto-generate deterministic referral code via backend safely
-        const session = await supabase.auth.getSession();
-        const token = session.data.session?.access_token;
-        
-        const res = await fetch('http://192.168.1.6:4100/api/app/v1/users/referral-code', {
+        const res = await fetch(`${ENV.API_URL}/api/app/v1/users/referral-code`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${userId}`
           }
         });
         if (res.ok) {
@@ -119,16 +116,20 @@ export const useReferralStats = () => {
         .eq('referrer_user_id', userId)
         .order('created_at', { ascending: false });
 
+      const history = historyData || [];
+      const computedTotalReferred = history.length;
+      const computedTotalEarnings = history.filter(h => h.status === 'qualified' || h.status === 'successful' || h.status === 'completed').length * 50;
+
       return {
         code: userCode,
-        totalReferred: data?.total_referrals || 0,
-        totalEarnings: data?.referral_earnings || 0,
+        totalReferred: computedTotalReferred,
+        totalEarnings: computedTotalEarnings,
         milestones: [
-          { target: 10, reward: 500, reached: (data?.total_referrals || 0) >= 10 },
-          { target: 50, reward: 3000, reached: (data?.total_referrals || 0) >= 50 },
-          { target: 100, reward: 8000, reached: (data?.total_referrals || 0) >= 100 }
+          { target: 10, reward: 500, reached: computedTotalReferred >= 10 },
+          { target: 50, reward: 3000, reached: computedTotalReferred >= 50 },
+          { target: 100, reward: 8000, reached: computedTotalReferred >= 100 }
         ],
-        history: historyData || []
+        history
       } as ReferralInfo & { history: any[] };
     }
   });
@@ -140,7 +141,6 @@ export const useWalletBalance = () => {
   
   return useQuery({
     queryKey: ['walletBalance', id],
-    refetchInterval: 5000,
     queryFn: async () => {
       const userId = id || 1;
       const { data: wallet, error } = await supabase
@@ -212,4 +212,22 @@ export const useSettings = () => {
       return settingsMap;
     }
   });
+};
+
+export const useWalletRealtime = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:wallet_transactions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 };

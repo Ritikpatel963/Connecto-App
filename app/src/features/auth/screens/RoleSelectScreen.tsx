@@ -64,7 +64,7 @@ const RoleSelectScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
-      <Text style={styles.title}>How will you use Connecto?</Text>
+      <Text style={styles.title}>How will you use Snappo?</Text>
       <Text style={styles.subtitle}>Choose your role to get started</Text>
 
       <View style={styles.cards}>

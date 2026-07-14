@@ -28,7 +28,7 @@ const SettingsPage = () => {
   };
 
   // Settings State
-  const [withdrawalConfig, setWithdrawalConfig] = useState<{min: string, max: string}>({min: "100", max: "10000"});
+  const [withdrawalConfig, setWithdrawalConfig] = useState<{ min: string, max: string }>({ min: "100", max: "10000" });
   const [paymentQrUrl, setPaymentQrUrl] = useState<string>("");
   const [razorpayKeyId, setRazorpayKeyId] = useState<string>("");
   const [razorpayKeySecret, setRazorpayKeySecret] = useState<string>("");
@@ -53,12 +53,35 @@ const SettingsPage = () => {
     queryFn: () => settingsApi.get("razorpay_key_secret"),
   });
 
+  const [razorpayEnabled, setRazorpayEnabled] = useState(true);
+  const [inAppEnabled, setInAppEnabled] = useState(false);
+  const [manualEnabled, setManualEnabled] = useState(true);
+
+  const { data: rzpEnabledData } = useQuery({ queryKey: ["settings", "razorpay_enabled"], queryFn: () => settingsApi.get("razorpay_enabled") });
+  const { data: inAppEnabledData } = useQuery({ queryKey: ["settings", "in_app_enabled"], queryFn: () => settingsApi.get("in_app_enabled") });
+  const { data: manualEnabledData } = useQuery({ queryKey: ["settings", "manual_enabled"], queryFn: () => settingsApi.get("manual_enabled") });
+
+  // OTP Settings
+  const [otpMethod, setOtpMethod] = useState("firebase");
+  const [fast2smsApiKey, setFast2smsApiKey] = useState("");
+  const [fast2smsSenderId, setFast2smsSenderId] = useState("");
+
+  const { data: otpMethodData } = useQuery({ queryKey: ["settings", "otp_method"], queryFn: () => settingsApi.get("otp_method") });
+  const { data: f2sKeyData } = useQuery({ queryKey: ["settings", "fast2sms_api_key"], queryFn: () => settingsApi.get("fast2sms_api_key") });
+  const { data: f2sSenderData } = useQuery({ queryKey: ["settings", "fast2sms_sender_id"], queryFn: () => settingsApi.get("fast2sms_sender_id") });
+
   useEffect(() => {
     if (configData) setWithdrawalConfig(configData);
     if (qrData) setPaymentQrUrl(qrData);
     if (rzpKeyData) setRazorpayKeyId(rzpKeyData);
     if (rzpSecretData) setRazorpayKeySecret(rzpSecretData);
-  }, [configData, qrData, rzpKeyData, rzpSecretData]);
+    if (otpMethodData) setOtpMethod(otpMethodData);
+    if (f2sKeyData) setFast2smsApiKey(f2sKeyData);
+    if (f2sSenderData) setFast2smsSenderId(f2sSenderData);
+    if (rzpEnabledData !== undefined) setRazorpayEnabled(rzpEnabledData === 'true');
+    if (inAppEnabledData !== undefined) setInAppEnabled(inAppEnabledData === 'true');
+    if (manualEnabledData !== undefined) setManualEnabled(manualEnabledData === 'true');
+  }, [configData, qrData, rzpKeyData, rzpSecretData, otpMethodData, f2sKeyData, f2sSenderData, rzpEnabledData, inAppEnabledData, manualEnabledData]);
 
   const saveRules = useMutation({
     mutationFn: (config: any) => settingsApi.set("withdrawal_config", config),
@@ -90,6 +113,28 @@ const SettingsPage = () => {
     onError: (error: Error) => toast.error(error.message)
   });
 
+  const saveToggles = useMutation({
+    mutationFn: async () => {
+      await settingsApi.set("razorpay_enabled", razorpayEnabled ? "true" : "false");
+      await settingsApi.set("in_app_enabled", inAppEnabled ? "true" : "false");
+      await settingsApi.set("manual_enabled", manualEnabled ? "true" : "false");
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
+  });
+
+  const saveOtp = useMutation({
+    mutationFn: async () => {
+      await settingsApi.set("otp_method", otpMethod);
+      await settingsApi.set("fast2sms_api_key", fast2smsApiKey);
+      await settingsApi.set("fast2sms_sender_id", fast2smsSenderId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("OTP settings saved successfully");
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+
 
   const handleSave = () => {
     if (activeTab === 'withdrawal') {
@@ -97,7 +142,10 @@ const SettingsPage = () => {
       toast.success("Withdrawal rule saved successfully!");
     } else if (activeTab === 'payments') {
       saveQr.mutate(paymentQrUrl);
+      saveToggles.mutate();
       toast.success("Payment settings saved successfully!");
+    } else if (activeTab === 'otp') {
+      saveOtp.mutate();
     } else {
       toast.success("Settings saved successfully!");
     }
@@ -105,17 +153,17 @@ const SettingsPage = () => {
 
   return (
     <>
-      <PageHeader 
-        title="Settings" 
-        description="Platform-level configuration placeholder for the REST settings API." 
-        icon="solar:settings-outline" 
+      <PageHeader
+        title="Settings"
+        description="Platform-level configuration placeholder for the REST settings API."
+        icon="solar:settings-outline"
       />
-      
+
       <div className="card">
         <div className="card-header border-bottom p-0">
           <ul className="nav nav-tabs nav-tabs-line p-24 pb-0 border-0">
             <li className="nav-item">
-              <button 
+              <button
                 className={`nav-link fw-semibold text-lg ${activeTab === 'general' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
                 onClick={() => handleTabChange('general')}
               >
@@ -123,7 +171,7 @@ const SettingsPage = () => {
               </button>
             </li>
             <li className="nav-item">
-              <button 
+              <button
                 className={`nav-link fw-semibold text-lg ${activeTab === 'payments' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
                 onClick={() => handleTabChange('payments')}
               >
@@ -131,7 +179,7 @@ const SettingsPage = () => {
               </button>
             </li>
             <li className="nav-item">
-              <button 
+              <button
                 className={`nav-link fw-semibold text-lg ${activeTab === 'otp' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
                 onClick={() => handleTabChange('otp')}
               >
@@ -139,7 +187,7 @@ const SettingsPage = () => {
               </button>
             </li>
             <li className="nav-item">
-              <button 
+              <button
                 className={`nav-link fw-semibold text-lg ${activeTab === 'notifications' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
                 onClick={() => handleTabChange('notifications')}
               >
@@ -147,7 +195,7 @@ const SettingsPage = () => {
               </button>
             </li>
             <li className="nav-item">
-              <button 
+              <button
                 className={`nav-link fw-semibold text-lg ${activeTab === 'company' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
                 onClick={() => handleTabChange('company')}
               >
@@ -155,7 +203,7 @@ const SettingsPage = () => {
               </button>
             </li>
             <li className="nav-item">
-              <button 
+              <button
                 className={`nav-link fw-semibold text-lg ${activeTab === 'withdrawal' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
                 onClick={() => handleTabChange('withdrawal')}
               >
@@ -164,10 +212,10 @@ const SettingsPage = () => {
             </li>
           </ul>
         </div>
-        
+
         <div className="card-body p-24">
           <div className="tab-content">
-            
+
             {/* GENERAL TAB */}
             {activeTab === 'general' && (
               <div className="row gy-4">
@@ -177,7 +225,7 @@ const SettingsPage = () => {
                 </div>
                 <div className="col-lg-6">
                   <label className="form-label fw-semibold">Support email</label>
-                  <input className="form-control" defaultValue="support@connecto.app" />
+                  <input className="form-control" defaultValue="support@snappo.inc" />
                 </div>
                 <div className="col-lg-6">
                   <label className="form-label fw-semibold">Default currency</label>
@@ -213,7 +261,7 @@ const SettingsPage = () => {
                         <h6 className="mb-0 text-lg">Razorpay</h6>
                       </div>
                       <div className="form-switch switch-primary">
-                        <input className="form-check-input" type="checkbox" role="switch" defaultChecked />
+                        <input className="form-check-input" type="checkbox" role="switch" checked={razorpayEnabled} onChange={(e) => setRazorpayEnabled(e.target.checked)} />
                       </div>
                     </div>
                     <div className="card-body p-24">
@@ -235,8 +283,8 @@ const SettingsPage = () => {
                           <input className="form-control" type="password" placeholder="••••••••••••" value={razorpayKeySecret} onChange={(e) => setRazorpayKeySecret(e.target.value)} />
                         </div>
                         <div className="col-12 text-end">
-                          <button 
-                            className="btn btn-primary" 
+                          <button
+                            className="btn btn-primary"
                             disabled={saveRazorpay.isPending}
                             onClick={() => saveRazorpay.mutate()}
                           >
@@ -257,14 +305,14 @@ const SettingsPage = () => {
                         <h6 className="mb-0 text-lg">Google Play In-App Purchase</h6>
                       </div>
                       <div className="form-switch switch-primary">
-                        <input className="form-check-input" type="checkbox" role="switch" defaultChecked />
+                        <input className="form-check-input" type="checkbox" role="switch" checked={inAppEnabled} onChange={(e) => setInAppEnabled(e.target.checked)} />
                       </div>
                     </div>
                     <div className="card-body p-24">
                       <div className="row gy-3">
                         <div className="col-md-6">
                           <label className="form-label fw-semibold">Package Name</label>
-                          <input className="form-control" defaultValue="com.connecto.app" placeholder="com.example.app" />
+                          <input className="form-control" defaultValue="com.snappo.inc" placeholder="com.example.app" />
                         </div>
                         <div className="col-md-6">
                           <label className="form-label fw-semibold">Service Account JSON</label>
@@ -289,24 +337,24 @@ const SettingsPage = () => {
                         <h6 className="mb-0 text-lg">Custom Payment (QR Code)</h6>
                       </div>
                       <div className="form-switch switch-primary">
-                        <input className="form-check-input" type="checkbox" role="switch" defaultChecked />
+                        <input className="form-check-input" type="checkbox" role="switch" checked={manualEnabled} onChange={(e) => setManualEnabled(e.target.checked)} />
                       </div>
                     </div>
                     <div className="card-body p-24">
                       <div className="row gy-3">
                         <div className="col-12">
                           <label className="form-label fw-semibold">Instructions for User</label>
-                          <textarea 
-                            className="form-control" 
+                          <textarea
+                            className="form-control"
                             rows={3}
-                            defaultValue="Scan the QR code below to make the payment. After successful payment, please upload the screenshot of the transaction." 
+                            defaultValue="Scan the QR code below to make the payment. After successful payment, please upload the screenshot of the transaction."
                           />
                         </div>
                         <div className="col-12">
                           <label className="form-label fw-semibold">Upload QR Code Image</label>
-                          <input 
-                            className="form-control" 
-                            type="file" 
+                          <input
+                            className="form-control"
+                            type="file"
                             accept="image/*"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
@@ -323,8 +371,8 @@ const SettingsPage = () => {
                         {paymentQrUrl && (
                           <div className="col-12 mt-3">
                             <img src={paymentQrUrl} alt="QR Code" style={{ maxWidth: 200, borderRadius: 8, border: '1px solid #eee' }} />
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               className="btn btn-sm btn-outline-danger mt-2 d-block"
                               onClick={() => setPaymentQrUrl("")}
                             >
@@ -351,27 +399,7 @@ const SettingsPage = () => {
                         <h6 className="mb-0 text-lg">Firebase</h6>
                       </div>
                       <div className="form-switch switch-primary">
-                        <input className="form-check-input" type="checkbox" role="switch" defaultChecked />
-                      </div>
-                    </div>
-                    <div className="card-body p-24">
-                      <div className="row gy-3">
-                        <div className="col-md-6">
-                          <label className="form-label fw-semibold">API Key</label>
-                          <input className="form-control" placeholder="AIzaSyB..." />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label fw-semibold">Auth Domain</label>
-                          <input className="form-control" placeholder="app-id.firebaseapp.com" />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label fw-semibold">Project ID</label>
-                          <input className="form-control" placeholder="app-id" />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label fw-semibold">Sender ID</label>
-                          <input className="form-control" placeholder="123456789" />
-                        </div>
+                        <input className="form-check-input" type="checkbox" role="switch" checked={otpMethod === 'firebase'} onChange={() => setOtpMethod('firebase')} />
                       </div>
                     </div>
                   </div>
@@ -386,18 +414,18 @@ const SettingsPage = () => {
                         <h6 className="mb-0 text-lg">Fast2sms</h6>
                       </div>
                       <div className="form-switch switch-primary">
-                        <input className="form-check-input" type="checkbox" role="switch" />
+                        <input className="form-check-input" type="checkbox" role="switch" checked={otpMethod === 'fast2sms'} onChange={() => setOtpMethod('fast2sms')} />
                       </div>
                     </div>
                     <div className="card-body p-24">
                       <div className="row gy-3">
                         <div className="col-md-6">
                           <label className="form-label fw-semibold">API Key</label>
-                          <input className="form-control" type="password" placeholder="••••••••••••" />
+                          <input className="form-control" type="password" placeholder="••••••••••••" value={fast2smsApiKey} onChange={(e) => setFast2smsApiKey(e.target.value)} />
                         </div>
                         <div className="col-md-6">
                           <label className="form-label fw-semibold">Sender ID</label>
-                          <input className="form-control" placeholder="FSTSMS" />
+                          <input className="form-control" placeholder="FSTSMS" value={fast2smsSenderId} onChange={(e) => setFast2smsSenderId(e.target.value)} />
                         </div>
                         <div className="col-12">
                           <p className="text-sm text-secondary-light mb-0 mt-2">
@@ -443,7 +471,7 @@ const SettingsPage = () => {
               <div className="row gy-4">
                 <div className="col-lg-6">
                   <label className="form-label fw-semibold">Company Name</label>
-                  <input className="form-control" defaultValue="Connecto LLC" />
+                  <input className="form-control" defaultValue="Snappo LLC" />
                 </div>
                 <div className="col-lg-6">
                   <label className="form-label fw-semibold">Tax ID / VAT</label>
@@ -463,29 +491,29 @@ const SettingsPage = () => {
                   <label className="form-label fw-semibold">Minimum Withdrawal Amount (INR)</label>
                   <div className="input-group">
                     <span className="input-group-text">₹</span>
-                    <input 
+                    <input
                       type="number"
-                      className="form-control" 
-                      value={withdrawalConfig.min} 
-                      onChange={(e) => setWithdrawalConfig({...withdrawalConfig, min: e.target.value})}
-                      placeholder="e.g. 100" 
+                      className="form-control"
+                      value={withdrawalConfig.min}
+                      onChange={(e) => setWithdrawalConfig({ ...withdrawalConfig, min: e.target.value })}
+                      placeholder="e.g. 100"
                     />
                   </div>
                   <p className="text-sm text-secondary-light mb-0 mt-2">
                     Users cannot request a withdrawal below this amount.
                   </p>
                 </div>
-                
+
                 <div className="col-lg-6">
                   <label className="form-label fw-semibold">Maximum Withdrawal Amount (INR)</label>
                   <div className="input-group">
                     <span className="input-group-text">₹</span>
-                    <input 
+                    <input
                       type="number"
-                      className="form-control" 
-                      value={withdrawalConfig.max} 
-                      onChange={(e) => setWithdrawalConfig({...withdrawalConfig, max: e.target.value})}
-                      placeholder="e.g. 10000" 
+                      className="form-control"
+                      value={withdrawalConfig.max}
+                      onChange={(e) => setWithdrawalConfig({ ...withdrawalConfig, max: e.target.value })}
+                      placeholder="e.g. 10000"
                     />
                   </div>
                   <p className="text-sm text-secondary-light mb-0 mt-2">
@@ -500,7 +528,7 @@ const SettingsPage = () => {
                 Save settings
               </button>
             </div>
-            
+
           </div>
         </div>
       </div>

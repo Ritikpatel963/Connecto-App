@@ -197,9 +197,9 @@ export const entityConfigs = {
     schemaFields: ["id", "name", "email", "password_hash", "role_id", "is_active", "last_login_at", "created_at"],
     columns: [{ key: "id", label: "ID" }, { key: "name", label: "Admin", type: "user" }, { key: "email", label: "Email" }, { key: "role", label: "Role" }, { key: "last_login_at", label: "Last login", type: "date" }, { key: "status", label: "Status", type: "status" }],
     rows: [
-      { id: 1, name: "Neha Verma", email: "neha@connecto.app", role_id: 1, role: "Super admin", is_active: true, status: "active", last_login_at: "2026-07-03 11:38", created_at: "2026-01-10" },
-      { id: 2, name: "Vikram Shah", email: "vikram@connecto.app", role_id: 2, role: "Moderator", is_active: true, status: "active", last_login_at: "2026-07-03 10:16", created_at: "2026-03-08" },
-      { id: 3, name: "Sara Khan", email: "sara@connecto.app", role_id: 3, role: "Finance admin", is_active: true, status: "active", last_login_at: "2026-07-03 09:41", created_at: "2026-04-02" },
+      { id: 1, name: "Neha Verma", email: "neha@snappo.inc", role_id: 1, role: "Super admin", is_active: true, status: "active", last_login_at: "2026-07-03 11:38", created_at: "2026-01-10" },
+      { id: 2, name: "Vikram Shah", email: "vikram@snappo.inc", role_id: 2, role: "Moderator", is_active: true, status: "active", last_login_at: "2026-07-03 10:16", created_at: "2026-03-08" },
+      { id: 3, name: "Sara Khan", email: "sara@snappo.inc", role_id: 3, role: "Finance admin", is_active: true, status: "active", last_login_at: "2026-07-03 09:41", created_at: "2026-04-02" },
     ],
   },
   roles: {

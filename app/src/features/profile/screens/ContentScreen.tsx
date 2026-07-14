@@ -6,13 +6,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 
-const SUPABASE_URL = 'https://whypwqhdfxtjjenkhkwt.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_3tvF2hOnQ_slfiK4dVgzVw_oSnDZpnJ';
+const SUPABASE_URL = ENV.SUPABASE_URL;
+const SUPABASE_KEY = ENV.SUPABASE_KEY;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Content'>;
 
 import RenderHtml from 'react-native-render-html';
 import { useWindowDimensions } from 'react-native';
+import { ENV } from '../../../config/env';
 
 const ContentScreen: React.FC<Props> = ({ navigation, route }) => {
   const { title, contentKey } = route.params;

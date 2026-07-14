@@ -13,7 +13,7 @@ export const useNotifications = () => {
         {
           id: '1',
           type: 'system',
-          title: 'Welcome to Connecto!',
+          title: 'Welcome to snappo!',
           body: 'Your profile is ready. Start discovering new people.',
           timestamp: new Date().toISOString(),
           isRead: false
