@@ -16,7 +16,8 @@ const PushNotificationsPage = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch("http://localhost:4000/api/admin/v1/notifications/send", {
+      const baseUrl = process.env.REACT_APP_ADMIN_API_BASE_URL || "http://localhost:4000/api/admin/v1";
+      const res = await fetch(`${baseUrl}/notifications/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ title, message, userId: userId || null })
@@ -36,7 +37,7 @@ const PushNotificationsPage = () => {
 
   return (
     <div className="push-notifications-page">
-      <PageHeader title="Send Push Notification" />
+      <PageHeader title="Send Push Notification" description="Send a broadcast or targeted push notification to users" />
       <div className="card mt-24">
         <div className="card-header border-bottom">
           <h6 className="mb-0">Custom Notification</h6>

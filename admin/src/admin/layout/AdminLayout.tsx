@@ -15,6 +15,7 @@ const groups: NavGroup[] = [
   { id: "verifications", label: "Verifications", icon: "solar:shield-check-outline", items: [{ label: "ID Verifications", to: "/verifications/id" }, { label: "Voice Verifications", to: "/verifications/voice" }] },
   { id: "calls", label: "Calls", icon: "solar:phone-calling-outline", items: [{ label: "Call Log", to: "/calls" }] },
   { id: "chat", label: "Chat", icon: "solar:chat-round-dots-outline", items: [{ label: "Chat", to: "/chat" }] },
+  { id: "notifications", label: "Notifications", icon: "solar:bell-bing-outline", items: [{ label: "Push Notifications", to: "/push-notifications" }] },
   { id: "ratings", label: "Ratings & Reviews", icon: "solar:star-outline", items: [{ label: "All Reviews", to: "/ratings" }] },
   { id: "subscriptions", label: "Packages", icon: "solar:crown-star-outline", items: [{ label: "All Packages", to: "/subscriptions" }] },
   { id: "wallet", label: "Wallet", icon: "solar:wallet-2-outline", items: [{ label: "Transactions", to: "/wallet/transactions" }, { label: "Manual Approvals", to: "/wallet/manual-approvals" }, { label: "Recharge Packages", to: "/recharge-packages" }, { label: "Withdraw Rules", to: "/settings#withdrawal" }, { label: "Withdrawals", to: "/withdrawals" }] },
