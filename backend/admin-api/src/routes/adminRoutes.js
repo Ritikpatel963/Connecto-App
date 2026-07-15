@@ -6,6 +6,7 @@ import { rateLimit } from "../middleware/rateLimit.js";
 
 export async function route(req, res, url) {
   const path = url.pathname.replace(/^\/api\/admin\/v1/, "") || "/";
+  console.log(`[adminRoutes] Received ${req.method} ${path} (original url: ${url.pathname})`);
 
   if (req.method === "POST" && path === "/auth/login") {
     rateLimit(req.socket.remoteAddress || "unknown", 10, 60_000);
@@ -47,7 +48,7 @@ export async function route(req, res, url) {
     return subscriptions.patch(req, res, url, { id: subscriptionMatch[1] });
   }
 
-  if (req.method === "POST" && path === "/notifications/send") {
+  if (req.method === "POST" && (path === "/push/dispatch" || path === "/notifications/send")) {
     await requireAdmin(req);
     const body = await readJson(req);
     const { userId, title, message } = body;
@@ -69,8 +70,32 @@ export async function route(req, res, url) {
     for (const token of tokens) {
       if (await sendPushNotification(token, title, message)) sentCount++;
     }
+
+    // Ponytail: Lazy log push notification directly via fetch
+    fetch(`${config.supabaseUrl}/rest/v1/push_notifications`, {
+      method: 'POST',
+      headers: {
+        apikey: config.supabaseServiceRoleKey,
+        Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ title, message, target_user_id: userId || null, sent_count: sentCount })
+    }).catch(console.error);
     
     return ok(res, { success: true, sentCount });
+  }
+
+  if (req.method === "GET" && path === "/push/history") {
+    await requireAdmin(req);
+    const dbRes = await fetch(`${config.supabaseUrl}/rest/v1/push_notifications?order=created_at.desc`, {
+      headers: {
+        apikey: config.supabaseServiceRoleKey,
+        Authorization: `Bearer ${config.supabaseServiceRoleKey}`
+      }
+    });
+    if (!dbRes.ok) throw new HttpError(500, "Failed to fetch notification history");
+    const history = await dbRes.json();
+    return ok(res, history);
   }
 
   throw new HttpError(404, "Route not found");

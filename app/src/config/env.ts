@@ -1,6 +1,6 @@
 export const ENV = {
   // Local backend API URL (replace with your current IP address)
-  API_URL: 'http://192.168.1.10:4100',
+  API_URL: 'http://192.168.1.10:4100/api/app/v1',
   
   // Supabase Configuration
   SUPABASE_URL: 'https://whypwqhdfxtjjenkhkwt.supabase.co',

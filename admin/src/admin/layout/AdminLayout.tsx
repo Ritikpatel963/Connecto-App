@@ -6,6 +6,7 @@ import ThemeToggleButton from "../../helper/ThemeToggleButton";
 import { AdminNotification, notificationsApi } from "../api/notifications";
 import { useAuth } from "../auth/AuthContext";
 import { supabase } from "../../lib/supabase";
+import { usePushNotifications } from "../hooks/usePushNotifications";
 
 interface NavItem { label: string; to: string; }
 interface NavGroup { id: string; label: string; icon: string; items: NavItem[]; permission?: string; }
@@ -42,6 +43,8 @@ const AdminLayout = () => {
     mutationFn: notificationsApi.markRead,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-notifications"] }),
   });
+
+  usePushNotifications(currentAdmin?.id);
 
   const visibleGroups = groups.filter((group) => !group.permission || currentAdmin?.permissions.includes(group.permission as never));
   const matchingGroup = useMemo(() => visibleGroups.find((group) => group.items.some((item) => matchesPath(location.pathname, item.to)))?.id, [location.pathname, visibleGroups]);

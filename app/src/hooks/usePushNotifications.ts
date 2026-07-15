@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import messaging from '@react-native-firebase/messaging';
 import { Alert, Platform } from 'react-native';
 import { ENV } from '../config/env';
+import { useAlertStore } from './useAlertStore';
 
 export const usePushNotifications = (userId?: string | number) => {
   useEffect(() => {
@@ -30,7 +31,16 @@ export const usePushNotifications = (userId?: string | number) => {
               'Authorization': `Bearer ${userId}`, // using user id as dummy auth token as seen in http.js
             },
             body: JSON.stringify({ fcm_token: token })
-          }).catch(console.error);
+          })
+          .then(async (res) => {
+            if (!res.ok) {
+              const err = await res.text();
+              console.error('Failed to save FCM token to backend:', res.status, err);
+            } else {
+              console.log('Successfully saved FCM token to backend.');
+            }
+          })
+          .catch(console.error);
         }
       } catch (error) {
         console.error('Failed to setup FCM:', error);
@@ -44,7 +54,7 @@ export const usePushNotifications = (userId?: string | number) => {
       // In a real app, you might show an in-app toast here
       // For now, just alert if we get a message while app is open
       if (remoteMessage.notification) {
-        Alert.alert(
+        useAlertStore.getState().show(
           remoteMessage.notification.title || 'New Notification',
           remoteMessage.notification.body || ''
         );
@@ -60,7 +70,16 @@ export const usePushNotifications = (userId?: string | number) => {
           'Authorization': `Bearer ${userId}`,
         },
         body: JSON.stringify({ fcm_token: token })
-      }).catch(console.error);
+      })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.text();
+          console.error('Failed to update FCM token on refresh:', res.status, err);
+        } else {
+          console.log('Successfully updated FCM token on refresh.');
+        }
+      })
+      .catch(console.error);
     });
 
     return () => {

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import { settingsApi } from "../api/settings";
+import api from "../api/http";
 
 const SettingsPage = () => {
   const location = useLocation();
@@ -60,6 +61,11 @@ const SettingsPage = () => {
   const { data: rzpEnabledData } = useQuery({ queryKey: ["settings", "razorpay_enabled"], queryFn: () => settingsApi.get("razorpay_enabled") });
   const { data: inAppEnabledData } = useQuery({ queryKey: ["settings", "in_app_enabled"], queryFn: () => settingsApi.get("in_app_enabled") });
   const { data: manualEnabledData } = useQuery({ queryKey: ["settings", "manual_enabled"], queryFn: () => settingsApi.get("manual_enabled") });
+
+  // Push Notification State
+  const [pushTitle, setPushTitle] = useState("");
+  const [pushBody, setPushBody] = useState("");
+  const [pushTargetId, setPushTargetId] = useState("");
 
   // OTP Settings
   const [otpMethod, setOtpMethod] = useState("firebase");
@@ -133,6 +139,26 @@ const SettingsPage = () => {
       toast.success("OTP settings saved successfully");
     },
     onError: (error: Error) => toast.error(error.message)
+  });
+
+  const sendPushNotification = useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post("/push/dispatch", {
+        title: pushTitle,
+        message: pushBody,
+        userId: pushTargetId || undefined,
+      });
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast.success(`Push notification sent successfully! (${data.data?.sentCount || data.sentCount || 0} devices)`);
+      setPushTitle("");
+      setPushBody("");
+      setPushTargetId("");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error?.message || error.message || "Failed to send notification");
+    }
   });
 
 
@@ -460,6 +486,37 @@ const SettingsPage = () => {
                     </div>
                     <div className="form-switch switch-primary">
                       <input className="form-check-input" type="checkbox" role="switch" defaultChecked />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="col-12 mt-24">
+                  <h6 className="mb-4">Send Custom Push Notification</h6>
+                  <div className="card shadow-none border">
+                    <div className="card-body p-24">
+                      <div className="row gy-3">
+                        <div className="col-md-12">
+                          <label className="form-label fw-semibold">Target User ID (Leave blank for all users)</label>
+                          <input className="form-control" placeholder="Optional User UUID" value={pushTargetId} onChange={(e) => setPushTargetId(e.target.value)} />
+                        </div>
+                        <div className="col-md-12">
+                          <label className="form-label fw-semibold">Title</label>
+                          <input className="form-control" placeholder="Notification Title" value={pushTitle} onChange={(e) => setPushTitle(e.target.value)} />
+                        </div>
+                        <div className="col-md-12">
+                          <label className="form-label fw-semibold">Message</label>
+                          <textarea className="form-control" rows={3} placeholder="Notification Body" value={pushBody} onChange={(e) => setPushBody(e.target.value)} />
+                        </div>
+                        <div className="col-12 text-end">
+                          <button
+                            className="btn btn-primary"
+                            disabled={sendPushNotification.isPending || !pushTitle || !pushBody}
+                            onClick={() => sendPushNotification.mutate()}
+                          >
+                            {sendPushNotification.isPending ? "Sending..." : "Send Push Notification"}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

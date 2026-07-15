@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Icon } from "@iconify/react";
 import PageHeader from "../components/PageHeader";
 import { toast } from "react-toastify";
+import api from "../api/http";
 
 const PushNotificationsPage = () => {
   const [title, setTitle] = useState("");
@@ -9,29 +10,33 @@ const PushNotificationsPage = () => {
   const [userId, setUserId] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [history, setHistory] = useState<any[]>([]);
+
+  const fetchHistory = async () => {
+    try {
+      const { data } = await api.get("/push/history");
+      setHistory(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchHistory();
+  }, []);
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !message.trim()) return toast.error("Title and message are required.");
     
     setLoading(true);
     try {
-      const token = localStorage.getItem("admin_token");
-      let baseUrl = process.env.REACT_APP_ADMIN_API_BASE_URL || "http://localhost:4100";
-      // If we are testing on a local network (e.g., from a phone) but base URL is localhost, replace it with the actual hostname so it connects to the PC
-      if (baseUrl.includes("localhost") && window.location.hostname !== "localhost") {
-        baseUrl = baseUrl.replace("localhost", window.location.hostname);
-      }
-      const res = await fetch(`${baseUrl}/notifications/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ title, message, userId: userId || null })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to send notification");
-      toast.success(`Successfully sent ${data.sentCount} notifications!`);
+      const { data } = await api.post("/push/dispatch", { title, message, userId: userId || null });
+      toast.success(`Successfully sent ${data.data?.sentCount ?? data.sentCount ?? 0} notifications!`);
       setTitle("");
       setMessage("");
       setUserId("");
+      fetchHistory(); // refresh datatable
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -70,6 +75,42 @@ const PushNotificationsPage = () => {
               </div>
             </div>
           </form>
+        </div>
+      </div>
+
+      <div className="card mt-24">
+        <div className="card-header border-bottom">
+          <h6 className="mb-0">Recent Notifications</h6>
+        </div>
+        <div className="card-body p-0">
+          <div className="table-responsive">
+            <table className="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Message</th>
+                  <th>Target</th>
+                  <th>Sent Count</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.length > 0 ? history.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.title}</td>
+                    <td><div className="text-truncate" style={{maxWidth: '300px'}}>{item.message}</div></td>
+                    <td>{item.target_user_id ? <span className="badge bg-info">User {item.target_user_id}</span> : <span className="badge bg-primary">Broadcast</span>}</td>
+                    <td>{item.sent_count} devices</td>
+                    <td>{new Date(item.created_at).toLocaleString()}</td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="text-center py-4 text-muted">No recent notifications</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

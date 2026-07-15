@@ -471,7 +471,7 @@ export async function appRoute(req, res, url) {
 
   // Update FCM Token
   const fcmTokenMatch = path.match(/^\/users\/([^/]+)\/fcm-token$/);
-  if (req.method === "POST" && fcmTokenMatch) {
+  if ((req.method === "POST" || req.method === "PATCH") && fcmTokenMatch) {
     const userIdToUpdate = fcmTokenMatch[1];
     const body = await readJson(req);
     const { fcm_token } = body;

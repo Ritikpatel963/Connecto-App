@@ -1,20 +1,22 @@
-import admin from "firebase-admin";
+import { initializeApp, cert } from "firebase-admin/app";
+import { getMessaging } from "firebase-admin/messaging";
 import fs from "fs";
 import path from "path";
 
 let initialized = false;
+let app = null;
 
 export function getFirebaseAdmin() {
-  if (initialized) return admin;
+  if (initialized) return app;
   try {
     const serviceAccountPath = path.resolve(process.cwd(), "firebase-service-account.json");
     if (fs.existsSync(serviceAccountPath)) {
       const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+      app = initializeApp({
+        credential: cert(serviceAccount)
       });
       initialized = true;
-      return admin;
+      return app;
     } else {
       console.warn("Push Notifications disabled: firebase-service-account.json not found in backend/admin-api root.");
       return null;
@@ -26,11 +28,11 @@ export function getFirebaseAdmin() {
 }
 
 export async function sendPushNotification(fcmToken, title, body, data = {}) {
-  const firebaseAdmin = getFirebaseAdmin();
-  if (!firebaseAdmin || !fcmToken) return false;
+  const adminApp = getFirebaseAdmin();
+  if (!adminApp || !fcmToken) return false;
 
   try {
-    await firebaseAdmin.messaging().send({
+    await getMessaging(adminApp).send({
       token: fcmToken,
       notification: { title, body },
       data
