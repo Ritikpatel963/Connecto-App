@@ -24,7 +24,7 @@ export const usePushNotifications = (userId?: string | number) => {
           console.log('FCM Token:', token);
 
           // 3. Save it to Supabase via Admin API or direct fetch
-          fetch(`${ENV.API_URL}/users/${userId}/fcm-token`, {
+          fetch(`${ENV.API_URL}/api/app/v1/users/${userId}/fcm-token`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ export const usePushNotifications = (userId?: string | number) => {
 
     // Listen for token refresh
     const unsubscribeTokenRefresh = messaging().onTokenRefresh(token => {
-      fetch(`${ENV.API_URL}/users/${userId}/fcm-token`, {
+      fetch(`${ENV.API_URL}/api/app/v1/users/${userId}/fcm-token`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

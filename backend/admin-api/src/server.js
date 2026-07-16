@@ -42,6 +42,6 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => console.log("Socket disconnected:", socket.id));
 });
 
-server.listen(config.port, () => {
+server.listen(config.port, "0.0.0.0", () => {
   console.log(`API listening on :${config.port}`);
 });

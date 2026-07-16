@@ -168,6 +168,9 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
           mediaType: 'photo',
           selectionLimit: 1,
           includeBase64: true,
+          quality: 0.2,
+          maxWidth: 800,
+          maxHeight: 800,
         });
 
         if (result.didCancel || !result.assets?.length) return;
@@ -178,15 +181,13 @@ const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
           return;
         }
 
-        const session = await supabase.auth.getSession();
-        const token = session.data.session?.access_token;
         const uploadedUrl = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
 
         const res = await fetch(`${ENV.API_URL}/api/app/v1/wallet/recharge`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
+            'Authorization': `Bearer ${currentUser?.id}` 
           },
           body: JSON.stringify({ 
             amount: finalAmount, 
