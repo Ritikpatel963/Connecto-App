@@ -225,6 +225,25 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
 
       const generatedReferralCode = isEdit ? undefined : `${name.substring(0, 4).toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`;
 
+      let finalBio = bio.trim();
+      if (!isEdit && !finalBio) {
+        try {
+          const sRes = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.default_bios&select=value`, {
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+          });
+          const sData = await sRes.json();
+          if (sData && sData.length > 0 && sData[0].value) {
+            const biosList = sData[0].value.split('\\n').map((b: string) => b.trim()).filter(Boolean);
+            if (biosList.length > 0) {
+              finalBio = biosList[Math.floor(Math.random() * biosList.length)];
+            }
+          }
+        } catch (e) {
+          console.warn('Could not fetch default bios', e);
+        }
+        if (!finalBio) finalBio = 'Hi, I am new here!'; // Fallback
+      }
+
       const payload = {
         name,
         phone_number: phoneNumber,
@@ -233,7 +252,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         city,
         state,
         country,
-        bio,
+        bio: finalBio,
         profile_image_url: profileImageBase64 || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=random&color=fff&size=256`,
         is_online: true,
         call_rate: role === 'girl' ? 8 : 0,

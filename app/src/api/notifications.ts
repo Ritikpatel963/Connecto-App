@@ -8,17 +8,26 @@ export const useNotifications = () => {
   return useQuery({
     queryKey: ['notifications', id],
     queryFn: async () => {
-      // Lazy mock implementation
-      return [
-        {
-          id: '1',
-          type: 'system',
-          title: 'Welcome to snappo!',
-          body: 'Your profile is ready. Start discovering new people.',
-          timestamp: new Date().toISOString(),
-          isRead: false
-        }
-      ] as Notification[];
+      const [broadcasts, targeted] = await Promise.all([
+        supabase.from('push_notifications').select('*').is('target_user_id', null).order('created_at', { ascending: false }).limit(10),
+        id ? supabase.from('push_notifications').select('*').eq('target_user_id', id).order('created_at', { ascending: false }).limit(10) : { data: [], error: null }
+      ]);
+
+      if (broadcasts.error) throw broadcasts.error;
+      if (targeted.error) throw targeted.error;
+
+      const combined = [...(broadcasts.data || []), ...(targeted.data || [])]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 10);
+
+      return combined.map((n: any) => ({
+        id: n.id,
+        type: 'system',
+        title: n.title,
+        body: n.message,
+        timestamp: n.created_at,
+        isRead: false
+      })) as Notification[];
     }
   });
 };

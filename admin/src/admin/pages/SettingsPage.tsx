@@ -62,6 +62,10 @@ const SettingsPage = () => {
   const { data: inAppEnabledData } = useQuery({ queryKey: ["settings", "in_app_enabled"], queryFn: () => settingsApi.get("in_app_enabled") });
   const { data: manualEnabledData } = useQuery({ queryKey: ["settings", "manual_enabled"], queryFn: () => settingsApi.get("manual_enabled") });
 
+  const [defaultBios, setDefaultBios] = useState("Hi, I am new here!");
+  const { data: defaultBiosData } = useQuery({ queryKey: ["settings", "default_bios"], queryFn: () => settingsApi.get("default_bios") });
+
+
   // Push Notification State
   const [pushTitle, setPushTitle] = useState("");
   const [pushBody, setPushBody] = useState("");
@@ -87,7 +91,8 @@ const SettingsPage = () => {
     if (rzpEnabledData !== undefined) setRazorpayEnabled(rzpEnabledData === 'true');
     if (inAppEnabledData !== undefined) setInAppEnabled(inAppEnabledData === 'true');
     if (manualEnabledData !== undefined) setManualEnabled(manualEnabledData === 'true');
-  }, [configData, qrData, rzpKeyData, rzpSecretData, otpMethodData, f2sKeyData, f2sSenderData, rzpEnabledData, inAppEnabledData, manualEnabledData]);
+    if (defaultBiosData !== undefined) setDefaultBios(defaultBiosData);
+  }, [configData, qrData, rzpKeyData, rzpSecretData, otpMethodData, f2sKeyData, f2sSenderData, rzpEnabledData, inAppEnabledData, manualEnabledData, defaultBiosData]);
 
   const saveRules = useMutation({
     mutationFn: (config: any) => settingsApi.set("withdrawal_config", config),
@@ -124,6 +129,13 @@ const SettingsPage = () => {
       await settingsApi.set("razorpay_enabled", razorpayEnabled ? "true" : "false");
       await settingsApi.set("in_app_enabled", inAppEnabled ? "true" : "false");
       await settingsApi.set("manual_enabled", manualEnabled ? "true" : "false");
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
+  });
+
+  const saveGeneral = useMutation({
+    mutationFn: async () => {
+      await settingsApi.set("default_bios", defaultBios);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
   });
@@ -172,6 +184,9 @@ const SettingsPage = () => {
       toast.success("Payment settings saved successfully!");
     } else if (activeTab === 'otp') {
       saveOtp.mutate();
+    } else if (activeTab === 'general') {
+      saveGeneral.mutate();
+      toast.success("General settings saved successfully!");
     } else {
       toast.success("Settings saved successfully!");
     }
@@ -267,10 +282,11 @@ const SettingsPage = () => {
                   </select>
                 </div>
                 <div className="col-12">
-                  <div className="alert alert-info d-flex align-items-start gap-2 mb-0">
-                    <Icon icon="solar:info-circle-outline" className="text-xl flex-shrink-0" />
-                    <span>This is a frontend placeholder. Save will call <code>PATCH /api/admin/settings</code> when the endpoint is available.</span>
-                  </div>
+                  <label className="form-label fw-semibold">Auto-Generated Bios (One per line)</label>
+                  <textarea className="form-control" rows={5} value={defaultBios} onChange={(e) => setDefaultBios(e.target.value)} placeholder="Hi, I am new here!&#10;Looking to make friends!" />
+                  <p className="text-sm text-secondary-light mb-0 mt-2">
+                    When a user registers without providing a bio, one of these will be chosen at random.
+                  </p>
                 </div>
               </div>
             )}

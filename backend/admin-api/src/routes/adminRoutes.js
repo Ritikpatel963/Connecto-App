@@ -6,7 +6,6 @@ import { rateLimit } from "../middleware/rateLimit.js";
 
 export async function route(req, res, url) {
   const path = url.pathname.replace(/^\/api\/admin\/v1/, "") || "/";
-  console.log(`[adminRoutes] Received ${req.method} ${path} (original url: ${url.pathname})`);
 
   if (req.method === "POST" && path === "/auth/login") {
     rateLimit(req.socket.remoteAddress || "unknown", 10, 60_000);
@@ -72,7 +71,7 @@ export async function route(req, res, url) {
     }
 
     // Ponytail: Lazy log push notification directly via fetch
-    fetch(`${config.supabaseUrl}/rest/v1/push_notifications`, {
+    const dbRes2 = await fetch(`${config.supabaseUrl}/rest/v1/push_notifications`, {
       method: 'POST',
       headers: {
         apikey: config.supabaseServiceRoleKey,
@@ -80,7 +79,10 @@ export async function route(req, res, url) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ title, message, target_user_id: userId || null, sent_count: sentCount })
-    }).catch(console.error);
+    });
+    if (!dbRes2.ok) {
+      console.error("DB Save Error:", await dbRes2.text());
+    }
     
     return ok(res, { success: true, sentCount });
   }
