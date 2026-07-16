@@ -30,7 +30,8 @@ export const useProfiles = () => {
           isVerified: u.is_id_verified && u.is_active,
           rating: parseFloat(u.average_rating) || 0,
           totalCalls: u.total_ratings || 0,
-          pricePerMinute: pkg ? parseFloat(pkg.coins || pkg.price) : 0,
+          // call_rate is the admin-assigned value; package is fallback/display only
+          pricePerMinute: parseFloat(u.call_rate) || (pkg ? parseFloat(pkg.coins || pkg.price) : 0),
           packageName: pkg ? pkg.name : undefined,
           languages: u.user_languages?.map((l: any) => l.language) || ['English', 'Hindi'],
           interests: u.user_interests?.map((i: any) => i.interest) || ['Music', 'Movies', 'Travel'],
