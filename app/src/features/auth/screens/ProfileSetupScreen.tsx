@@ -265,7 +265,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             bio: bio || 'Hi, I am new here!',
             isOnline: true,
             isPremium: false,
-            isVerified: false,
+            isVerified: autoVerify,
             rating: 0,
             totalCalls: 0,
             pricePerMinute: role === 'girl' ? 8 : 0,
@@ -529,44 +529,7 @@ const styles = StyleSheet.create({
   half: {
     flex: 1,
   },
-  voiceCard: {
-    backgroundColor: Colors.card,
-    borderRadius: Radius.xl,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  voiceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  voiceIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  voiceTitle: {
-    ...Typography.bodySemibold,
-    color: Colors.foreground,
-  },
-  voiceSubtitle: {
-    ...Typography.small,
-    color: Colors.mutedForeground,
-  },
-  recordBtn: {
-    marginTop: 12,
-    backgroundColor: Colors.muted,
-    borderRadius: Radius.lg,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  recordBtnText: {
-    ...Typography.bodyMedium,
-    color: Colors.mutedForeground,
-  },
+
   submitBtn: {
     marginTop: 32,
     paddingVertical: 16,

@@ -56,9 +56,9 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
   const pickDocument = async () => {
     const result = await launchImageLibrary({
       mediaType: 'photo',
-      quality: 0.5,
-      maxWidth: 1000,
-      maxHeight: 1000,
+      quality: 0.1,
+      maxWidth: 400,
+      maxHeight: 400,
       includeBase64: true,
     });
     if (result.assets && result.assets[0]?.uri) {
@@ -155,7 +155,7 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleComplete = async () => {
-    const isUploadDisabled = role === 'girl' ? (!idUploaded && !voiceRecorded) : !idUploaded;
+    const isUploadDisabled = !idUploaded && !voiceRecorded;
     if (isUploadDisabled) {
       return;
     }
@@ -170,50 +170,24 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             user_id: currentUser?.id,
-            status: currentUser?.isVerified ? 'reverification' : 'pending',
+            status: 'pending',
             id_image_url: idImageBase64 || 'https://images.unsplash.com/photo-1621252179027-94459d278660?w=200&h=150&fit=crop'
           })
         }));
       }
 
-      // Insert voice verification if girl
-      if (role === 'girl' && voiceRecorded && voiceFilePath) {
+      // Insert voice verification
+      if (voiceRecorded && voiceFilePath) {
         try {
           const fileBase64 = await RNFS.readFile(voiceFilePath, 'base64');
-          const binaryStr = atob(fileBase64);
-          const bytes = new Uint8Array(binaryStr.length);
-          for (let i = 0; i < binaryStr.length; i++) {
-            bytes[i] = binaryStr.charCodeAt(i);
-          }
-
-          const timestamp = Date.now();
-          const storagePath = `${currentUser?.id}/${timestamp}.wav`;
-          const bucketName = 'voice-verifications';
-
-          const uploadRes = await fetch(
-            `${SUPABASE_URL}/storage/v1/object/${bucketName}/${storagePath}`,
-            {
-              method: 'POST',
-              headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Content-Type': 'audio/wav',
-                'x-upsert': 'true',
-              },
-              body: bytes,
-            }
-          );
-
-          if (!uploadRes.ok) throw new Error('Storage upload failed');
-
-          const voiceAudioUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${storagePath}`;
+          const voiceAudioUrl = `data:audio/wav;base64,${fileBase64}`;
 
           insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/voice_verifications`, {
             method: 'POST',
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               user_id: currentUser?.id,
-              status: currentUser?.isVerified ? 'reverification' : 'pending',
+              status: 'pending',
               voice_audio_url: voiceAudioUrl,
             })
           }));
@@ -225,13 +199,20 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
 
-      await Promise.all(insertPromises);
+      const results = await Promise.all(insertPromises);
+      for (const res of results) {
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`DB Error: ${errText}`);
+        }
+      }
+      
       useAlertStore.getState().show('Success', 'Verification request submitted successfully!', [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
-    } catch (err) {
+    } catch (err: any) {
       console.log('Error submitting verification', err);
-      useAlertStore.getState().show('Error', 'Something went wrong. Please try again.');
+      useAlertStore.getState().show('Error', err?.message || 'Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -276,35 +257,33 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {role === 'girl' && (
-          <View style={styles.voiceCard}>
-            <View style={styles.voiceRow}>
-              <LinearGradient colors={[...Gradients.girl]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.voiceIcon}>
-                <Text style={{ fontSize: 18 }}>🎤</Text>
-              </LinearGradient>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.voiceTitle}>Voice Verification</Text>
-                <Text style={styles.voiceSubtitle}>Please read the following text aloud to get verified:</Text>
-                <Text style={{ ...Typography.small, color: Colors.primary, marginTop: 4, fontStyle: 'italic' }}>
-                  "Hello, I am verifying my profile for Snappo."
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={[styles.recordBtn, (voiceRecorded || recordingPhase !== 'idle') && { backgroundColor: Colors.primary }]}
-              activeOpacity={0.7}
-              disabled={recordingPhase !== 'idle' && !voiceRecorded}
-              onPress={startRecording}>
-              <Text style={[styles.recordBtnText, (voiceRecorded || recordingPhase !== 'idle') && { color: '#FFF' }]}>
-                {voiceRecorded ? 'Voice Recorded ✓' : recordingPhase === 'countdown' ? `Starting in ${recordingTime}s...` : recordingPhase === 'recording' ? `🔴 Recording... ${recordingTime}s left` : 'Start Voice Recording'}
+        <View style={styles.voiceCard}>
+          <View style={styles.voiceRow}>
+            <LinearGradient colors={[...Gradients.girl]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.voiceIcon}>
+              <Text style={{ fontSize: 18 }}>🎤</Text>
+            </LinearGradient>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.voiceTitle}>Voice Verification</Text>
+              <Text style={styles.voiceSubtitle}>Please read the following text aloud to get verified:</Text>
+              <Text style={{ ...Typography.small, color: Colors.primary, marginTop: 4, fontStyle: 'italic' }}>
+                "Hello, I am verifying my profile for Snappo."
               </Text>
-            </TouchableOpacity>
+            </View>
           </View>
-        )}
+          <TouchableOpacity
+            style={[styles.recordBtn, (voiceRecorded || recordingPhase !== 'idle') && { backgroundColor: Colors.primary }]}
+            activeOpacity={0.7}
+            disabled={recordingPhase !== 'idle' && !voiceRecorded}
+            onPress={startRecording}>
+            <Text style={[styles.recordBtnText, (voiceRecorded || recordingPhase !== 'idle') && { color: '#FFF' }]}>
+              {voiceRecorded ? 'Voice Recorded ✓' : recordingPhase === 'countdown' ? `Starting in ${recordingTime}s...` : recordingPhase === 'recording' ? `🔴 Recording... ${recordingTime}s left` : 'Start Voice Recording'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <TouchableOpacity onPress={handleComplete} disabled={isSubmitting || (role === 'girl' ? (!idUploaded && !voiceRecorded) : !idUploaded)} activeOpacity={0.8}>
-        <LinearGradient colors={[...Gradients.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.submitBtn, (isSubmitting || (role === 'girl' ? (!idUploaded && !voiceRecorded) : !idUploaded)) && styles.disabled]}>
+      <TouchableOpacity onPress={handleComplete} disabled={isSubmitting || (!idUploaded && !voiceRecorded)} activeOpacity={0.8}>
+        <LinearGradient colors={[...Gradients.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.submitBtn, (isSubmitting || (!idUploaded && !voiceRecorded)) && styles.disabled]}>
           {isSubmitting ? (
             <ActivityIndicator color="#FFF" />
           ) : (
