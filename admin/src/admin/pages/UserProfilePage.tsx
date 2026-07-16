@@ -123,6 +123,11 @@ const walletColumns = [
   { key: "created_at", label: "Created", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
 ];
 const ratingColumns = [
+  { key: "type", label: "Type", render: (row: BaseRecord, _: any, meta: any) => {
+      // Assuming meta contains the current user's ID
+      const currentId = window.location.pathname.split('/').pop();
+      return <StatusBadge value={String(row.rater_user_id) === String(currentId) ? "Given" : "Received"} />;
+  }},
   { key: "rater", label: "From", render: (row: BaseRecord) => <PersonCell name={row.rater} /> },
   { key: "rated", label: "To", render: (row: BaseRecord) => <PersonCell name={row.rated} /> },
   { key: "rating", label: "Rating", render: (row: BaseRecord) => <RatingCell value={row.rating} /> },

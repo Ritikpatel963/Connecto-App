@@ -389,17 +389,22 @@ export async function appRoute(req, res, url) {
       Prefer: "return=representation"
     };
 
-    await fetch(`${config.supabaseUrl}/rest/v1/ratings`, {
+    const ratingRes = await fetch(`${config.supabaseUrl}/rest/v1/ratings`, {
       method: "POST",
       headers: serviceHeaders,
       body: JSON.stringify({
         rater_user_id: userId,
         rated_user_id: targetUserId,
         rating: rating,
-        review_text: reviewText,
-        call_id: `call-${Date.now()}`
+        review_text: reviewText
       })
     });
+
+    if (!ratingRes.ok) {
+      const err = await ratingRes.json().catch(() => null);
+      console.error("Failed to insert rating:", err);
+      throw new HttpError(500, "Failed to save rating");
+    }
 
     return ok(res, { success: true });
   }
