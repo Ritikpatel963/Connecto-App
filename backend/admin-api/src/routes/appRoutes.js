@@ -393,10 +393,10 @@ export async function appRoute(req, res, url) {
       method: "POST",
       headers: serviceHeaders,
       body: JSON.stringify({
-        rater_user_id: userId,
-        rated_user_id: targetUserId,
-        rating: rating,
-        review_text: reviewText
+        rater_user_id: Number(userId),
+        rated_user_id: Number(targetUserId),
+        rating: Number(rating),
+        review_text: reviewText || ''
       })
     });
 

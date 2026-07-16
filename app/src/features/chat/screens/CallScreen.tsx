@@ -317,9 +317,16 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
                       },
                       body: JSON.stringify({ targetUserId: profile.id, rating, reviewText: review })
                     });
-                    if (!res.ok) console.error('Failed to submit rating', await res.text());
+                    if (res.ok) {
+                      useAlertStore.getState().show('Thank you! 🌟', 'Your feedback has been submitted successfully.');
+                    } else {
+                      const err = await res.text();
+                      console.error('Rating failed:', err);
+                      useAlertStore.getState().show('Oops', 'Could not submit feedback. Please try again.');
+                    }
                   } catch (e) {
                     console.error('Failed to submit rating', e);
+                    useAlertStore.getState().show('Oops', 'Network error. Please check your connection.');
                   }
                   setIsSubmitting(false);
                 }
