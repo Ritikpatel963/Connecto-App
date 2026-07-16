@@ -3,8 +3,11 @@ import { HttpError, ok, readJson } from "../http.js";
 import { config } from "../config.js";
 import { rateLimit } from "../middleware/rateLimit.js";
 
-// Basic supabase fetch wrapper
+// Cache settings for 60 seconds to avoid a Supabase round-trip on every request
+let settingsCache = null;
+let settingsCacheAt = 0;
 async function getSupabaseSettings() {
+  if (settingsCache && Date.now() - settingsCacheAt < 60_000) return settingsCache;
   const res = await fetch(`${config.supabaseUrl}/rest/v1/settings?select=*`, {
     headers: {
       apikey: config.supabaseServiceRoleKey,
@@ -15,6 +18,8 @@ async function getSupabaseSettings() {
   const data = await res.json();
   const settings = {};
   for (const row of data) settings[row.key] = row.value;
+  settingsCache = settings;
+  settingsCacheAt = Date.now();
   return settings;
 }
 

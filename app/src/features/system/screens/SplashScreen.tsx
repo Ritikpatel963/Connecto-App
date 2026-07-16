@@ -33,14 +33,28 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
       Animated.timing(dotsOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
     ]).start();
 
-    const timer = setTimeout(() => {
-      if (!isAuthenticated) {
-        navigation.replace('Onboarding');
-      } else if (!currentUser) {
-        navigation.replace('RoleSelect');
-      } else {
-        navigation.replace('MainTabs');
+    const timer = setTimeout(async () => {
+      if (!isAuthenticated || !currentUser) {
+        navigation.replace(isAuthenticated ? 'RoleSelect' : 'Onboarding');
+        return;
       }
+      // Verify the persisted user is still active (handles admin deactivation/deletion)
+      try {
+        const { ENV } = await import('../../../config/env');
+        const res = await fetch(
+          `${ENV.SUPABASE_URL}/rest/v1/users?id=eq.${currentUser.id}&select=is_active`,
+          { headers: { apikey: ENV.SUPABASE_KEY, Authorization: `Bearer ${ENV.SUPABASE_KEY}` } }
+        );
+        const data = await res.json();
+        if (!data?.[0]?.is_active) {
+          // User deactivated or deleted — force logout
+          const { useUser: useUserStore } = await import('../../../context/UserContext');
+          useUserStore.getState().resetSession();
+          navigation.replace('Onboarding');
+          return;
+        }
+      } catch (_) { /* Network error — allow through, they'll hit real errors later */ }
+      navigation.replace('MainTabs');
     }, 2500);
     return () => clearTimeout(timer);
   }, [dotsOpacity, isAuthenticated, currentUser, navigation, opacity, scale, subtitleOpacity, titleY]);

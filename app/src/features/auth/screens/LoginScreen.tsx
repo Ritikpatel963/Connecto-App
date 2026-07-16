@@ -109,6 +109,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
       if (users && users.length > 0) {
         const u = users[0];
+
+        // Block deactivated users (admin unchecked them)
+        if (!u.is_active) {
+          setLoading(false);
+          setError('Your account has been deactivated. Please contact support.');
+          return;
+        }
+
         setCurrentUser({
           id: u.id,
           name: u.name || 'Unknown',
