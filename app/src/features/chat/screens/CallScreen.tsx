@@ -9,7 +9,7 @@ import { Radius, Elevation } from '../../../theme/spacing';
 import { useProfiles } from '../../../api/users';
 import { useUser } from '../../../context/UserContext';
 import RatingStars from '../../../components/RatingStars';
-import { supabase } from '../../../api/supabase';
+import { ENV } from '../../../config/env';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -309,13 +309,15 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
                 if (rating > 0 || review.trim().length > 0) {
                   setIsSubmitting(true);
                   try {
-                    await supabase.from('ratings').insert({
-                      rater_user_id: currentUser?.id,
-                      rated_user_id: profile.id,
-                      rating,
-                      review_text: review,
-                      call_id: null
+                    const res = await fetch(`${ENV.API_URL}/api/app/v1/ratings`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentUser?.id}`
+                      },
+                      body: JSON.stringify({ targetUserId: profile.id, rating, reviewText: review })
                     });
+                    if (!res.ok) console.error('Failed to submit rating', await res.text());
                   } catch (e) {
                     console.error('Failed to submit rating', e);
                   }
