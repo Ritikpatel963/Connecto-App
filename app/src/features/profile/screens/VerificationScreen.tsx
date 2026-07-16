@@ -257,29 +257,31 @@ const VerificationScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.voiceCard}>
-          <View style={styles.voiceRow}>
-            <LinearGradient colors={[...Gradients.girl]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.voiceIcon}>
-              <Text style={{ fontSize: 18 }}>🎤</Text>
-            </LinearGradient>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.voiceTitle}>Voice Verification</Text>
-              <Text style={styles.voiceSubtitle}>Please read the following text aloud to get verified:</Text>
-              <Text style={{ ...Typography.small, color: Colors.primary, marginTop: 4, fontStyle: 'italic' }}>
-                "Hello, I am verifying my profile for Snappo."
-              </Text>
+        {role === 'girl' && (
+          <View style={styles.voiceCard}>
+            <View style={styles.voiceRow}>
+              <LinearGradient colors={[...Gradients.girl]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.voiceIcon}>
+                <Text style={{ fontSize: 18 }}>🎤</Text>
+              </LinearGradient>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.voiceTitle}>Voice Verification</Text>
+                <Text style={styles.voiceSubtitle}>Please read the following text aloud to get verified:</Text>
+                <Text style={{ ...Typography.small, color: Colors.primary, marginTop: 4, fontStyle: 'italic' }}>
+                  "Hello, I am verifying my profile for Snappo."
+                </Text>
+              </View>
             </View>
+            <TouchableOpacity
+              style={[styles.recordBtn, (voiceRecorded || recordingPhase !== 'idle') && { backgroundColor: Colors.primary }]}
+              activeOpacity={0.7}
+              disabled={recordingPhase !== 'idle' && !voiceRecorded}
+              onPress={startRecording}>
+              <Text style={[styles.recordBtnText, (voiceRecorded || recordingPhase !== 'idle') && { color: '#FFF' }]}>
+                {voiceRecorded ? 'Voice Recorded ✓' : recordingPhase === 'countdown' ? `Starting in ${recordingTime}s...` : recordingPhase === 'recording' ? `🔴 Recording... ${recordingTime}s left` : 'Start Voice Recording'}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={[styles.recordBtn, (voiceRecorded || recordingPhase !== 'idle') && { backgroundColor: Colors.primary }]}
-            activeOpacity={0.7}
-            disabled={recordingPhase !== 'idle' && !voiceRecorded}
-            onPress={startRecording}>
-            <Text style={[styles.recordBtnText, (voiceRecorded || recordingPhase !== 'idle') && { color: '#FFF' }]}>
-              {voiceRecorded ? 'Voice Recorded ✓' : recordingPhase === 'countdown' ? `Starting in ${recordingTime}s...` : recordingPhase === 'recording' ? `🔴 Recording... ${recordingTime}s left` : 'Start Voice Recording'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        )}
       </View>
 
       <TouchableOpacity onPress={handleComplete} disabled={isSubmitting || (!idUploaded && !voiceRecorded)} activeOpacity={0.8}>
