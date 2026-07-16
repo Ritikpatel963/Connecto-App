@@ -60,6 +60,29 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
   const [profileImageUri, setProfileImageUri] = useState<string | null>(isEdit && currentUser ? currentUser.avatar : null);
   const [profileImageBase64, setProfileImageBase64] = useState<string | null>(null);
 
+  // Always fetch fresh user data from DB in edit mode to avoid stale/shared bio from Zustand store
+  React.useEffect(() => {
+    if (!isEdit || !currentUser?.id) return;
+    fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${currentUser.id}&select=bio,name,age,city,state,country,user_languages(language),user_interests(interest)`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data[0]) {
+          const u = data[0];
+          if (u.bio) setBio(u.bio);
+          if (u.city) setCity(u.city);
+          if (u.state) setState(u.state);
+          if (u.country) setCountry(u.country);
+          const langs = u.user_languages?.map((l: any) => l.language) || [];
+          const ints = u.user_interests?.map((i: any) => i.interest) || [];
+          if (langs.length) setLanguages(langs.join(', '));
+          if (ints.length) setInterests(ints.join(', '));
+        }
+      })
+      .catch(() => {}); // silently fall back to currentUser state
+  }, [isEdit, currentUser?.id]);
+
   const pickProfileImage = async () => {
     const result = await launchImageLibrary({
       mediaType: 'photo',
