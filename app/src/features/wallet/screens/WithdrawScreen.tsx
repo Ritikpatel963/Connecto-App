@@ -30,23 +30,26 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
   const [lastUpi, setLastUpi] = useState('');
   const [lastBank, setLastBank] = useState('');
 
+  const uid = currentUser?.id;
+
   useEffect(() => {
+    if (!uid) return;
     Promise.all([
-      AsyncStorage.getItem('savedPayoutMethod'),
-      AsyncStorage.getItem('savedUpiDetails'),
-      AsyncStorage.getItem('savedBankDetails'),
-      AsyncStorage.getItem('savedIfscCode')
+      AsyncStorage.getItem(`${uid}_savedPayoutMethod`),
+      AsyncStorage.getItem(`${uid}_savedUpiDetails`),
+      AsyncStorage.getItem(`${uid}_savedBankDetails`),
+      AsyncStorage.getItem(`${uid}_savedIfscCode`)
     ]).then(([m, u, b, i]) => {
       const activeMethod = m || 'UPI';
       setPayoutMethod(activeMethod);
       if (u) setLastUpi(u);
       if (b) setLastBank(b);
       if (i) setIfscCode(i);
-      
+
       if (activeMethod === 'UPI' && u) setPayoutDetails(u);
       if (activeMethod === 'Bank Transfer' && b) setPayoutDetails(b);
     });
-  }, []);
+  }, [uid]);
 
   const withdrawConfig = settings.withdrawal_config || { min: 100, max: 10000 };
   const min = Number(withdrawConfig.min);
@@ -97,13 +100,13 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
       
       setWalletBalance(newBalance);
       
-      await AsyncStorage.setItem('savedPayoutMethod', payoutMethod);
+      await AsyncStorage.setItem(`${uid}_savedPayoutMethod`, payoutMethod);
       if (payoutMethod === 'UPI') {
-        await AsyncStorage.setItem('savedUpiDetails', payoutDetails);
+        await AsyncStorage.setItem(`${uid}_savedUpiDetails`, payoutDetails);
         setLastUpi(payoutDetails);
       } else {
-        await AsyncStorage.setItem('savedBankDetails', payoutDetails);
-        await AsyncStorage.setItem('savedIfscCode', ifscCode);
+        await AsyncStorage.setItem(`${uid}_savedBankDetails`, payoutDetails);
+        await AsyncStorage.setItem(`${uid}_savedIfscCode`, ifscCode);
         setLastBank(payoutDetails);
       }
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
