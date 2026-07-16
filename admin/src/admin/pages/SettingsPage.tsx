@@ -65,6 +65,9 @@ const SettingsPage = () => {
   const [defaultBios, setDefaultBios] = useState("Hi, I am new here!");
   const { data: defaultBiosData } = useQuery({ queryKey: ["settings", "default_bios"], queryFn: () => settingsApi.get("default_bios") });
 
+  const [autoVerify, setAutoVerify] = useState(false);
+  const { data: autoVerifyData } = useQuery({ queryKey: ["settings", "auto_verify_profiles"], queryFn: () => settingsApi.get("auto_verify_profiles") });
+
 
   // Push Notification State
   const [pushTitle, setPushTitle] = useState("");
@@ -92,7 +95,8 @@ const SettingsPage = () => {
     if (inAppEnabledData !== undefined) setInAppEnabled(inAppEnabledData === 'true');
     if (manualEnabledData !== undefined) setManualEnabled(manualEnabledData === 'true');
     if (defaultBiosData !== undefined) setDefaultBios(defaultBiosData);
-  }, [configData, qrData, rzpKeyData, rzpSecretData, otpMethodData, f2sKeyData, f2sSenderData, rzpEnabledData, inAppEnabledData, manualEnabledData, defaultBiosData]);
+    if (autoVerifyData !== undefined) setAutoVerify(autoVerifyData === 'true');
+  }, [configData, qrData, rzpKeyData, rzpSecretData, otpMethodData, f2sKeyData, f2sSenderData, rzpEnabledData, inAppEnabledData, manualEnabledData, defaultBiosData, autoVerifyData]);
 
   const saveRules = useMutation({
     mutationFn: (config: any) => settingsApi.set("withdrawal_config", config),
@@ -136,6 +140,7 @@ const SettingsPage = () => {
   const saveGeneral = useMutation({
     mutationFn: async () => {
       await settingsApi.set("default_bios", defaultBios);
+      await settingsApi.set("auto_verify_profiles", autoVerify ? "true" : "false");
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
   });
@@ -274,6 +279,17 @@ const SettingsPage = () => {
                     <option value="INR">INR - Indian Rupee</option>
                     <option value="USD">USD - US Dollar</option>
                   </select>
+                </div>
+                <div className="col-12">
+                  <div className="d-flex align-items-center justify-content-between border-bottom pb-16 mb-16">
+                    <div>
+                      <p className="fw-semibold mb-0 text-primary-light">Auto-Verify New Profiles</p>
+                      <span className="text-sm text-secondary-light">If enabled, all new user profiles (boys and girls) are verified automatically without manual review.</span>
+                    </div>
+                    <div className="form-switch switch-primary">
+                      <input className="form-check-input" type="checkbox" role="switch" checked={autoVerify} onChange={(e) => setAutoVerify(e.target.checked)} />
+                    </div>
+                  </div>
                 </div>
                 <div className="col-lg-6">
                   <label className="form-label fw-semibold">Agora region</label>

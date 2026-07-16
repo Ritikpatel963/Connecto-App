@@ -41,8 +41,14 @@ const enrichedList = (
 };
 
 const actions = (resource: string) => ({
-  approve: (id: string | number) => resourceAction<Verification>(resource, id, "approve", {}, { status: "approved", reviewed_at: new Date().toISOString() }),
-  reject: (id: string | number, rejection_reason: string) => resourceAction<Verification>(resource, id, "reject", { rejection_reason }, { status: "rejected", rejection_reason, reviewed_at: new Date().toISOString() }),
+  approve: async (id: string | number) => {
+    const result = await resourceAction<Verification>(resource, id, "approve", { status: "approved", reviewed_at: new Date().toISOString() }, { status: "approved", reviewed_at: new Date().toISOString() });
+    if (result && result.user_id && !useMocks) {
+      await supabase.from("users").update({ is_id_verified: true, is_active: true }).eq("id", result.user_id);
+    }
+    return result;
+  },
+  reject: (id: string | number, rejection_reason: string) => resourceAction<Verification>(resource, id, "reject", { status: "rejected", rejection_reason, reviewed_at: new Date().toISOString() }, { status: "rejected", rejection_reason, reviewed_at: new Date().toISOString() }),
 });
 
 export const idVerificationsApi = { ...idBase, list: enrichedList(idBase, "id"), ...actions("id-verifications") };

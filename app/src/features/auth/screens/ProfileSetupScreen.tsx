@@ -15,8 +15,6 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { launchImageLibrary } from 'react-native-image-picker';
-import AudioRecord from 'react-native-audio-record';
-import RNFS from 'react-native-fs';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
@@ -58,15 +56,9 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
   const [referralCodeInput, setReferralCodeInput] = useState(initialReferral);
   const [referralError, setReferralError] = useState('');
 
-  // Verification state (only used for setup)
-  const [idUploaded, setIdUploaded] = useState(false);
-  const [idImageUri, setIdImageUri] = useState<string | null>(null);
-  const [profileImageUri, setProfileImageUri] = useState<string | null>(isEdit && currentUser ? currentUser.avatar : null);
-  const [idImageBase64, setIdImageBase64] = useState<string | null>(null);
-  const [profileImageBase64, setProfileImageBase64] = useState<string | null>(null);
-  const [voiceRecorded, setVoiceRecorded] = useState(false);
-  const [recordingTime, setRecordingTime] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [profileImageUri, setProfileImageUri] = useState<string | null>(isEdit && currentUser ? currentUser.avatar : null);
+  const [profileImageBase64, setProfileImageBase64] = useState<string | null>(null);
 
   const pickProfileImage = async () => {
     const result = await launchImageLibrary({
@@ -84,123 +76,10 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const pickDocument = async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      quality: 0.5,
-      maxWidth: 1000,
-      maxHeight: 1000,
-      includeBase64: true,
-    });
-    if (result.assets && result.assets[0]?.uri) {
-      setIdImageUri(result.assets[0].uri);
-      if (result.assets[0].base64) {
-        setIdImageBase64(`data:${result.assets[0].type || 'image/jpeg'};base64,${result.assets[0].base64}`);
-      }
-      setIdUploaded(true);
-      useAlertStore.getState().show('Document Selected', 'Your ID document has been attached.');
-    }
-  };
-
-  // voiceFilePath: local path to the recorded .wav file
-  const [voiceFilePath, setVoiceFilePath] = useState<string | null>(null);
-  // recordingPhase: 'idle' | 'countdown' | 'recording'
-  const [recordingPhase, setRecordingPhase] = useState<'idle' | 'countdown' | 'recording'>('idle');
-
-  const startRecording = async () => {
-    if (voiceRecorded || recordingPhase !== 'idle') return;
-
-    // 1. Request mic permission
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-        );
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          useAlertStore.getState().show('Permission Required', 'Microphone permission is needed to verify your voice.');
-          return;
-        }
-      } catch (err) {
-        console.warn(err);
-        return;
-      }
-    }
-
-    // 2. Countdown: 3s before recording starts
-    setRecordingPhase('countdown');
-    let countdown = 3;
-    setRecordingTime(countdown);
-    await new Promise<void>(resolve => {
-      const cd = setInterval(() => {
-        countdown -= 1;
-        setRecordingTime(countdown);
-        if (countdown <= 0) {
-          clearInterval(cd);
-          resolve();
-        }
-      }, 1000);
-    });
-
-    // 3. Actually start recording
-    try {
-      AudioRecord.init({
-        sampleRate: 16000,
-        channels: 1,
-        bitsPerSample: 16,
-        audioSource: 1,
-        wavFile: 'voice_verification.wav',
-      });
-      AudioRecord.start();
-      setRecordingPhase('recording');
-
-      // Record for 10 seconds
-      let elapsed = 0;
-      const MAX = 10;
-      setRecordingTime(MAX);
-      await new Promise<void>(resolve => {
-        const recInterval = setInterval(() => {
-          elapsed += 1;
-          setRecordingTime(MAX - elapsed);
-          if (elapsed >= MAX) {
-            clearInterval(recInterval);
-            resolve();
-          }
-        }, 1000);
-      });
-
-      // 4. Stop and get the file path
-      const filePath = await AudioRecord.stop();
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 600)); // let OS flush the file
-
-      // Verify the file actually has data
-      let resolvedPath = filePath;
-      if (!resolvedPath || !(await RNFS.exists(resolvedPath))) {
-        // Fallback: library writes to app's files dir
-        resolvedPath = RNFS.DocumentDirectoryPath + '/voice_verification.wav';
-      }
-
-      const stat = await RNFS.stat(resolvedPath);
-      if (!stat || stat.size < 1000) {
-        throw new Error(`Recording file is empty or too small (${stat?.size ?? 0} bytes). Please speak louder and try again.`);
-      }
-
-      setVoiceFilePath(resolvedPath);
-      setVoiceRecorded(true);
-      setRecordingPhase('idle');
-      setRecordingTime(null);
-      useAlertStore.getState().show('Voice Recorded ✓', 'Your voice sample is ready. Complete the form to submit for review.');
-    } catch (e: any) {
-      console.warn('Recording error', e);
-      setRecordingPhase('idle');
-      setRecordingTime(null);
-      useAlertStore.getState().show('Recording Failed', e.message || 'Could not record audio. Please try again.');
-    }
-  };
-
   const handleComplete = async () => {
     // Basic validation
     if (!name || !age || !city) return;
-    if (!isEdit && (!phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded))) {
+    if (!isEdit && !phoneNumber) {
       return;
     }
 
@@ -226,20 +105,30 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
       const generatedReferralCode = isEdit ? undefined : `${name.substring(0, 4).toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`;
 
       let finalBio = bio.trim();
-      if (!isEdit && !finalBio) {
+      let autoVerify = false;
+      if (!isEdit) {
         try {
-          const sRes = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.default_bios&select=value`, {
+          const sRes = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=in.(default_bios,auto_verify_profiles)&select=key,value`, {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
           });
           const sData = await sRes.json();
-          if (sData && sData.length > 0 && sData[0].value) {
-            const biosList = sData[0].value.split('\\n').map((b: string) => b.trim()).filter(Boolean);
-            if (biosList.length > 0) {
-              finalBio = biosList[Math.floor(Math.random() * biosList.length)];
+          if (sData && sData.length > 0) {
+            const bioSetting = sData.find((s: any) => s.key === 'default_bios');
+            const verifySetting = sData.find((s: any) => s.key === 'auto_verify_profiles');
+            
+            if (verifySetting && verifySetting.value === 'true') {
+              autoVerify = true;
+            }
+            
+            if (!finalBio && bioSetting && bioSetting.value) {
+              const biosList = bioSetting.value.split('\\n').map((b: string) => b.trim()).filter(Boolean);
+              if (biosList.length > 0) {
+                finalBio = biosList[Math.floor(Math.random() * biosList.length)];
+              }
             }
           }
         } catch (e) {
-          console.warn('Could not fetch default bios', e);
+          console.warn('Could not fetch settings', e);
         }
         if (!finalBio) finalBio = 'Hi, I am new here!'; // Fallback
       }
@@ -257,7 +146,8 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         is_online: true,
         call_rate: role === 'girl' ? 8 : 0,
         average_rating: 0,
-        is_active: false, // For admin approval
+        is_active: autoVerify, // Auto-verify feature
+        is_id_verified: autoVerify,
         ...(isEdit ? {} : { referral_code: generatedReferralCode, referred_by_user_id: referrerId }),
       };
 
@@ -326,17 +216,6 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
           }));
         }
 
-        // Insert ID verification
-        insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/id_verifications`, {
-          method: 'POST',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: newUserId,
-            status: 'pending',
-            id_image_url: idImageBase64 || 'https://images.unsplash.com/photo-1621252179027-94459d278660?w=200&h=150&fit=crop'
-          })
-        }));
-
         // Insert initial wallet with 10 coins (Ponytail fix)
         insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/wallets`, {
           method: 'POST',
@@ -358,65 +237,6 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
               status: 'pending'
             })
           }));
-        }
-
-        // Insert voice verification if girl — upload file to Storage first
-        if (role === 'girl' && voiceRecorded && voiceFilePath) {
-          try {
-            // Read WAV as base64 then decode to raw bytes — Supabase Storage needs binary, not base64 string
-            const fileBase64 = await RNFS.readFile(voiceFilePath, 'base64');
-            const binaryStr = atob(fileBase64);
-            const bytes = new Uint8Array(binaryStr.length);
-            for (let i = 0; i < binaryStr.length; i++) {
-              bytes[i] = binaryStr.charCodeAt(i);
-            }
-
-            const timestamp = Date.now();
-            const storagePath = `${newUserId}/${timestamp}.wav`;
-            const bucketName = 'voice-verifications';
-
-            // Upload raw WAV bytes to Supabase Storage
-            const uploadRes = await fetch(
-              `${SUPABASE_URL}/storage/v1/object/${bucketName}/${storagePath}`,
-              {
-                method: 'POST',
-                headers: {
-                  'apikey': SUPABASE_KEY,
-                  'Authorization': `Bearer ${SUPABASE_KEY}`,
-                  'Content-Type': 'audio/wav',
-                  'x-upsert': 'true',
-                },
-                body: bytes,
-              }
-            );
-
-            if (!uploadRes.ok) {
-              const errText = await uploadRes.text();
-              throw new Error(`Storage upload failed (${uploadRes.status}): ${errText}`);
-            }
-
-            // Public URL for the uploaded file
-            const voiceAudioUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${storagePath}`;
-
-            // Insert record into voice_verifications table
-            insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/voice_verifications`, {
-              method: 'POST',
-              headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                user_id: newUserId,
-                status: 'pending',
-                voice_audio_url: voiceAudioUrl,
-              })
-            }));
-
-            // Clean up local temp file
-            RNFS.unlink(voiceFilePath).catch(() => { });
-          } catch (voiceErr: any) {
-            console.warn('Voice upload error', voiceErr);
-            useAlertStore.getState().show('Voice Upload Failed', `Could not upload voice: ${voiceErr.message}\n\nPlease try again.`);
-            setIsSubmitting(false);
-            return; // Don't navigate away — let them retry
-          }
         }
 
         await Promise.all(insertPromises);
@@ -604,76 +424,11 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             {referralError ? <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{referralError}</Text> : null}
           </View>
         )}
-
-        {!isEdit && (
-          <View style={styles.voiceCard}>
-            <View style={styles.voiceRow}>
-              <LinearGradient
-                colors={[...Gradients.primary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.voiceIcon}>
-                <Text style={{ fontSize: 18 }}>📄</Text>
-              </LinearGradient>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.voiceTitle}>ID Verification</Text>
-                <Text style={styles.voiceSubtitle}>Upload your government verified document like Aadhaar, PAN etc.</Text>
-              </View>
-            </View>
-            {idImageUri && (
-              <Image source={{ uri: idImageUri }} style={{ width: '100%', height: 120, borderRadius: 8, marginTop: 8 }} resizeMode="cover" />
-            )}
-            <TouchableOpacity
-              style={[styles.recordBtn, idUploaded && { backgroundColor: Colors.primary }]}
-              activeOpacity={0.7}
-              onPress={pickDocument}>
-              <Text style={[styles.recordBtnText, idUploaded && { color: '#FFF' }]}>
-                {idUploaded ? 'Document Uploaded ✓' : 'Upload Document'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {!isEdit && role === 'girl' && (
-          <View style={styles.voiceCard}>
-            <View style={styles.voiceRow}>
-              <LinearGradient
-                colors={[...Gradients.girl]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.voiceIcon}>
-                <Text style={{ fontSize: 18 }}>🎤</Text>
-              </LinearGradient>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.voiceTitle}>Voice Verification</Text>
-                <Text style={styles.voiceSubtitle}>Please read the following text aloud to get verified:</Text>
-                <Text style={{ ...Typography.small, color: Colors.primary, marginTop: 4, fontStyle: 'italic' }}>
-                  "Hello, I am setting up my profile to join Snappo."
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={[styles.recordBtn, (voiceRecorded || recordingPhase !== 'idle') && { backgroundColor: Colors.primary }]}
-              activeOpacity={0.7}
-              disabled={recordingPhase !== 'idle' && !voiceRecorded}
-              onPress={startRecording}>
-              <Text style={[styles.recordBtnText, (voiceRecorded || recordingPhase !== 'idle') && { color: '#FFF' }]}>
-                {voiceRecorded
-                  ? 'Voice Recorded ✓'
-                  : recordingPhase === 'countdown'
-                    ? `Starting in ${recordingTime}s...`
-                    : recordingPhase === 'recording'
-                      ? `🔴 Recording... ${recordingTime}s left`
-                      : 'Start Voice Recording'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
 
       <TouchableOpacity
         onPress={handleComplete}
-        disabled={isSubmitting || !name || !age || !city || (!isEdit && (!phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded)))}
+        disabled={isSubmitting || (!isEdit && !phoneNumber)}
         activeOpacity={0.8}>
         <LinearGradient
           colors={[...Gradients.primary]}
@@ -681,7 +436,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
           end={{ x: 1, y: 1 }}
           style={[
             styles.submitBtn,
-            (isSubmitting || !name || !age || !city || (!isEdit && (!phoneNumber || !idUploaded || (role === 'girl' && !voiceRecorded)))) && styles.disabled
+            (isSubmitting || (!isEdit && !phoneNumber)) && styles.disabled
           ]}>
           {isSubmitting ? (
             <ActivityIndicator color="#FFFFFF" />
