@@ -179,7 +179,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           {role === 'boy' && (
             <TouchableOpacity
               onPress={() => {
-                if (!profile.packageName) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
+                if (!profile.pricePerMinute) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
                 if (!currentUser?.isVerified) return useAlertStore.getState().show('Not Verified', 'Admin has not verified your profile yet.');
                 navigation.navigate('Call', { id: profile.id });
               }}
@@ -212,7 +212,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              if (!profile.packageName) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
+              if (!profile.pricePerMinute) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
               if (!currentUser?.isVerified) return useAlertStore.getState().show('Not Verified', 'Admin has not verified your profile yet.');
               navigation.navigate('Conversation', { id: `chat-${profile.id}`, profile });
             }}

@@ -50,7 +50,7 @@ const FavoritesScreen: React.FC<Props> = ({ navigation }) => {
             role={role}
             onPress={() => navigation.navigate('Profile', { id: item.id })}
             onCall={() => {
-              if (!item.packageName) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
+              if (!item.pricePerMinute) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
               navigation.navigate('Call', { id: item.id });
             }}
           />
