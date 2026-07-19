@@ -1,14 +1,14 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { Colors } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
 import { useUser } from '../../../context/UserContext';
 import WalletCard from '../../../components/WalletCard';
 import TransactionRow from '../../../components/TransactionRow';
-import { mockTransactions } from '../../../shared/data/mockData';
+import { useTransactions, useWalletBalance, useCoinPackages, useWalletRealtime } from '../../../api/wallet';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { TabParamList } from '../../../navigation/AppNavigator';
@@ -23,7 +23,19 @@ const rechargeAmounts = [100, 200, 500, 1000];
 
 const WalletScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { role, walletBalance, setWalletBalance } = useUser();
+  const { role, walletBalance } = useUser();
+  const { data: transactions = [], isLoading } = useTransactions();
+  const { data: coinPackages = [] } = useCoinPackages();
+  
+  const baseRule = coinPackages[0];
+  const conversionRate = (baseRule && baseRule.coins > 0) ? (baseRule.price / baseRule.coins) : 1;
+  const paginatedTransactions = transactions.slice(0, 10);
+  
+  // Fetch actual wallet balance from API to sync with context
+  useWalletBalance();
+  
+  // Realtime Supabase sync for transactions & balance
+  useWalletRealtime();
 
   return (
     <ScrollView
@@ -33,16 +45,37 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
         { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 92 },
       ]}>
       <Text style={styles.title}>Wallet</Text>
-      <WalletCard onRecharge={() => navigation.navigate('Recharge')} />
+      <WalletCard 
+        onRecharge={() => navigation.navigate('Recharge')} 
+        onWithdraw={() => navigation.navigate('Withdraw')}
+      />
 
-      {role === 'boy' && (
+      {role !== 'girl' && (
         <View style={styles.rechargeSection}>
-          <Text style={styles.sectionLabel}>QUICK RECHARGE</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>QUICK RECHARGE</Text>
+            {baseRule && (
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                backgroundColor: 'rgba(245,158,11,0.15)',
+                paddingHorizontal: 10, 
+                paddingVertical: 4, 
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: 'rgba(245,158,11,0.3)'
+              }}>
+                <Text style={{ ...Typography.smallSemibold, color: '#D97706' }}>
+                  💰 {baseRule.coins} Coins = ₹{baseRule.price}
+                </Text>
+              </View>
+            )}
+          </View>
           <View style={styles.rechargeGrid}>
             {rechargeAmounts.map(amt => (
               <TouchableOpacity
                 key={amt}
-                onPress={() => setWalletBalance(walletBalance + amt)}
+                onPress={() => navigation.navigate('Recharge', { amount: amt })}
                 style={styles.rechargeBtn}
                 activeOpacity={0.7}>
                 <Text style={styles.rechargeAmount}>₹{amt}</Text>
@@ -54,11 +87,24 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.txSection}>
         <Text style={styles.sectionLabel}>TRANSACTIONS</Text>
-        {mockTransactions.map(tx => (
-          <View key={tx.id} style={styles.txRow}>
-            <TransactionRow tx={tx} />
+        {isLoading ? (
+          <Text style={{color: Colors.mutedForeground}}>Loading...</Text>
+        ) : paginatedTransactions.length === 0 ? (
+          <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+            <Text style={{ color: Colors.mutedForeground, ...Typography.body }}>No transactions yet</Text>
           </View>
-        ))}
+        ) : (
+          paginatedTransactions.map(tx => (
+            <TouchableOpacity 
+              key={tx.id} 
+              style={styles.txRow} 
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('TransactionDetails' as any, { tx })}
+            >
+              <TransactionRow tx={tx} conversionRate={conversionRate} />
+            </TouchableOpacity>
+          ))
+        )}
       </View>
     </ScrollView>
   );

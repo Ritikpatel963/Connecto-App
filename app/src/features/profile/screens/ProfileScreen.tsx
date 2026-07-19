@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
@@ -14,14 +15,16 @@ import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
 import BackArrowIcon from '../../../components/BackArrowIcon';
-import { mockProfiles } from '../../../shared/data/mockData';
+import { useProfiles, useCallHistoryWithUser } from '../../../api/users';
+import { useFavorites, useToggleFavorite } from '../../../api/favorites';
 import { useUser } from '../../../context/UserContext';
 import OnlineIndicator from '../../../components/OnlineIndicator';
 import PremiumBadge from '../../../components/PremiumBadge';
 import RatingStars from '../../../components/RatingStars';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
@@ -30,6 +33,7 @@ const { height } = Dimensions.get('window');
 type IconProps = {
   color?: string;
   size?: number;
+  filled?: boolean;
 };
 
 const VERIFIED_ICON_SIZE = 14;
@@ -79,12 +83,12 @@ const ChatIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = ACTIO
   </Svg>
 );
 
-const HeartIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = ACTION_ICON_SIZE }) => (
+const HeartIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = ACTION_ICON_SIZE, filled = false }) => (
   <Svg
     width={size}
     height={size}
     viewBox="0 0 24 24"
-    fill="none"
+    fill={filled ? color : "none"}
     stroke={color}
     strokeWidth={2}
     strokeLinecap="round"
@@ -96,8 +100,14 @@ const HeartIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = ACTI
 const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { id } = route.params;
-  const { role } = useUser();
-  const profile = mockProfiles.find(p => p.id === id);
+  const { role, currentUser } = useUser();
+  const { data: profiles = [] } = useProfiles();
+  const { data: favorites = [] } = useFavorites();
+  const toggleFavorite = useToggleFavorite();
+  
+  const profile = route.params.profile || profiles.find(p => String(p.id) === String(id));
+  const { data: callTime = '0m' } = useCallHistoryWithUser(currentUser?.id, profile?.id);
+  const isFavorited = profile ? favorites.some(f => String(f.id) === String(profile.id)) : false;
 
   if (!profile) {
     return (
@@ -106,6 +116,24 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       </View>
     );
   }
+
+  const formatLastSeen = (isoString?: string) => {
+    if (!isoString) return 'Offline';
+    if (isoString.toLowerCase().includes('ago') || isoString.toLowerCase().includes('now')) return isoString;
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return isoString;
+    
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 60) return `Last seen ${diffMins} min ago`;
+    if (diffHours < 24) return `Last seen ${diffHours} hr ago`;
+    if (diffDays === 1) return `Last seen yesterday`;
+    return `Last seen ${date.toLocaleDateString()}`;
+  };
 
   return (
     <ScrollView
@@ -128,7 +156,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={styles.onlineRow}>
             <OnlineIndicator isOnline={profile.isOnline} />
             <Text style={styles.onlineText}>
-              {profile.isOnline ? 'Online' : profile.lastSeen || 'Offline'}
+              {profile.isOnline ? 'Online now' : formatLastSeen(profile.lastSeen)}
             </Text>
           </View>
           <View style={styles.nameRow}>
@@ -138,7 +166,9 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>📍 {profile.city}</Text>
-            <Text style={styles.metaText}>🌐 {profile.languages.join(', ')}</Text>
+            {profile.languages && profile.languages.length > 0 && (
+              <Text style={styles.metaText}>🌐 {profile.languages.join(', ')}</Text>
+            )}
           </View>
         </View>
       </View>
@@ -148,7 +178,11 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.actionRow}>
           {role === 'boy' && (
             <TouchableOpacity
-              onPress={() => navigation.navigate('Call', { id: profile.id })}
+              onPress={() => {
+                if (!profile.pricePerMinute) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
+                if (!currentUser?.isVerified) return useAlertStore.getState().show('Not Verified', 'Admin has not verified your profile yet.');
+                navigation.navigate('Call', { id: profile.id });
+              }}
               activeOpacity={0.8}
               style={styles.callBtnWrapper}>
               <LinearGradient
@@ -158,16 +192,30 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
                 style={styles.callBtn}>
                 <View style={styles.callBtnContent}>
                   <PhoneIcon />
-                  <Text style={styles.callBtnText}>Call · ₹{profile.pricePerMinute}/min</Text>
+                  <Text style={styles.callBtnText}>
+                    Call · {profile.pricePerMinute} Coins/min
+                  </Text>
                 </View>
               </LinearGradient>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.iconBtn}>
-            <HeartIcon />
+          <TouchableOpacity 
+            style={styles.iconBtn}
+            disabled={toggleFavorite.isPending}
+            onPress={() => {
+              if (profile) toggleFavorite.mutate(profile.id);
+            }}>
+            <HeartIcon 
+              color={isFavorited ? '#EF4444' : Colors.foreground} 
+              filled={isFavorited} 
+            />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Conversation', { id: `chat-0` })}
+            onPress={() => {
+              if (!profile.pricePerMinute) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
+              if (!currentUser?.isVerified) return useAlertStore.getState().show('Not Verified', 'Admin has not verified your profile yet.');
+              navigation.navigate('Conversation', { id: `chat-${profile.id}`, profile });
+            }}
             style={styles.iconBtn}>
             <ChatIcon />
           </TouchableOpacity>
@@ -189,20 +237,36 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             </View>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{profile.totalCalls}</Text>
-            <Text style={styles.statLabel}>Calls</Text>
+            <Text style={styles.statValue}>{callTime}</Text>
+            <Text style={styles.statLabel}>Time Together</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>₹{profile.pricePerMinute}/min</Text>
-            <Text style={styles.statLabel}>Rate</Text>
+          <View style={[styles.statCard, { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.3)', borderWidth: 1 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={[styles.statValue, { color: '#D97706', fontSize: 16 }]}>{profile.pricePerMinute} 🪙</Text>
+            </View>
+            <Text style={[styles.statLabel, { color: '#D97706' }]}>Per min</Text>
           </View>
         </View>
+
+        {/* Languages */}
+        {profile.languages && profile.languages.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.sectionLabel}>LANGUAGES</Text>
+            <View style={styles.tagsRow}>
+              {profile.languages.map((lang: string) => (
+                <View key={lang} style={[styles.tag, { backgroundColor: 'rgba(107,159,255,0.1)' }]}>
+                  <Text style={[styles.tagText, { color: Colors.primary }]}>{lang}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Interests */}
         <View style={[styles.card, { marginBottom: 100 }]}>
           <Text style={styles.sectionLabel}>INTERESTS</Text>
           <View style={styles.tagsRow}>
-            {profile.interests.map(interest => (
+            {profile.interests.map((interest: string) => (
               <View key={interest} style={styles.tag}>
                 <Text style={styles.tagText}>{interest}</Text>
               </View>

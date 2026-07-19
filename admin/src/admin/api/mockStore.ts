@@ -61,12 +61,60 @@ export const mockStore = {
 
   update<T extends BaseRecord>(resource: string, id: string | number, payload: Partial<T>): T {
     let updated: BaseRecord | undefined;
+    let oldRecord: BaseRecord | undefined;
+    
     store[resource] = (store[resource] || []).map((row) => {
       if (String(row.id) !== String(id)) return row;
+      oldRecord = { ...row };
       updated = { ...row, ...payload };
       return updated;
     });
+    
     if (!updated) throw new Error("Record not found");
+
+    // ponytail: auto-credit mock wallet on approval
+    if (resource === 'wallet-transactions' && payload.verification_status === 'verified' && oldRecord?.verification_status !== 'verified') {
+      const wallet = store['wallets']?.find(w => String(w.id) === String((updated as any).wallet_id) || String(w.user_id) === String((updated as any).wallet_id));
+      if (wallet) mockStore.update('wallets', wallet.id as string, { balance: Number(wallet.balance) + Number((updated as any).amount) });
+    }
+
+    // Ponytail Mock Automation: Trigger reward when a referral gets qualified!
+    if (resource === 'referrals' && payload.status === 'qualified' && oldRecord?.status !== 'qualified') {
+      const referrerId = updated.referrer_user_id;
+      // Count qualified
+      const totalQualified = store['referrals'].filter(r => r.referrer_user_id === referrerId && r.status === 'qualified').length;
+      
+      // Find matching tier
+      const tier = store['referral-tiers']?.find(t => t.is_active && Number(t.min_referrals) === totalQualified);
+      if (tier) {
+        // Auto-reward!
+        mockStore.create('referral-redemptions', {
+          user_id: referrerId,
+          tier_id: tier.id,
+          qualified_referrals_at_request: totalQualified,
+          reward_amount: tier.reward_amount,
+          status: 'credited',
+          requested_at: new Date().toISOString(),
+          processed_at: new Date().toISOString(),
+        });
+        
+        // Find wallet
+        const wallet = store['wallets']?.find(w => w.user_id === referrerId);
+        if (wallet) {
+          mockStore.create('wallet-transactions', {
+            wallet_id: wallet.id,
+            transaction_type: 'referral_reward',
+            amount: tier.reward_amount,
+            payment_method: 'system_auto',
+            verification_status: 'verified',
+            created_at: new Date().toISOString(),
+          });
+          // Add balance
+          mockStore.update('wallets', wallet.id as string, { balance: Number(wallet.balance) + Number(tier.reward_amount) });
+        }
+      }
+    }
+
     return updated as T;
   },
 

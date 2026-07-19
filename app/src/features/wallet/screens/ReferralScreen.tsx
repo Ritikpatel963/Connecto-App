@@ -1,15 +1,16 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { useAlertStore } from '../../../hooks/useAlertStore';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Share, Clipboard, Alert } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
-import { mockReferralInfo } from '../../../shared/data/mockData';
+import { useReferralStats } from '../../../api/wallet';
 import ReferralProgressBar from '../../../components/ReferralProgressBar';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Referral'>;
@@ -66,7 +67,34 @@ const ShareIcon: React.FC<{ color?: string; size?: number }> = ({ color = '#FFFF
 
 const ReferralScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const info = mockReferralInfo;
+  const { data: info, isLoading } = useReferralStats();
+
+  if (isLoading || !info) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={{ color: Colors.mutedForeground }}>Loading...</Text>
+      </View>
+    );
+  }
+
+  const history = (info as any).history || [];
+  const pendingCount = history.filter((h: any) => h.status === 'pending').length;
+  const successfulCount = history.filter((h: any) => h.status === 'qualified' || h.status === 'successful' || h.status === 'completed').length;
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Join me on Snappos! Use my referral code ${info.code} when signing up. \nLink: connecto://invite/${info.code}`,
+      });
+    } catch (error: any) {
+      useAlertStore.getState().show('Error', error.message);
+    }
+  };
+
+  const handleCopy = () => {
+    Clipboard.setString(info.code);
+    useAlertStore.getState().show('Copied!', 'Referral code copied to clipboard.');
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -94,10 +122,10 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.codeBox}>
           <Text style={styles.codeText}>{info.code}</Text>
           <View style={styles.codeActions}>
-            <TouchableOpacity style={styles.codeBtn}>
+            <TouchableOpacity style={styles.codeBtn} onPress={handleCopy}>
               <CopyIcon />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.codeBtn}>
+            <TouchableOpacity style={styles.codeBtn} onPress={handleShare}>
               <ShareIcon />
             </TouchableOpacity>
           </View>
@@ -116,6 +144,18 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </View>
 
+      {/* Ponytail: Add Pending/Successful Summary */}
+      <View style={[styles.statsRow, { marginTop: 8 }]}>
+        <View style={styles.statCard}>
+          <Text style={[styles.statValue, { color: '#eab308' }]}>{pendingCount}</Text>
+          <Text style={styles.statLabel}>Pending</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={[styles.statValue, { color: '#22c55e' }]}>{successfulCount}</Text>
+          <Text style={styles.statLabel}>Successful</Text>
+        </View>
+      </View>
+
       {/* Milestones */}
       <Text style={styles.sectionLabel}>MILESTONES</Text>
       <View style={styles.milestones}>
@@ -128,6 +168,33 @@ const ReferralScreen: React.FC<Props> = ({ navigation }) => {
             reached={m.reached}
           />
         ))}
+      </View>
+
+      {/* History */}
+      <Text style={styles.sectionLabel}>REFERRAL HISTORY</Text>
+      <View style={styles.historyList}>
+        {(info as any).history?.length === 0 ? (
+          <Text style={{ color: Colors.mutedForeground, textAlign: 'center', marginTop: 12 }}>No referrals yet.</Text>
+        ) : (
+          (info as any).history?.map((ref: any, idx: number) => (
+            <View key={idx} style={styles.historyItem}>
+              <View style={styles.historyLeft}>
+                <View style={styles.historyIcon}>
+                  <Text style={{ fontSize: 16 }}>👤</Text>
+                </View>
+                <View>
+                  <Text style={styles.historyName}>{ref.referred?.name || ref.referred?.phone_number || 'Unknown User'}</Text>
+                  <Text style={styles.historyDate}>{new Date(ref.created_at).toLocaleDateString()}</Text>
+                </View>
+              </View>
+              <View style={[styles.statusBadge, (ref.status === 'completed' || ref.status === 'successful') && styles.statusBadgeCompleted]}>
+                <Text style={[styles.statusText, (ref.status === 'completed' || ref.status === 'successful') && styles.statusTextCompleted]}>
+                  {ref.status || 'pending'}
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
       </View>
     </ScrollView>
   );
@@ -230,6 +297,56 @@ const styles = StyleSheet.create({
   },
   milestones: {
     gap: 12,
+  },
+  historyList: {
+    gap: 12,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.card,
+    padding: 16,
+    borderRadius: Radius.xl,
+  },
+  historyLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  historyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.muted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyName: {
+    ...Typography.bodySemibold,
+    color: Colors.foreground,
+  },
+  historyDate: {
+    ...Typography.small,
+    color: Colors.mutedForeground,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.sm,
+    backgroundColor: 'rgba(234,179,8,0.1)', // yellow
+  },
+  statusText: {
+    ...Typography.caption,
+    color: '#eab308',
+    textTransform: 'capitalize',
+    fontWeight: '600',
+  },
+  statusBadgeCompleted: {
+    backgroundColor: 'rgba(34,197,94,0.1)', // green
+  },
+  statusTextCompleted: {
+    color: '#22c55e',
   },
 });
 

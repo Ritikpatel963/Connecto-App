@@ -9,17 +9,25 @@ import {
   StatusBar,
   Dimensions,
   Alert,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
+import RazorpayCheckout from 'react-native-razorpay';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import { useUser } from '../../../context/UserContext';
+import { supabase } from '../../../api/supabase';
+import { ENV } from '../../../config/env';
+import { useCoinPackages, useSettings } from '../../../api/wallet';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 
 const { width } = Dimensions.get('window');
 
@@ -30,7 +38,7 @@ type IconProps = {
   size?: number;
 };
 
-type PaymentMethodId = 'upi' | 'card' | 'netbanking' | 'wallet';
+type PaymentMethodId = 'razorpay' | 'in_app' | 'manual';
 
 type PaymentMethod = {
   id: PaymentMethodId;
@@ -40,17 +48,12 @@ type PaymentMethod = {
 
 const QUICK_AMOUNTS = [50, 100, 200, 500, 1000, 2000];
 
-const OFFERS = [
-  { id: '1', amount: 500, bonus: 50, tag: 'Popular', color: Colors.primary },
-  { id: '2', amount: 1000, bonus: 150, tag: 'Best Value', color: Colors.accent },
-  { id: '3', amount: 2000, bonus: 400, tag: 'Hot Deal', color: Colors.secondary },
-] as const;
+
 
 const PAYMENT_METHODS: PaymentMethod[] = [
-  { id: 'upi', label: 'UPI', subtitle: 'Google Pay, PhonePe, Paytm' },
-  { id: 'card', label: 'Credit / Debit Card', subtitle: 'Visa, Mastercard, RuPay' },
-  { id: 'netbanking', label: 'Net Banking', subtitle: 'All major banks' },
-  { id: 'wallet', label: 'Mobile Wallets', subtitle: 'Paytm, Amazon Pay' },
+  { id: 'razorpay', label: 'Razorpay', subtitle: 'UPI, Cards, Netbanking' },
+  { id: 'in_app', label: 'In App Purchase', subtitle: 'Google Play Billing' },
+  { id: 'manual', label: 'Manual Recharge', subtitle: 'Upload payment screenshot' },
 ];
 
 const SmartphoneIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 }) => (
@@ -86,33 +89,216 @@ const WalletIcon: React.FC<IconProps> = ({ color = Colors.foreground, size = 18 
   </Svg>
 );
 
-const RechargeScreen: React.FC<Props> = ({ navigation }) => {
+const RechargeScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
-  const { walletBalance, setWalletBalance } = useUser();
+  const { currentUser, walletBalance, setWalletBalance } = useUser();
 
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const { data: coinPackages = [], isLoading: packagesLoading } = useCoinPackages();
+  const { data: settings = {} } = useSettings();
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(route.params?.amount ?? null);
   const [customAmount, setCustomAmount] = useState('');
-  const [selectedPayment, setSelectedPayment] = useState<PaymentMethodId>('upi');
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethodId>('razorpay');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const activePaymentMethods = React.useMemo(() => {
+    return PAYMENT_METHODS.filter(method => {
+      if (method.id === 'razorpay') return settings?.razorpay_enabled !== 'false';
+      if (method.id === 'in_app') return settings?.in_app_enabled === 'true';
+      if (method.id === 'manual') return settings?.manual_enabled !== 'false';
+      return true;
+    });
+  }, [settings]);
+
+  // Auto-select the default package
+  React.useEffect(() => {
+    if (selectedAmount === null && !customAmount && coinPackages.length > 0) {
+      if (settings?.default_package_id) {
+        const defaultAdminPkg = coinPackages.find(p => String(p.id) === String(settings.default_package_id));
+        if (defaultAdminPkg) {
+          setSelectedAmount(defaultAdminPkg.price);
+          return;
+        }
+      }
+
+      // Prioritize packages with a bonus as default, fallback to the first available package
+      const validPackages = coinPackages.filter(p => p.price > 0 && p.coins > 0);
+      const baseRule = validPackages.length > 0 ? validPackages.reduce((prev, curr) => prev.price < curr.price ? prev : curr) : null;
+      const conversionRate = baseRule ? (baseRule.price / baseRule.coins) : 1;
+      const defaultPkg = coinPackages.find(p => p.coins > Math.floor(p.price / conversionRate)) || coinPackages[0];
+      
+      if (defaultPkg) {
+        setSelectedAmount(defaultPkg.price);
+      }
+    }
+  }, [coinPackages, selectedAmount, customAmount, settings?.default_package_id]);
 
   const finalAmount = selectedAmount ?? (customAmount ? Number(customAmount) : 0);
-  const bonus = OFFERS.find(o => o.amount === finalAmount)?.bonus ?? 0;
+  
+  // Calculate conversion rate: price per coin. Fallback to 1 if no rule.
+  const validPackages = coinPackages.filter(p => p.price > 0 && p.coins > 0);
+  const baseRule = validPackages.length > 0 ? validPackages.reduce((prev, curr) => prev.price < curr.price ? prev : curr) : null;
+  const conversionRate = baseRule ? (baseRule.price / baseRule.coins) : 1;
+  
+  const pkg = coinPackages.find(p => p.price === finalAmount);
+  const baseCoins = Math.floor(finalAmount / conversionRate);
+  const bonus = (pkg && pkg.coins > baseCoins) ? pkg.coins - baseCoins : 0;
+  const finalCoins = baseCoins + bonus;
 
-  const handleRecharge = () => {
+  const handleRecharge = async () => {
+    if (isSubmitting) return;
+
     if (!finalAmount || finalAmount < 10) {
       Alert.alert('Invalid Amount', 'Minimum recharge is Rs 10');
       return;
     }
 
+    setIsSubmitting(true);
+
     const paymentLabel = PAYMENT_METHODS.find(p => p.id === selectedPayment)?.label ?? 'UPI';
+    const pkg = coinPackages.find(p => p.price === finalAmount);
+    
+    const isSpecial = pkg && pkg.coins > Math.floor(pkg.price / conversionRate);
+    const paymentMethodDbString = selectedPayment === 'manual' ? 'manual_upload' : 'razorpay';
+
+    if (selectedPayment === 'manual') {
+      try {
+        const result = await launchImageLibrary({
+          mediaType: 'photo',
+          selectionLimit: 1,
+          includeBase64: true,
+          quality: 0.2,
+          maxWidth: 800,
+          maxHeight: 800,
+        });
+
+        if (result.didCancel || !result.assets?.length) return;
+
+        const asset = result.assets[0];
+        if (!asset.uri || !asset.base64) {
+          Alert.alert('Error', 'Could not process the image.');
+          return;
+        }
+
+        const uploadedUrl = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
+
+        const res = await fetch(`${ENV.API_URL}/api/app/v1/wallet/recharge`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentUser?.id}` 
+          },
+          body: JSON.stringify({ 
+            amount: finalAmount, 
+            paymentMethod: paymentMethodDbString, 
+            screenshotUrl: uploadedUrl 
+          })
+        });
+
+        if (!res.ok) throw new Error("Failed to submit request");
+        
+        queryClient.invalidateQueries({ queryKey: ['transactions'] });
+
+        Alert.alert('Success', 'Recharge request submitted. Pending admin approval.', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } catch (e: any) {
+        Alert.alert('Error', e.message || 'Failed to submit request');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    setIsSubmitting(false);
+
+    if (selectedPayment === 'razorpay') {
+      try {
+        setIsSubmitting(true);
+        const res = await fetch(`${ENV.API_URL}/api/app/v1/payments/razorpay/order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: finalAmount })
+        });
+        
+        if (!res.ok) throw new Error("Failed to create order");
+        const order = await res.json();
+        
+        const options = {
+          description: 'Recharge Wallet',
+          image: 'https://placehold.co/100x100?text=Logo',
+          currency: 'INR',
+          key: settings?.razorpay_key_id,
+          amount: order.amount,
+          name: 'Connecto App',
+          order_id: order.id,
+          theme: { color: Colors.primary }
+        };
+        
+        const data = await RazorpayCheckout.open(options);
+        
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        
+        const rechargeRes = await fetch(`${ENV.API_URL}/api/app/v1/wallet/recharge`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+          },
+          body: JSON.stringify({ 
+            amount: finalAmount, 
+            paymentMethod: `razorpay:${data.razorpay_payment_id}` 
+          })
+        });
+
+        if (!rechargeRes.ok) throw new Error("Failed to process recharge");
+        const rechargeData = await rechargeRes.json();
+
+        setWalletBalance(rechargeData.newBalance);
+        queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
+        setIsSubmitting(false);
+        navigation.goBack();
+      } catch (error: any) {
+        setIsSubmitting(false);
+        Alert.alert("Payment Error", error.description || error.message || "Payment failed");
+      }
+      return;
+    }
+
     Alert.alert(
       'Confirm Recharge',
-      `Recharge Rs ${finalAmount}${bonus ? ` + Rs ${bonus} bonus` : ''} via ${paymentLabel}?`,
+      `Buy ${finalCoins} Coins for Rs ${finalAmount} via ${paymentLabel}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Proceed',
-          onPress: () => {
-            setWalletBalance(walletBalance + finalAmount + bonus);
+          onPress: async () => {
+            setIsSubmitting(true);
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+
+            const rechargeRes = await fetch(`${ENV.API_URL}/api/app/v1/wallet/recharge`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+              },
+              body: JSON.stringify({ 
+                amount: finalAmount, 
+                paymentMethod: paymentMethodDbString 
+              })
+            });
+
+            if (!rechargeRes.ok) throw new Error("Failed to process recharge");
+            const rechargeData = await rechargeRes.json();
+
+            setWalletBalance(rechargeData.newBalance);
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
+            setIsSubmitting(false);
             navigation.goBack();
           },
         },
@@ -122,13 +308,11 @@ const RechargeScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderPaymentIcon = (id: PaymentMethodId) => {
     switch (id) {
-      case 'upi':
-        return <SmartphoneIcon />;
-      case 'card':
-        return <CardIcon />;
-      case 'netbanking':
+      case 'razorpay':
         return <BankIcon />;
-      case 'wallet':
+      case 'in_app':
+        return <SmartphoneIcon />;
+      case 'manual':
         return <WalletIcon />;
       default:
         return <WalletIcon />;
@@ -157,7 +341,7 @@ const RechargeScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.balanceCard}>
           <View style={styles.balanceGlow} />
           <Text style={styles.balanceLabel}>Current Balance</Text>
-          <Text style={styles.balanceAmount}>Rs {walletBalance.toLocaleString()}</Text>
+          <Text style={styles.balanceAmount}>{walletBalance.toLocaleString()} Coins</Text>
         </LinearGradient>
 
         <Text style={styles.sectionTitle}>Select Amount</Text>
@@ -197,78 +381,127 @@ const RechargeScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <Text style={styles.sectionTitle}>Special Offers</Text>
-        {OFFERS.map(offer => (
-          <TouchableOpacity
-            key={offer.id}
-            activeOpacity={0.7}
-            onPress={() => {
-              setSelectedAmount(offer.amount);
-              setCustomAmount('');
-            }}
-            style={[
-              styles.offerCard,
-              selectedAmount === offer.amount && { borderColor: offer.color, borderWidth: 1.5 },
-            ]}>
-            <View style={[styles.offerTag, { backgroundColor: `${offer.color}22` }]}>
-              <Text style={[styles.offerTagText, { color: offer.color }]}>{offer.tag}</Text>
-            </View>
-            <View style={styles.offerRow}>
-              <View>
-                <Text style={styles.offerAmount}>Rs {offer.amount}</Text>
-                <Text style={styles.offerBonus}>+Rs {offer.bonus} bonus coins</Text>
-              </View>
-              <View style={styles.offerTotal}>
-                <Text style={styles.offerTotalLabel}>You get</Text>
-                <Text style={[styles.offerTotalAmount, { color: offer.color }]}>
-                  Rs {offer.amount + offer.bonus}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-
-        <Text style={styles.sectionTitle}>Payment Method</Text>
-        {PAYMENT_METHODS.map(method => {
-          const isSelected = selectedPayment === method.id;
+        {coinPackages.map((pkg, index) => {
+          const baseCoinsForPrice = Math.floor(pkg.price / conversionRate);
+          const pkgBonus = pkg.coins > baseCoinsForPrice ? pkg.coins - baseCoinsForPrice : 0;
+          
+          if (pkgBonus <= 0) return null; // Only show as special offer if there's a bonus
+          
+          const offerColor = [Colors.primary, Colors.accent, Colors.secondary][index % 3];
+          
           return (
             <TouchableOpacity
-              key={method.id}
+              key={`pkg-${pkg.id}`}
               activeOpacity={0.7}
-              onPress={() => setSelectedPayment(method.id)}
-              style={[styles.paymentCard, isSelected && styles.paymentCardActive]}>
-              <View style={styles.paymentIconWrap}>{renderPaymentIcon(method.id)}</View>
-              <View style={styles.paymentInfo}>
-                <Text style={styles.paymentLabel}>{method.label}</Text>
-                <Text style={styles.paymentSub}>{method.subtitle}</Text>
+              onPress={() => {
+                setSelectedAmount(pkg.price);
+                setCustomAmount('');
+              }}
+              style={[
+                styles.offerCard,
+                selectedAmount === pkg.price && { borderColor: offerColor, borderWidth: 1.5 },
+              ]}>
+              <View style={[styles.offerTag, { backgroundColor: `${offerColor}22` }]}>
+                <Text style={[styles.offerTagText, { color: offerColor }]}>{pkg.name || 'Special Offer'}</Text>
               </View>
-              <View style={[styles.radio, isSelected && styles.radioActive]}>
-                {isSelected && <View style={styles.radioDot} />}
+              <View style={styles.offerRow}>
+                <View>
+                  <Text style={styles.offerAmount}>Rs {pkg.price}</Text>
+                  <Text style={styles.offerBonus}>+Rs {pkgBonus} bonus coins</Text>
+                </View>
+                <View style={styles.offerTotal}>
+                  <Text style={styles.offerTotalLabel}>You get</Text>
+                  <Text style={[styles.offerTotalAmount, { color: offerColor }]}>
+                    {pkg.coins} Coins
+                  </Text>
+                </View>
               </View>
             </TouchableOpacity>
           );
         })}
+
+        <Text style={styles.sectionTitle}>Payment Method</Text>
+        {activePaymentMethods.map(method => {
+          const isSelected = selectedPayment === method.id;
+          return (
+            <View key={method.id}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setSelectedPayment(method.id)}
+                style={[styles.paymentCard, isSelected && styles.paymentCardActive]}>
+                <View style={styles.paymentIconWrap}>{renderPaymentIcon(method.id)}</View>
+                <View style={styles.paymentInfo}>
+                  <Text style={styles.paymentLabel}>{method.label}</Text>
+                  <Text style={styles.paymentSub}>{method.subtitle}</Text>
+                </View>
+                <View style={[styles.radio, isSelected && styles.radioActive]}>
+                  {isSelected && <View style={styles.radioDot} />}
+                </View>
+              </TouchableOpacity>
+
+              {isSelected && method.id === 'manual' && (
+                <View style={{ backgroundColor: Colors.card, padding: 16, borderRadius: Radius.lg, marginBottom: 16, alignItems: 'center' }}>
+                  <Text style={{ ...Typography.bodySemibold, color: Colors.foreground, marginBottom: 12 }}>Scan QR to Pay</Text>
+                  {settings.payment_qr_url ? (
+                    <View style={{ width: 200, height: 200, backgroundColor: Colors.border, borderRadius: Radius.md, marginBottom: 16, overflow: 'hidden' }}>
+                      <Image 
+                        source={{ uri: settings.payment_qr_url }} 
+                        style={{ width: '100%', height: '100%' }} 
+                        resizeMode="cover"
+                      />
+                    </View>
+                  ) : (
+                    <Text style={{ color: Colors.mutedForeground, marginBottom: 16 }}>No QR Code configured</Text>
+                  )}
+                  {settings.payment_qr_url && (
+                    <TouchableOpacity 
+                      style={{ padding: 10, backgroundColor: Colors.primary, borderRadius: Radius.md }}
+                      onPress={() => {
+                        Alert.alert('Download', 'Please take a screenshot of the QR code to save it.');
+                      }}
+                    >
+                      <Text style={{ ...Typography.button, color: Colors.primaryForeground }}>Download QR</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+          );
+        })}
       </ScrollView>
 
-      {finalAmount > 0 && (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}> 
-          <View>
-            <Text style={styles.ctaLabel}>Total</Text>
-            <Text style={styles.ctaAmount}>
-              Rs {finalAmount}
-              {bonus > 0 && <Text style={styles.ctaBonus}> +Rs {bonus}</Text>}
-            </Text>
-          </View>
-          <TouchableOpacity activeOpacity={0.85} onPress={handleRecharge}>
-            <LinearGradient
-              colors={[...Gradients.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaButton}>
-              <Text style={styles.ctaButtonText}>Proceed to Pay</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}> 
+        <View style={{ flex: 1, paddingRight: 16 }}>
+          <Text style={{ ...Typography.caption, color: Colors.mutedForeground, textTransform: 'uppercase', letterSpacing: 0.5 }}>Amount to Pay</Text>
+          <Text style={{ ...Typography.h2, color: Colors.foreground, marginVertical: 4 }}>₹{finalAmount}</Text>
+          {finalAmount > 0 && (
+            <View style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+              <Text style={{ ...Typography.smallSemibold, color: '#10B981' }}>GET {finalCoins} COINS</Text>
+            </View>
+          )}
         </View>
-      )}
+          <TouchableOpacity
+          onPress={handleRecharge}
+          disabled={!finalAmount || isSubmitting}
+          activeOpacity={0.8}
+          style={styles.payBtnWrapper}
+        >
+          <LinearGradient
+            colors={!finalAmount || isSubmitting ? [Colors.border, Colors.border] : [...Gradients.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.payBtn}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color={Colors.background} />
+            ) : (
+              <Text style={[styles.payBtnText, !finalAmount && { color: Colors.mutedForeground }]}>
+                {selectedPayment === 'manual' ? 'Upload Screenshot' : 'Proceed to Pay'}
+              </Text>
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
+        </View>
     </View>
   );
 };
@@ -441,6 +674,21 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   ctaButtonText: { ...Typography.button, color: Colors.primaryForeground },
+  payBtnWrapper: {
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+  },
+  payBtn: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 150,
+  },
+  payBtnText: {
+    ...Typography.button,
+    color: Colors.primaryForeground,
+  }
 });
 
 export default RechargeScreen;

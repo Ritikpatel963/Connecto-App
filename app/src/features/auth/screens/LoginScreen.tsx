@@ -13,44 +13,151 @@ import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
+import { useUser } from '../../../context/UserContext';
+import { ENV } from '../../../config/env';
+import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
+const STATIC_OTP = '123456';
+
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { setIsAuthenticated, setPhoneNumber, setCurrentUser, setRole } = useUser();
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [confirm, setConfirm] = useState<FirebaseAuthTypes.ConfirmationResult | null>(null);
   const otpRefs = useRef<(TextInput | null)[]>([]);
 
-  const handleSendOtp = () => {
-    if (phone.length >= 10) {
-      setLoading(true);
-      setTimeout(() => {
-        setLoading(false);
+  const handleSendOtp = async () => {
+    if (phone.length !== 10) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Fetch settings to decide OTP method
+      const settingsRes = await fetch(`${ENV.SUPABASE_URL}/rest/v1/settings?key=eq.otp_method&select=value`, {
+        headers: { apikey: ENV.SUPABASE_KEY, Authorization: `Bearer ${ENV.SUPABASE_KEY}` }
+      });
+      const settingsData = await settingsRes.json().catch(() => []);
+      const otpMethod = settingsData[0]?.value || 'firebase';
+
+      if (otpMethod === 'firebase') {
+        const confirmation = await auth().signInWithPhoneNumber('+91' + phone);
+        setConfirm(confirmation);
         setStep('otp');
-      }, 1200);
+      } else {
+        const res = await fetch(`${ENV.API_URL}/api/app/v1/auth/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          const errMsg = data?.error?.message || data?.message || (typeof data?.error === 'string' ? data.error : 'Failed to send OTP');
+          throw new Error(errMsg);
+        }
+        setStep('otp');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleVerify = () => {
-    if (otp.every(d => d !== '')) {
-      setLoading(true);
-      setTimeout(() => {
-        setLoading(false);
+  const handleVerify = async () => {
+    if (otp.some(digit => !digit)) return;
+
+    setLoading(true);
+    setError('');
+    const enteredOtp = otp.join('');
+
+    try {
+      if (confirm) {
+        // Firebase Verification
+        await confirm.confirm(enteredOtp);
+      } else {
+        // Fast2SMS Verification via Backend
+        const verifyRes = await fetch(`${ENV.API_URL}/api/app/v1/auth/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, otp: enteredOtp })
+        });
+        const verifyData = await verifyRes.json().catch(() => null);
+        if (!verifyRes.ok || !verifyData?.verified) {
+          const errMsg = verifyData?.error?.message || verifyData?.message || (typeof verifyData?.error === 'string' ? verifyData.error : 'Invalid OTP');
+          throw new Error(errMsg);
+        }
+      }
+
+      const fullPhone = `+91${phone}`;
+      setPhoneNumber(fullPhone);
+
+      const res = await fetch(`${ENV.SUPABASE_URL}/rest/v1/users?phone_number=eq.${encodeURIComponent(fullPhone)}&select=*`, {
+        headers: {
+          'apikey': ENV.SUPABASE_KEY,
+          'Authorization': `Bearer ${ENV.SUPABASE_KEY}`
+        }
+      });
+      const users = await res.json();
+
+      if (users && users.length > 0) {
+        const u = users[0];
+
+        // Block deactivated users (admin unchecked them)
+        if (!u.is_active) {
+          setLoading(false);
+          setError('Your account has been deactivated. Please contact support.');
+          return;
+        }
+
+        setCurrentUser({
+          id: u.id,
+          name: u.name || 'Unknown',
+          age: u.age || 20,
+          avatar: u.profile_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=random&color=fff&size=256`,
+          role: u.gender === 'female' ? 'girl' : 'boy',
+          bio: u.bio || 'Hi, I am new here!',
+          isOnline: u.is_online,
+          isPremium: false,
+          isVerified: u.is_id_verified && u.is_active,
+          rating: parseFloat(u.average_rating) || 0,
+          totalCalls: u.total_ratings || 0,
+          pricePerMinute: parseFloat(u.call_rate) || 0,
+          languages: u.languages || ['English', 'Hindi'],
+          interests: u.interests || ['Music', 'Movies', 'Travel'],
+          city: u.city || 'Unknown',
+          state: u.state || '',
+          country: u.country || '',
+          lastSeen: u.last_seen_at || undefined
+        });
+        setRole(u.gender === 'female' ? 'girl' : 'boy');
+        setIsAuthenticated(true);
+        navigation.replace('MainTabs');
+      } else {
+        setIsAuthenticated(true);
         navigation.replace('RoleSelect');
-      }, 1000);
+      }
+    } catch (e: any) {
+      console.error(e);
+      setError(e.message || 'Invalid OTP or network error');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleOtpChange = (value: string, index: number) => {
-    const digit = value.replace(/\D/g, '');
+    const digit = value.replace(/\D/g, '').slice(-1);
     const newOtp = [...otp];
     newOtp[index] = digit;
     setOtp(newOtp);
-    if (digit && index < 3) {
+    if (digit && index < otp.length - 1) {
       otpRefs.current[index + 1]?.focus();
     }
   };
@@ -65,17 +172,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.iconBox}>
-          <Text style={styles.iconEmoji}>📞</Text>
+          <Text style={styles.iconText}>OTP</Text>
         </LinearGradient>
 
-        <Text style={styles.title}>
-          {step === 'phone' ? 'Enter your phone' : 'Verify OTP'}
-        </Text>
+        <Text style={styles.title}>{step === 'phone' ? 'Enter your phone' : 'Verify OTP'}</Text>
         <Text style={styles.subtitle}>
-          {step === 'phone'
-            ? "We'll send you a verification code"
-            : `Code sent to +91 ${phone}`}
+          {step === 'phone' ? "We'll send you a verification code" : `Code sent to +91 ${phone}`}
         </Text>
+        {!!error && <Text style={styles.errorText}>{error}</Text>}
 
         {step === 'phone' ? (
           <View>
@@ -101,46 +205,38 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[styles.submitBtn, (phone.length < 10 || loading) && styles.disabled]}>
-                {loading ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text style={styles.submitBtnText}>Send OTP →</Text>
-                )}
+                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Send OTP</Text>}
               </LinearGradient>
             </TouchableOpacity>
           </View>
         ) : (
           <View>
             <View style={styles.otpRow}>
-              {[0, 1, 2, 3].map(i => (
+              {otp.map((digit, i) => (
                 <TextInput
                   key={i}
                   ref={ref => {
                     otpRefs.current[i] = ref;
                   }}
-                  value={otp[i]}
+                  value={digit}
                   onChangeText={v => handleOtpChange(v, i)}
                   maxLength={1}
                   keyboardType="number-pad"
-                  style={[styles.otpBox, otp[i] ? styles.otpBoxFilled : null]}
+                  style={[styles.otpBox, digit ? styles.otpBoxFilled : null]}
                   autoFocus={i === 0}
                 />
               ))}
             </View>
             <TouchableOpacity
               onPress={handleVerify}
-              disabled={otp.some(d => d === '') || loading}
+              disabled={otp.some(digit => !digit) || loading}
               activeOpacity={0.8}>
               <LinearGradient
                 colors={[...Gradients.primary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={[styles.submitBtn, (otp.some(d => d === '') || loading) && styles.disabled]}>
-                {loading ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text style={styles.submitBtnText}>Verify →</Text>
-                )}
+                style={[styles.submitBtn, (otp.some(digit => !digit) || loading) && styles.disabled]}>
+                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Verify</Text>}
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setStep('phone')} style={styles.changeBtn}>
@@ -181,8 +277,9 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     ...Elevation.glow,
   },
-  iconEmoji: {
-    fontSize: 24,
+  iconText: {
+    ...Typography.label,
+    color: '#FFFFFF',
   },
   title: {
     ...Typography.h2,
@@ -193,6 +290,11 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.mutedForeground,
     marginBottom: 32,
+  },
+  errorText: {
+    ...Typography.small,
+    color: Colors.destructive,
+    marginBottom: 16,
   },
   phoneRow: {
     flexDirection: 'row',
@@ -237,11 +339,11 @@ const styles = StyleSheet.create({
   otpRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    gap: 8,
     marginBottom: 32,
   },
   otpBox: {
-    width: 56,
+    width: 44,
     height: 56,
     backgroundColor: Colors.card,
     borderRadius: Radius.xl,

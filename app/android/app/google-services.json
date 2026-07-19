@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "890117178879",
+    "project_id": "connecto-477ad",
+    "storage_bucket": "connecto-477ad.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:890117178879:android:ff42e49c175553122213ca",
+        "android_client_info": {
+          "package_name": "com.snappo.inc"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "890117178879-hdeb0dfq325i2drl3felh4lajd5t9hmf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.snappo.inc",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "890117178879-5igcmj598oe5l33npl7145odf260e6uj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1xANLUG1L1mCtE-6UhMsyK9YzPYu_5og"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "890117178879-5igcmj598oe5l33npl7145odf260e6uj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

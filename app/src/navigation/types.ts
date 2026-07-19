@@ -3,15 +3,20 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
   RoleSelect: undefined;
-  ProfileSetup: undefined;
+  ProfileSetup: { isEdit?: boolean; referralCode?: string } | undefined;
+  WaitApproval: undefined;
   MainTabs: undefined;
-  Profile: { id: string };
+  Profile: { id: string; profile?: any };
   Call: { id: string };
-  Conversation: { id: string };
+  Conversation: { id: string; profile?: any };
   Notifications: undefined;
   Referral: undefined;
   PrivacySecurity: undefined;
-  Recharge: undefined;
+  Recharge: { amount?: number } | undefined;
+  Withdraw: undefined;
+  Verification: undefined;
+  Content: { title: string; contentKey: string };
+  TransactionDetails: { tx: any };
 };
 
 export type TabParamList = {

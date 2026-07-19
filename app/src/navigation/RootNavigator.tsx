@@ -3,17 +3,27 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Colors } from '../theme/colors';
 import { SplashScreen, OnboardingScreen, NotificationsScreen } from '../features/system/screens';
-import { LoginScreen, RoleSelectScreen, ProfileSetupScreen } from '../features/auth/screens';
-import { ProfileScreen, PrivacySecurityScreen } from '../features/profile/screens';
+import { LoginScreen, RoleSelectScreen, ProfileSetupScreen, WaitApprovalScreen } from '../features/auth/screens';
+import { ProfileScreen, PrivacySecurityScreen, VerificationScreen, ContentScreen } from '../features/profile/screens';
 import { CallScreen, ConversationScreen } from '../features/chat/screens';
-import { ReferralScreen, RechargeScreen } from '../features/wallet/screens';
+import { ReferralScreen, RechargeScreen, WithdrawScreen } from '../features/wallet/screens';
+import TransactionDetailsScreen from '../features/wallet/screens/TransactionDetailsScreen';
 import AppTabs from './AppTabs';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const linking = {
+  prefixes: ['connecto://'],
+  config: {
+    screens: {
+      ProfileSetup: 'invite/:referralCode',
+    },
+  },
+};
+
 const RootNavigator = () => (
-  <NavigationContainer>
+  <NavigationContainer linking={linking}>
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
@@ -25,6 +35,7 @@ const RootNavigator = () => (
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
       <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+      <Stack.Screen name="WaitApproval" component={WaitApprovalScreen} />
       <Stack.Screen name="MainTabs" component={AppTabs} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Call" component={CallScreen} options={{ animation: 'fade' }} />
@@ -33,6 +44,10 @@ const RootNavigator = () => (
       <Stack.Screen name="Referral" component={ReferralScreen} />
       <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
       <Stack.Screen name="Recharge" component={RechargeScreen} />
+      <Stack.Screen name="Withdraw" component={WithdrawScreen} />
+      <Stack.Screen name="Verification" component={VerificationScreen} />
+      <Stack.Screen name="Content" component={ContentScreen} />
+      <Stack.Screen name="TransactionDetails" component={TransactionDetailsScreen} />
     </Stack.Navigator>
   </NavigationContainer>
 );

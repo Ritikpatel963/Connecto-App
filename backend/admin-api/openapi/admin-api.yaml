@@ -1,0 +1,169 @@
+openapi: 3.0.3
+info:
+  title: Snappo Admin API
+  version: 1.0.0
+servers:
+  - url: /api/admin/v1
+security:
+  - adminBearer: []
+components:
+  securitySchemes:
+    adminBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Envelope:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: {}
+        meta:
+          type: object
+          nullable: true
+          properties:
+            page: { type: integer }
+            pageSize: { type: integer }
+            totalCount: { type: integer }
+        error:
+          type: object
+          nullable: true
+          properties:
+            message: { type: string }
+    Subscription:
+      type: object
+      properties:
+        id: { type: integer }
+        user_id: { type: integer }
+        plan_id: { type: string }
+        provider: { type: string }
+        status:
+          type: string
+          enum: [trialing, active, past_due, canceled, expired, refunded]
+        current_period_start: { type: string, format: date-time, nullable: true }
+        current_period_end: { type: string, format: date-time }
+        trial_ends_at: { type: string, format: date-time, nullable: true }
+        cancel_at_period_end: { type: boolean }
+        user:
+          type: object
+          nullable: true
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            phone_number: { type: string }
+    SubscriptionPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [trialing, active, past_due, canceled, expired, refunded]
+        plan_id: { type: string }
+        current_period_end: { type: string, format: date-time }
+        trial_ends_at: { type: string, format: date-time, nullable: true }
+        cancel_at_period_end: { type: boolean }
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+    Search:
+      name: search
+      in: query
+      schema: { type: string }
+    SortBy:
+      name: sortBy
+      in: query
+      schema: { type: string }
+    SortDirection:
+      name: sortDirection
+      in: query
+      schema: { type: string, enum: [asc, desc] }
+paths:
+  /auth/login:
+    post:
+      security: []
+      summary: Rate-limited admin login proxy/scope marker
+      responses:
+        '200': { description: Admin login accepted }
+  /users:
+    get:
+      summary: Paginated, searchable users
+      parameters: [ { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/PageSize' }, { $ref: '#/components/parameters/Search' }, { $ref: '#/components/parameters/SortBy' }, { $ref: '#/components/parameters/SortDirection' } ]
+      responses: { '200': { description: User list envelope } }
+  /users/{id}:
+    get:
+      summary: User detail
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { '200': { description: User detail envelope } }
+    delete:
+      summary: Soft-delete user
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { '204': { description: Deleted } }
+  /users/{id}/status:
+    patch:
+      summary: Ban, suspend, or activate a user
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Updated user envelope } }
+  /subscriptions:
+    get:
+      summary: Paginated subscriptions
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+        - { $ref: '#/components/parameters/Search' }
+        - { $ref: '#/components/parameters/SortBy' }
+        - { $ref: '#/components/parameters/SortDirection' }
+        - { name: status, in: query, schema: { type: string } }
+        - { name: plan_id, in: query, schema: { type: string } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: Subscription list envelope
+  /subscriptions/{id}:
+    get:
+      summary: Subscription detail
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Subscription envelope } }
+    patch:
+      summary: Manual override, refund mark, extend, or plan/status change
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubscriptionPatch' }
+      responses: { '200': { description: Updated subscription envelope } }
+  /subscriptions/stats:
+    get:
+      summary: Pre-aggregated revenue, churn, active counts
+      responses: { '200': { description: Subscription stats envelope } }
+  /reports:
+    get:
+      summary: Paginated moderation reports
+      parameters: [ { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/PageSize' }, { name: status, in: query, schema: { type: string } } ]
+      responses: { '200': { description: Report list envelope } }
+  /reports/{id}/resolve:
+    patch:
+      summary: Resolve report
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Report envelope } }
+  /payments:
+    get:
+      summary: Paginated payment/wallet transactions
+      parameters: [ { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/PageSize' }, { name: status, in: query, schema: { type: string } } ]
+      responses: { '200': { description: Payment list envelope } }
+  /matches:
+    get:
+      summary: Paginated match/conversation records
+      parameters: [ { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/PageSize' } ]
+      responses: { '200': { description: Match list envelope } }
+  /analytics/dashboard/summary:
+    get:
+      summary: Pre-aggregated dashboard counts
+      responses: { '200': { description: Dashboard summary envelope } }

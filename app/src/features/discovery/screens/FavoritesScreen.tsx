@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert } from 'react-native';
 import { Colors } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
-import { mockProfiles } from '../../../shared/data/mockData';
+import { useFavorites } from '../../../api/favorites';
+import { useProfiles } from '../../../api/users';
 import { useUser } from '../../../context/UserContext';
 import ProfileCard from '../../../components/ProfileCard';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { TabParamList } from '../../../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Favorites'>,
@@ -20,7 +22,10 @@ type Props = CompositeScreenProps<
 const FavoritesScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { role } = useUser();
-  const [favorites] = useState(mockProfiles.slice(0, 3));
+  const { data: favoritesData = [], isLoading } = useFavorites();
+  const { data: profiles = [] } = useProfiles();
+  
+  const favorites = favoritesData.map(fav => profiles.find(p => String(p.id) === String(fav.id)) || fav);
 
   return (
     <View style={styles.container}>
@@ -44,7 +49,10 @@ const FavoritesScreen: React.FC<Props> = ({ navigation }) => {
             isFavorite
             role={role}
             onPress={() => navigation.navigate('Profile', { id: item.id })}
-            onCall={() => navigation.navigate('Call', { id: item.id })}
+            onCall={() => {
+              if (!item.pricePerMinute) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
+              navigation.navigate('Call', { id: item.id });
+            }}
           />
         )}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}

@@ -15,14 +15,15 @@ import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
-import { mockChats } from '../../../shared/data/mockData';
+import { useChats } from '../../../api/chat';
 import ChatBubble from '../../../components/ChatBubble';
 import OnlineIndicator from '../../../components/OnlineIndicator';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import type { ChatMessage } from '../../../shared/types/app';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import EmojiPicker from 'rn-emoji-keyboard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Conversation'>;
 
@@ -84,8 +85,22 @@ const SendIcon: React.FC<IconProps> = ({ color = '#FFFFFF', size = CHAT_SEND_ICO
 const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { id } = route.params;
-  const chat = mockChats.find(c => c.id === id);
+  const { data: chats = [], isLoading } = useChats();
+  const chat = chats.find(c => c.id === id) || (route.params.profile ? {
+    id,
+    user: route.params.profile,
+    lastMessage: {
+      id: 'm-last',
+      senderId: route.params.profile.id,
+      text: 'Start chatting...',
+      timestamp: new Date().toISOString(),
+      type: 'text' as const,
+      isRead: true
+    },
+    unreadCount: 0
+  } : undefined);
   const [input, setInput] = useState('');
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: 'm1', senderId: chat?.user.id || '', text: 'Hey! How are you doing? 😊', timestamp: new Date(Date.now() - 300000).toISOString(), type: 'text', isRead: true },
     { id: 'm2', senderId: 'me', text: "I'm great! Would love to chat", timestamp: new Date(Date.now() - 240000).toISOString(), type: 'text', isRead: true },
@@ -93,6 +108,8 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
     { id: 'm4', senderId: 'me', text: 'How about a call later? 🎉', timestamp: new Date(Date.now() - 120000).toISOString(), type: 'text', isRead: true },
     { id: 'm5', senderId: chat?.user.id || '', text: 'That was sweet! 😄', timestamp: new Date(Date.now() - 60000).toISOString(), type: 'text', isRead: false },
   ]);
+
+  const inputRef = React.useRef<TextInput>(null);
 
   if (!chat) return null;
 
@@ -159,6 +176,7 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
       <View style={[styles.inputBar, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.inputRow}>
           <TextInput
+            ref={inputRef}
             value={input}
             onChangeText={setInput}
             onSubmitEditing={handleSend}
@@ -167,7 +185,7 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
             style={styles.textInput}
             returnKeyType="send"
           />
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => { setIsEmojiPickerOpen(true); }}>
             <SmileIcon />
           </TouchableOpacity>
         </View>
@@ -181,6 +199,24 @@ const ConversationScreen: React.FC<Props> = ({ navigation, route }) => {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+      <EmojiPicker 
+        onEmojiSelected={(emojiObj) => setInput(prev => prev + emojiObj.emoji)} 
+        open={isEmojiPickerOpen} 
+        onClose={() => setIsEmojiPickerOpen(false)} 
+        theme={{
+          backdrop: '#00000088',
+          knob: Colors.primary,
+          container: Colors.background,
+          header: Colors.foreground,
+          skinTonesContainer: Colors.muted,
+          category: {
+            icon: Colors.foreground,
+            iconActive: Colors.primary,
+            container: Colors.background,
+            containerActive: Colors.muted,
+          },
+        }}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -204,6 +240,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: Radius.lg,
+    backgroundColor: Colors.muted,
   },
   headerInfo: {
     flex: 1,

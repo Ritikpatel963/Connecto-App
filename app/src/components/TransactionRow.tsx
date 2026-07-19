@@ -5,6 +5,7 @@ import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Radius } from '../theme/spacing';
 import type { Transaction } from '../shared/types/app';
+import { useCoinPackages } from '../api/wallet';
 
 type IconProps = {
   color?: string;
@@ -80,10 +81,19 @@ const colorMap: Record<string, { bg: string; fg: string }> = {
   referral_bonus: { bg: 'rgba(245,166,35,0.1)', fg: Colors.secondary },
 };
 
-const TransactionRow: React.FC<{ tx: Transaction }> = ({ tx }) => {
+const TransactionRow: React.FC<{ tx: Transaction; conversionRate?: number }> = ({ tx, conversionRate = 1 }) => {
   const date = new Date(tx.timestamp);
   const isPositive = tx.amount > 0;
   const colors = colorMap[tx.type] || colorMap.recharge;
+  
+  const { data: coinPackages = [] } = useCoinPackages();
+  
+  // Find if this transaction amount matches a special offer package
+  const pkg = coinPackages.find(p => p.price === Math.abs(tx.amount));
+  const defaultCoins = Math.floor(Math.abs(tx.amount) / conversionRate);
+  
+  const coins = (tx.type === 'recharge' && pkg) ? pkg.coins : defaultCoins;
+  const isSpecialOffer = tx.type === 'recharge' && pkg && pkg.coins > defaultCoins;
 
   const renderIcon = () => {
     switch (tx.type) {
@@ -100,24 +110,41 @@ const TransactionRow: React.FC<{ tx: Transaction }> = ({ tx }) => {
     }
   };
 
+  let cleanDescription = tx.description.replace(/\s*\(.*?\)/g, '');
+  if (cleanDescription === 'razorpay') cleanDescription = 'Razorpay';
+  if (cleanDescription === 'manual' || cleanDescription === 'manual_upload') cleanDescription = 'Manual Recharge';
+  if (isSpecialOffer) cleanDescription = 'Special Offer - ' + cleanDescription;
+
   return (
     <View style={styles.row}>
       <View style={[styles.iconBox, { backgroundColor: colors.bg }]}>
         {renderIcon()}
       </View>
       <View style={styles.info}>
-        <Text style={styles.description} numberOfLines={1}>{tx.description}</Text>
+        <Text style={styles.description} numberOfLines={1}>{cleanDescription}</Text>
         <Text style={styles.date}>
           {date.toLocaleDateString()} · {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </Text>
       </View>
       <View style={styles.amountCol}>
-        <Text style={[styles.amount, { color: isPositive ? Colors.accent : Colors.primary }]}>
-          {isPositive ? '+' : ''}₹{Math.abs(tx.amount)}
+        <Text style={[styles.amount, { color: tx.status === 'pending' ? Colors.secondary : (isPositive ? Colors.accent : Colors.primary) }]}>
+          {isPositive ? '+' : '-'}{tx.type === 'recharge' ? '₹' : ''}{Math.abs(tx.amount)}{tx.type !== 'recharge' ? ' Coins' : ''}
         </Text>
-        <Text style={[styles.status, tx.status === 'pending' && { color: Colors.secondary }]}>
-          {tx.status}
-        </Text>
+        {tx.type === 'recharge' && (tx.status === 'completed' || tx.status === 'verified') && (
+          <Text style={[styles.status, { color: Colors.accent }]}>
+            +{coins} Coins
+          </Text>
+        )}
+        {tx.status === 'pending' && (
+          <Text style={[styles.status, { color: Colors.secondary }]}>
+            Pending Approval
+          </Text>
+        )}
+        {(tx.type !== 'recharge' || (tx.status !== 'completed' && tx.status !== 'verified')) && tx.status !== 'pending' && (
+          <Text style={[styles.status, tx.status === 'rejected' && { color: Colors.primary }]}>
+            {tx.status}
+          </Text>
+        )}
       </View>
     </View>
   );

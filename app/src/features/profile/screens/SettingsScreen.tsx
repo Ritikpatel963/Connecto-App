@@ -15,7 +15,7 @@ import { useUser } from '../../../context/UserContext';
 import PremiumBadge from '../../../components/PremiumBadge';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { TabParamList } from '../../../navigation/AppNavigator';
@@ -26,7 +26,7 @@ type Props = CompositeScreenProps<
   NativeStackScreenProps<RootStackParamList>
 >;
 
-type MenuScreen = 'ProfileSetup' | 'MainTabs' | 'Referral' | 'Notifications' | 'PrivacySecurity';
+type MenuScreen = 'ProfileSetup' | 'MainTabs' | 'Referral' | 'Notifications' | 'PrivacySecurity' | 'Verification' | 'Content';
 type MenuTab = 'Wallet';
 
 type MenuItem = {
@@ -34,6 +34,7 @@ type MenuItem = {
   label: string;
   screen?: MenuScreen;
   tab?: MenuTab;
+  params?: any;
 };
 
 type IconProps = {
@@ -109,14 +110,12 @@ const LogoutIcon: React.FC<IconProps> = ({ color = Colors.destructive, size = 18
 );
 
 const menuItems: ReadonlyArray<MenuItem> = [
-  { icon: 'user', label: 'Edit Profile', screen: 'ProfileSetup' },
-  { icon: 'verification', label: 'Verification' },
+  { icon: 'user', label: 'Edit Profile', screen: 'ProfileSetup', params: { isEdit: true } },
+  { icon: 'verification', label: 'Verification', screen: 'Verification' },
   { icon: 'wallet', label: 'Wallet', tab: 'Wallet' },
   { icon: 'referral', label: 'Referral Program', screen: 'Referral' },
-  { icon: 'notification', label: 'Notification Settings', screen: 'Notifications' },
-  { icon: 'privacy', label: 'Privacy & Security', screen: 'PrivacySecurity' },
-  { icon: 'language', label: 'Language' },
-  { icon: 'help', label: 'Help & Support' },
+  { icon: 'privacy', label: 'Privacy & Security', screen: 'Content', params: { title: 'Privacy & Security', contentKey: 'privacy_policy' } },
+  { icon: 'help', label: 'Help & Support', screen: 'Content', params: { title: 'Help & Support', contentKey: 'help_support' } },
 ];
 
 const SettingsScreen: React.FC<Props> = ({ navigation }) => {
@@ -161,7 +160,11 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     if (item.screen) {
-      navigation.navigate(item.screen);
+      if (item.params) {
+        navigation.navigate(item.screen as any, item.params);
+      } else {
+        navigation.navigate(item.screen as any);
+      }
     }
   };
 
@@ -175,7 +178,10 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       <Text style={styles.title}>Settings</Text>
 
       {/* Profile header */}
-      <View style={styles.profileCard}>
+      <TouchableOpacity 
+        style={styles.profileCard} 
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate('ProfileSetup' as any, { isEdit: true })}>
         <View>
           <View style={styles.avatarBox}>
             {currentUser?.avatar ? (
@@ -191,26 +197,17 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
           )}
         </View>
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{currentUser?.name || 'User'}</Text>
-          <Text style={styles.profileMeta}>
-            {role} · {currentUser?.city || 'India'}
-          </Text>
-          <View
-            style={[
-              styles.roleBadge,
-              { backgroundColor: role === 'girl' ? 'rgba(244,114,182,0.1)' : 'rgba(107,159,255,0.1)' },
-            ]}>
-            <Text
-              style={[
-                styles.roleBadgeText,
-                { color: role === 'girl' ? Colors.girl : Colors.boy },
-              ]}>
-              {role === 'girl' ? 'Receiver' : 'Caller'}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.profileName}>{currentUser?.name || 'User'}</Text>
+            {currentUser?.isVerified && <BadgeCheckIcon size={16} color="#10B981" />}
           </View>
+          <Text style={styles.profileMeta}>
+            {role === 'girl' ? 'Female' : 'Male'} · {currentUser?.city || 'India'}
+          </Text>
+
         </View>
         <Text style={{ fontSize: 16, color: Colors.mutedForeground }}>›</Text>
-      </View>
+      </TouchableOpacity>
 
       {/* Menu */}
       <View style={styles.menu}>
@@ -223,7 +220,9 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.menuIconBox}>
               {renderMenuIcon(item.icon)}
             </View>
-            <Text style={styles.menuLabel}>{item.label}</Text>
+            <Text style={styles.menuLabel}>
+              {item.label}
+            </Text>
             <Text style={{ fontSize: 14, color: Colors.mutedForeground }}>›</Text>
           </TouchableOpacity>
         ))}

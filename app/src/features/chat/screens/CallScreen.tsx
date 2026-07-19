@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 import { View, Text, Image, TouchableOpacity, StyleSheet, TextInput, Alert, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Dimensions } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
-import { mockProfiles } from '../../../shared/data/mockData';
+import { useProfiles } from '../../../api/users';
 import { useUser } from '../../../context/UserContext';
 import RatingStars from '../../../components/RatingStars';
+import { ENV } from '../../../config/env';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Call'>;
@@ -141,7 +143,8 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { id } = route.params;
   const { role, walletBalance, setWalletBalance, setIsOnline } = useUser();
-  const profile = mockProfiles.find(p => p.id === id);
+  const { data: profiles = [], isLoading } = useProfiles();
+  const profile = profiles.find(p => p.id === id);
   const [callState, setCallState] = useState<'ringing' | 'active' | 'ended'>('ringing');
   const [duration, setDuration] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -150,6 +153,9 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
   const [review, setReview] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTip, setActiveTip] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { currentUser } = useUser();
 
   const costPerMin = profile?.pricePerMinute || 10;
   const totalCost = Math.ceil(duration / 60) * costPerMin;
@@ -176,13 +182,13 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const reportUser = useCallback(() => {
     setMenuOpen(false);
-    Alert.alert('Report submitted', 'Thanks for reporting. Our moderation team will review this call.');
+    useAlertStore.getState().show('Report submitted', 'Thanks for reporting. Our moderation team will review this call.');
   }, []);
 
   const goOffline = useCallback(() => {
     setMenuOpen(false);
     setIsOnline(false);
-    Alert.alert('Status updated', 'You are now offline and will not receive new calls.');
+    useAlertStore.getState().show('Status updated', 'You are now offline and will not receive new calls.');
   }, [setIsOnline]);
 
   const formatTime = (s: number) =>
@@ -256,7 +262,7 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
           {callState === 'ringing'
             ? 'Calling...'
             : callState === 'active'
-            ? `₹${costPerMin}/min`
+            ? `${costPerMin} Coins/min`
             : 'Call ended'}
         </Text>
 
@@ -265,7 +271,7 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={styles.timerBox}>
             <Text style={styles.timer}>{formatTime(duration)}</Text>
             {callState === 'active' && (
-              <Text style={styles.cost}>₹{totalCost} spent</Text>
+              <Text style={styles.cost}>{totalCost} Coins spent</Text>
             )}
           </View>
         )}
@@ -295,13 +301,40 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Cost</Text>
-                <Text style={[styles.summaryValue, { color: Colors.primary }]}>₹{totalCost}</Text>
+                <Text style={[styles.summaryValue, { color: Colors.primary }]}>{totalCost} Coins</Text>
               </View>
             </View>
             <TouchableOpacity
-              onPress={() => navigation.navigate('MainTabs')}
+              onPress={async () => {
+                if (rating > 0 || review.trim().length > 0) {
+                  setIsSubmitting(true);
+                  try {
+                    const res = await fetch(`${ENV.API_URL}/api/app/v1/ratings`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentUser?.id}`
+                      },
+                      body: JSON.stringify({ targetUserId: profile.id, rating, reviewText: review })
+                    });
+                    if (res.ok) {
+                      useAlertStore.getState().show('Thank you! 🌟', 'Your feedback has been submitted successfully.');
+                    } else {
+                      const err = await res.text();
+                      console.error('Rating failed:', err);
+                      useAlertStore.getState().show('Oops', 'Could not submit feedback. Please try again.');
+                    }
+                  } catch (e) {
+                    console.error('Failed to submit rating', e);
+                    useAlertStore.getState().show('Oops', 'Network error. Please check your connection.');
+                  }
+                  setIsSubmitting(false);
+                }
+                navigation.navigate('MainTabs');
+              }}
               activeOpacity={0.85}
-              style={styles.doneBtnPressable}>
+              style={styles.doneBtnPressable}
+              disabled={isSubmitting}>
               <LinearGradient
                 colors={[...Gradients.primary]}
                 start={{ x: 0, y: 0 }}

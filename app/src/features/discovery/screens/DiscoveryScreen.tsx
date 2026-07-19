@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,22 +8,27 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Colors, Gradients } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
-import { mockProfiles } from '../../../shared/data/mockData';
+import { useProfiles } from '../../../api/users';
 import { useUser } from '../../../context/UserContext';
+import { supabase } from '../../../api/supabase';
 import OnlineIndicator from '../../../components/OnlineIndicator';
 import ProfileCard from '../../../components/ProfileCard';
+import { useAlertStore } from '../../../hooks/useAlertStore';
+
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { TabParamList } from '../../../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ENV } from '../../../config/env';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Discover'>,
@@ -33,7 +38,7 @@ type Props = CompositeScreenProps<
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48 - 12) / 2;
 
-const filters = ['All', 'Online', 'Premium', 'Verified', 'New'];
+const filters = ['All', 'Online', 'Verified', 'New'];
 
 const SEARCH_ICON_SIZE = 18;
 const ACTION_ICON_SIZE = 18;
@@ -89,14 +94,40 @@ const CallIcon: React.FC<IconProps> = ({ color = '#FFFFFF', size = 14 }) => (
 
 const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { role, isOnline, setIsOnline } = useUser();
+  const { role, isOnline, setIsOnline, currentUser } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [activeFilter, setActiveFilter] = useState(0);
+  const { data: profiles = [], isLoading, refetch } = useProfiles();
 
-  const filtered = mockProfiles.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  useEffect(() => {
+    const channel = supabase.channel(`public:users:${Date.now()}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users' }, () => {
+        refetch();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [refetch]);
+
+  const activeFilterName = filters[activeFilter];
+  const filtered = profiles.filter(p => {
+    if (!p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (String(p.id) === String(currentUser?.id)) return false;
+    if (p.role === role) return false;
+
+    switch (activeFilterName) {
+      case 'Online':
+        return p.isOnline;
+
+      case 'Verified':
+        return p.isVerified;
+      case 'New':
+        return p.totalCalls === 0;
+      case 'All':
+      default:
+        return true;
+    }
+  });
 
   return (
     <View style={styles.container}>
@@ -124,6 +155,7 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Ponytail: User requested to remove this availability block
         {role === 'girl' && (
           <View style={styles.availabilityCard}>
             <View style={styles.availabilityInfo}>
@@ -136,7 +168,20 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.availabilitySwitch}>
               <TouchableOpacity
                 activeOpacity={0.85}
-                onPress={() => setIsOnline(true)}
+                onPress={() => {
+                  setIsOnline(true);
+                  if (currentUser) {
+                    fetch(`${ENV.SUPABASE_URL}/rest/v1/users?id=eq.${currentUser.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'apikey': ENV.SUPABASE_KEY,
+                        'Authorization': `Bearer ${ENV.SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ is_online: true })
+                    }).catch(console.error);
+                  }
+                }}
                 style={styles.availabilityHalfPressable}>
                 {isOnline ? (
                   <LinearGradient
@@ -154,7 +199,20 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.85}
-                onPress={() => setIsOnline(false)}
+                onPress={() => {
+                  setIsOnline(false);
+                  if (currentUser) {
+                    fetch(`${ENV.SUPABASE_URL}/rest/v1/users?id=eq.${currentUser.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'apikey': ENV.SUPABASE_KEY,
+                        'Authorization': `Bearer ${ENV.SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ is_online: false })
+                    }).catch(console.error);
+                  }
+                }}
                 style={styles.availabilityHalfPressable}>
                 {!isOnline ? (
                   <LinearGradient
@@ -173,6 +231,7 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
         )}
+        */}
 
         {showSearch && (
           <View style={styles.searchRow}>
@@ -187,9 +246,6 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
                 autoFocus
               />
             </View>
-            <TouchableOpacity style={styles.filterBtn}>
-              <Text style={{ fontSize: 14 }}>⚙️</Text>
-            </TouchableOpacity>
           </View>
         )}
 
@@ -234,8 +290,12 @@ const DiscoveryScreen: React.FC<Props> = ({ navigation }) => {
             <ProfileCard
               profile={item}
               role={role}
-              onPress={() => navigation.navigate('Profile', { id: item.id })}
-              onCall={() => navigation.navigate('Call', { id: item.id })}
+              onPress={() => navigation.navigate('Profile', { id: item.id, profile: item })}
+              onCall={() => {
+                if (!item.pricePerMinute) return useAlertStore.getState().show('Unavailable', 'Admin has not assigned a call package to this profile yet.');
+                if (!currentUser?.isVerified) return useAlertStore.getState().show('Not Verified', 'Admin has not verified your profile yet.');
+                navigation.navigate('Call', { id: item.id });
+              }}
             />
           </View>
         )}

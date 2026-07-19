@@ -6,12 +6,14 @@ import { Typography } from '../../../theme/typography';
 import { Radius, Elevation } from '../../../theme/spacing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
+import { useUser } from '../../../context/UserContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
 const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { isAuthenticated, currentUser } = useUser();
   const scale = useRef(new Animated.Value(0.8)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const titleY = useRef(new Animated.Value(20)).current;
@@ -31,9 +33,31 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
       Animated.timing(dotsOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
     ]).start();
 
-    const timer = setTimeout(() => navigation.replace('Onboarding'), 2500);
+    const timer = setTimeout(async () => {
+      if (!isAuthenticated || !currentUser) {
+        navigation.replace(isAuthenticated ? 'RoleSelect' : 'Onboarding');
+        return;
+      }
+      // Verify the persisted user is still active (handles admin deactivation/deletion)
+      try {
+        const { ENV } = await import('../../../config/env');
+        const res = await fetch(
+          `${ENV.SUPABASE_URL}/rest/v1/users?id=eq.${currentUser.id}&select=is_active`,
+          { headers: { apikey: ENV.SUPABASE_KEY, Authorization: `Bearer ${ENV.SUPABASE_KEY}` } }
+        );
+        const data = await res.json();
+        if (!data?.[0]?.is_active) {
+          // User deactivated or deleted — force logout
+          const { useUser: useUserStore } = await import('../../../context/UserContext');
+          useUserStore.getState().resetSession();
+          navigation.replace('Onboarding');
+          return;
+        }
+      } catch (_) { /* Network error — allow through, they'll hit real errors later */ }
+      navigation.replace('MainTabs');
+    }, 2500);
     return () => clearTimeout(timer);
-  }, [dotsOpacity, navigation, opacity, scale, subtitleOpacity, titleY]);
+  }, [dotsOpacity, isAuthenticated, currentUser, navigation, opacity, scale, subtitleOpacity, titleY]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
@@ -51,7 +75,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
         </LinearGradient>
 
         <Animated.Text style={[styles.title, { transform: [{ translateY: titleY }] }]}>
-          Connecto
+          Snappo
         </Animated.Text>
         <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
           Enjoy and Connect Through Voice or Chats

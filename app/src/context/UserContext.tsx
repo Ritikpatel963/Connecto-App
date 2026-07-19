@@ -7,6 +7,10 @@ import type { UserRole, UserProfile } from '../shared/types/app';
 interface UserContextType {
   role: UserRole | null;
   setRole: (role: UserRole | null) => void;
+  phoneNumber: string | null;
+  setPhoneNumber: (phoneNumber: string | null) => void;
+  firebaseUid: string | null;
+  setFirebaseUid: (firebaseUid: string | null) => void;
   isOnline: boolean;
   setIsOnline: (v: boolean) => void;
   currentUser: UserProfile | null;
@@ -21,6 +25,8 @@ interface UserContextType {
 
 const initialState = {
   role: null as UserRole | null,
+  phoneNumber: null as string | null,
+  firebaseUid: null as string | null,
   isOnline: true,
   currentUser: null as UserProfile | null,
   isAuthenticated: false,
@@ -33,6 +39,8 @@ const useUserStore = create<UserContextType>()(
     set => ({
       ...initialState,
       setRole: role => set({ role }),
+      setPhoneNumber: phoneNumber => set({ phoneNumber }),
+      setFirebaseUid: firebaseUid => set({ firebaseUid }),
       setIsOnline: isOnline => set({ isOnline }),
       setCurrentUser: currentUser => set({ currentUser }),
       setIsAuthenticated: isAuthenticated => set({ isAuthenticated }),
@@ -44,10 +52,12 @@ const useUserStore = create<UserContextType>()(
         }),
     }),
     {
-      name: 'connecto-app-store',
+      name: 'Snappo-app-store',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: state => ({
         role: state.role,
+        phoneNumber: state.phoneNumber,
+        firebaseUid: state.firebaseUid,
         isOnline: state.isOnline,
         currentUser: state.currentUser,
         isAuthenticated: state.isAuthenticated,
@@ -64,4 +74,4 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   return <>{children}</>;
 };
 
-export const useUser = () => useUserStore();
+export const useUser = (): UserContextType => useUserStore();

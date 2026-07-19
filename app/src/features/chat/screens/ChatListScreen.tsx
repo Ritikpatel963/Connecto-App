@@ -8,21 +8,24 @@ import {
   FlatList,
   ScrollView,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Colors } from '../../../theme/colors';
 import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
-import { mockChats } from '../../../shared/data/mockData';
+import { useChats } from '../../../api/chat';
+import { useUser } from '../../../context/UserContext';
 import OnlineIndicator from '../../../components/OnlineIndicator';
 import LinearGradient from 'react-native-linear-gradient';
 import { Gradients } from '../../../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { TabParamList } from '../../../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Chats'>,
@@ -31,11 +34,21 @@ type Props = CompositeScreenProps<
 
 const ChatListScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { currentUser, role } = useUser();
   const [search, setSearch] = useState('');
-  const filtered = mockChats.filter(c =>
-    c.user.name.toLowerCase().includes(search.toLowerCase()),
+  const { data: chats = [], isLoading } = useChats();
+
+  const handleOpenChat = (chatId: string) => {
+    if (!currentUser?.isVerified) {
+      return useAlertStore.getState().show('Not Verified', 'Admin has not verified your profile yet.');
+    }
+    navigation.navigate('Conversation', { id: chatId });
+  };
+
+  const filtered = chats.filter(c =>
+    c.user.name.toLowerCase().includes(search.toLowerCase())
   );
-  const onlineUsers = mockChats.filter(c => c.user.isOnline);
+  const onlineUsers = chats.filter(c => c.user.isOnline);
 
   const SearchIcon = () => (
     <Svg
@@ -89,7 +102,7 @@ const ChatListScreen: React.FC<Props> = ({ navigation }) => {
               {onlineUsers.map(c => (
                 <TouchableOpacity
                   key={c.id}
-                  onPress={() => navigation.navigate('Conversation', { id: c.id })}
+                  onPress={() => handleOpenChat(c.id)}
                   style={styles.onlineItem}>
                   <View>
                     <Image source={{ uri: c.user.avatar }} style={styles.onlineAvatar} />
@@ -112,7 +125,7 @@ const ChatListScreen: React.FC<Props> = ({ navigation }) => {
 
           return (
             <TouchableOpacity
-              onPress={() => navigation.navigate('Conversation', { id: chat.id })}
+              onPress={() => handleOpenChat(chat.id)}
               style={styles.chatRow}
               activeOpacity={0.7}>
               <View>
@@ -202,6 +215,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: Radius.xl,
+    backgroundColor: Colors.muted,
   },
   onlineIndicator: {
     position: 'absolute',
@@ -226,6 +240,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: Radius.xl,
+    backgroundColor: Colors.muted,
   },
   chatIndicator: {
     position: 'absolute',

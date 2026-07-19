@@ -3,6 +3,7 @@ export type UserRole = 'boy' | 'girl';
 export interface UserProfile {
   id: string;
   name: string;
+  phoneNumber?: string;
   age: number;
   avatar: string;
   role: UserRole;
@@ -13,9 +14,12 @@ export interface UserProfile {
   rating: number;
   totalCalls: number;
   pricePerMinute: number;
+  packageName?: string;
   languages: string[];
   interests: string[];
   city: string;
+  state?: string;
+  country?: string;
   lastSeen?: string;
 }
 
@@ -41,7 +45,10 @@ export interface Transaction {
   amount: number;
   description: string;
   timestamp: string;
-  status: 'completed' | 'pending' | 'failed';
+  status: 'completed' | 'pending' | 'failed' | 'verified' | 'rejected';
+  txnId?: string;
+  paymentGateway?: string;
+  screenshotUrl?: string;
 }
 
 export interface CallSession {

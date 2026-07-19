@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAlertStore } from '../../../hooks/useAlertStore';
 import {
   View,
   Text,
@@ -16,7 +17,7 @@ import { Typography } from '../../../theme/typography';
 import { Radius } from '../../../theme/spacing';
 import BackArrowIcon from '../../../components/BackArrowIcon';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PrivacySecurity'>;
 
@@ -182,7 +183,7 @@ const PrivacySecurityScreen: React.FC<Props> = ({ navigation }) => {
   const [callRecording, setCallRecording] = useState(false);
 
   const handleDeleteAccount = () => {
-    Alert.alert(
+    useAlertStore.getState().show(
       'Delete Account',
       'This action is irreversible. All your data, wallet balance, and conversations will be permanently deleted.',
       [
@@ -190,18 +191,18 @@ const PrivacySecurityScreen: React.FC<Props> = ({ navigation }) => {
         {
           text: 'Delete Forever',
           style: 'destructive',
-          onPress: () => Alert.alert('Account Deleted', 'Your account has been scheduled for deletion.'),
+          onPress: () => useAlertStore.getState().show('Account Deleted', 'Your account has been scheduled for deletion.'),
         },
       ],
     );
   };
 
   const handleBlockedUsers = () => {
-    Alert.alert('Blocked Users', 'No blocked users yet.');
+    useAlertStore.getState().show('Blocked Users', 'No blocked users yet.');
   };
 
   const handleReportHistory = () => {
-    Alert.alert('Report History', 'You have no reports.');
+    useAlertStore.getState().show('Report History', 'You have no reports.');
   };
 
   return (
@@ -334,7 +335,7 @@ const PrivacySecurityScreen: React.FC<Props> = ({ navigation }) => {
             icon={<DownloadIcon />}
             label="Download My Data"
             subtitle="Request a copy of your data"
-            onPress={() => Alert.alert('Data Request', 'Your data export will be ready within 24 hours.')}
+            onPress={() => useAlertStore.getState().show('Data Request', 'Your data export will be ready within 24 hours.')}
           />
         </View>
 

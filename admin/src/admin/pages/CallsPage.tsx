@@ -8,7 +8,7 @@ import { CallRecord, SelectFilter } from "../types";
 
 const formatDuration = (seconds: number) => `${String(Math.floor((seconds || 0) / 60)).padStart(2, "0")}:${String((seconds || 0) % 60).padStart(2, "0")}`;
 
-const filters: SelectFilter[] = [{ key: "status", label: "Status", options: ["initiated", "ongoing", "completed", "missed", "rejected", "failed"].map((value) => ({ label: value, value })) }, { key: "created_at", label: "Date", options: ["2026-07-03 11:02", "2026-07-03 10:18", "2026-07-03 09:55", "2026-07-03 09:14"].map((value) => ({ label: value.slice(0, 10) + " · " + value.slice(11), value })) }];
+const filters: SelectFilter[] = [{ key: "status", label: "Status", options: ["initiated", "ongoing", "completed", "missed", "rejected", "failed"].map((value) => ({ label: value, value })) }, { key: "created_at", label: "Date", options: ["2026-07-03 11:02", "2026-07-03 10:18", "2026-07-03 09:55", "2026-07-03 09:14"].map((value) => ({ label: value.slice(0, 10) + " \u00B7 " + value.slice(11), value })) }];
 
 const CallsPage = () => {
   const columns = [
@@ -21,6 +21,6 @@ const CallsPage = () => {
     { key: "status", label: "Status", render: (row: CallRecord) => <StatusBadge value={row.status} /> },
     { key: "created_at", label: "Created", render: (row: CallRecord) => <DateCell value={row.created_at} /> },
   ];
-  return <><PageHeader title="Call Log" description="Read-only Agora voice call history with duration and billing." icon="solar:phone-calling-outline" /><AdminDataTable<CallRecord> queryKey={["calls"]} queryFn={callsApi.list} columns={columns} filters={filters} initialSort={{ key: "created_at", direction: "desc" }} /></>;
+  return <div className="user-management-page call-log-page"><PageHeader title="Call Log" description="Read-only Agora voice call history with duration and billing." icon="solar:phone-calling-outline" /><AdminDataTable<CallRecord> queryKey={["calls"]} queryFn={callsApi.list} columns={columns} filters={filters} initialSort={{ key: "created_at", direction: "desc" }} /></div>;
 };
 export default CallsPage;
