@@ -80,7 +80,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
           if (ints.length) setInterests(ints.join(', '));
         }
       })
-      .catch(() => {}); // silently fall back to currentUser state
+      .catch(() => { }); // silently fall back to currentUser state
   }, [isEdit, currentUser?.id]);
 
   const pickProfileImage = async () => {
@@ -138,11 +138,11 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
           if (sData && sData.length > 0) {
             const bioSetting = sData.find((s: any) => s.key === 'default_bios');
             const verifySetting = sData.find((s: any) => s.key === 'auto_verify_profiles');
-            
+
             if (verifySetting && verifySetting.value === 'true') {
               autoVerify = true;
             }
-            
+
             if (!finalBio && bioSetting && bioSetting.value) {
               const biosList = bioSetting.value.split('\\n').map((b: string) => b.trim()).filter(Boolean);
               if (biosList.length > 0) {
@@ -167,7 +167,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         bio: finalBio,
         profile_image_url: profileImageBase64 || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=random&color=fff&size=256`,
         is_online: true,
-        call_rate: role === 'girl' ? 8 : 0,
+        call_rate: 0,
         average_rating: 0,
         is_active: autoVerify, // Auto-verify feature
         is_id_verified: autoVerify,
@@ -291,7 +291,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             isVerified: autoVerify,
             rating: 0,
             totalCalls: 0,
-            pricePerMinute: role === 'girl' ? 8 : 0,
+            pricePerMinute: 0,
             languages: [],
             interests: [],
             city,
