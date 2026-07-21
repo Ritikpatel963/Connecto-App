@@ -48,9 +48,13 @@ const AdminLayout = () => {
 
   const visibleGroups = groups.filter((group) => !group.permission || currentAdmin?.permissions.includes(group.permission as never));
   const matchingGroup = useMemo(() => visibleGroups.find((group) => group.items.some((item) => matchesPath(location.pathname, item.to)))?.id, [location.pathname, visibleGroups]);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
-  const toggle = (id: string, isOpen: boolean) => setOpenGroups((current) => ({ ...current, [id]: !isOpen }));
+  useEffect(() => {
+    if (matchingGroup) setOpenGroup(matchingGroup);
+  }, [matchingGroup]);
+
+  const toggle = (id: string) => setOpenGroup((current) => current === id ? null : id);
   const closeMobile = () => setMobileMenu(false);
   const allNotifications: AdminNotification[] = notificationsQuery.data || [];
   const notifications = allNotifications.slice(0, 5);
@@ -119,10 +123,10 @@ const AdminLayout = () => {
 
             {visibleGroups.map((group) => {
               const active = matchingGroup === group.id;
-              const open = openGroups[group.id] ?? active;
+              const open = openGroup === group.id;
               return (
                 <li className={`dropdown admin-navigation-group${open ? ' open' : ''}${active ? ' active-group' : ''}`} key={group.id}>
-                  <a href={`#${group.id}`} onClick={(event) => { event.preventDefault(); toggle(group.id, open); }} aria-expanded={open}>
+                  <a href={`#${group.id}`} onClick={(event) => { event.preventDefault(); toggle(group.id); }} aria-expanded={open}>
                     <Icon icon={group.icon} className="menu-icon" /><span>{group.label}</span>
                   </a>
                   <ul className="sidebar-submenu" style={{ display: open ? "block" : "none", maxHeight: open ? `${group.items.length * 52}px` : 0 }}>
