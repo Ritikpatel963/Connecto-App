@@ -17,7 +17,7 @@ import RolesPage from "./pages/RolesPage";
 import CMSPage from "./pages/CMSPage";
 import SettingsPage from "./pages/SettingsPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
-import UserDetailPage from "./pages/UserProfilePage";
+import UserProfilePage from "./pages/UserProfilePage";
 import UsersPage from "./pages/UsersPage";
 import VerificationsPage from "./pages/VerificationsPage";
 import WalletTransactionsPage from "./pages/WalletTransactionsPage";
@@ -37,7 +37,7 @@ const AppRoutes = () => (
       <Route element={<AdminLayout />}>
         <Route index element={<DashboardPage />} />
         <Route path="/users" element={<UsersPage />} />
-        <Route path="/users/:id" element={<UserDetailPage />} />
+        <Route path="/users/:id" element={<UserProfilePage />} />
         <Route path="/verifications/id" element={<VerificationsPage type="id" />} />
         <Route path="/verifications/voice" element={<VerificationsPage type="voice" />} />
         <Route path="/calls" element={<CallsPage />} />
@@ -69,3 +69,4 @@ const AppRoutes = () => (
 );
 
 export default AppRoutes;
+
