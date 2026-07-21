@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import { rolesApi } from "../api/rbac";
+import { permissionsApi, rolesApi } from "../api/rbac";
+import { supabase } from "../../lib/supabase";
 import ActionModal from "../components/ActionModal";
 import AdminDataTable from "../components/AdminDataTable";
 import { IconButton } from "../components/Cells";
@@ -100,15 +101,31 @@ const RolesPage = () => {
   const [deleting, setDeleting] = useState<BaseRecord | null>(null);
   const [form, setForm] = useState<RoleForm>({ name: "", description: "", is_active: true, permissions: emptyPermissions() });
 
-  const open = (row?: BaseRecord) => {
+  const open = async (row?: BaseRecord) => {
     const name = row ? String(row.name) : "";
     setEditing(row || "new");
-    setForm({
-      name,
-      description: row ? String(row.description || "") : "",
-      is_active: row?.is_active === undefined ? true : Boolean(row.is_active),
-      permissions: presetPermissions(name),
-    });
+    const basePermissions = presetPermissions(name);
+
+    if (row?.id) {
+      // Load actual saved permissions from DB
+      try {
+        const { data: savedPerms } = await supabase
+          .from("permissions")
+          .select("name, role_permissions!inner(role_id)")
+          .eq("role_permissions.role_id", row.id);
+        if (savedPerms && savedPerms.length > 0) {
+          // Reset to empty then mark saved ones
+          const matrix = emptyPermissions();
+          savedPerms.forEach((p: any) => {
+            const [mod, action] = String(p.name).split(".");
+            if (matrix[mod] && action in matrix[mod]) matrix[mod][action as PermissionAction] = true;
+          });
+          setForm({ name, description: row ? String(row.description || "") : "", is_active: row?.is_active === undefined ? true : Boolean(row.is_active), permissions: matrix });
+          return;
+        }
+      } catch (_) { /* fallback to preset */ }
+    }
+    setForm({ name, description: row ? String(row.description || "") : "", is_active: row?.is_active === undefined ? true : Boolean(row.is_active), permissions: basePermissions });
   };
 
   const togglePermission = (moduleKey: string, action: PermissionAction) => {
@@ -131,14 +148,41 @@ const RolesPage = () => {
     permissions: permissionCount(form.permissions),
   });
 
+  const savePermissionMatrix = async (roleId: string | number) => {
+    // Fetch all permission rows to get their IDs
+    const allPerms = await permissionsApi.list({ page: 1, pageSize: 500 });
+    const permMap = new Map(allPerms.data.map((p: any) => [String(p.name), Number(p.id)]));
+
+    // Build list of permission names that are checked
+    const checked: string[] = [];
+    permissionModules.forEach((mod) => {
+      permissionActions.forEach((action) => {
+        const disabled = mod.disabled?.includes(action.key) || (mod.readOnly && !mod.readOnly.includes(action.key));
+        if (!disabled && form.permissions[mod.key]?.[action.key]) checked.push(`${mod.key}.${action.key}`);
+      });
+    });
+
+    // Delete old, insert new
+    await supabase.from("role_permissions").delete().eq("role_id", roleId);
+    const inserts = checked.filter((name) => permMap.has(name)).map((name) => ({ role_id: roleId, permission_id: permMap.get(name) }));
+    if (inserts.length) await supabase.from("role_permissions").insert(inserts);
+  };
+
   const refreshRoles = () => {
     client.invalidateQueries({ queryKey: ["roles"] });
     client.invalidateQueries({ queryKey: ["roles-summary"] });
   };
 
   const save = useMutation({
-    mutationFn: () => editing === "new" ? rolesApi.create(savePayload()) : rolesApi.update(editing!.id, savePayload()),
+    mutationFn: async () => {
+      const payload = savePayload();
+      const result = editing === "new" ? await rolesApi.create(payload) : await rolesApi.update(editing!.id, payload);
+      const roleId = result.id ?? (editing !== "new" ? editing!.id : undefined);
+      if (roleId) await savePermissionMatrix(roleId);
+      return result;
+    },
     onSuccess: () => { toast.success("Role saved"); setEditing(null); refreshRoles(); },
+    onError: (e: Error) => toast.error(e.message),
   });
   const remove = useMutation({ mutationFn: () => rolesApi.remove(deleting!.id), onSuccess: () => { toast.success("Role deleted"); setDeleting(null); refreshRoles(); } });
   const columns = [

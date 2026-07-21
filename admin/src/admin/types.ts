@@ -28,12 +28,24 @@ export interface BaseRecord {
 }
 
 export type AdminPermission =
+  // legacy keys used by sidebar/route guards
   | "verify_id"
   | "verify_voice"
   | "approve_wallet_recharge"
   | "approve_referral_redemption"
   | "manage_users"
-  | "manage_admins";
+  | "manage_admins"
+  // granular module × action keys (from permission matrix)
+  | "dashboard.view"
+  | "users.view" | "users.create" | "users.edit" | "users.delete"
+  | "id_verifications.view" | "id_verifications.edit" | "id_verifications.approve"
+  | "voice_verifications.view" | "voice_verifications.edit" | "voice_verifications.approve"
+  | "wallet.view" | "wallet.edit" | "wallet.approve"
+  | "referrals.view" | "referrals.create" | "referrals.edit" | "referrals.delete" | "referrals.approve"
+  | "calls.view"
+  | "chat.view" | "chat.edit"
+  | "ratings.view" | "ratings.edit" | "ratings.delete"
+  | "admin_roles.view" | "admin_roles.create" | "admin_roles.edit" | "admin_roles.delete";
 
 export interface CurrentAdmin {
   id: number;
