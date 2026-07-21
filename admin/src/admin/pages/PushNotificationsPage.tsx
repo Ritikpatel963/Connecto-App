@@ -12,6 +12,7 @@ const PushNotificationsPage = () => {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [userId, setUserId] = useState("");
+  const [audience, setAudience] = useState("all");
   const [loading, setLoading] = useState(false);
 
   const fetchHistory = async (params: ListParams) => {
@@ -32,11 +33,12 @@ const PushNotificationsPage = () => {
     
     setLoading(true);
     try {
-      const { data } = await api.post("/push/dispatch", { title, message, userId: userId || null });
+      const { data } = await api.post("/push/dispatch", { title, message, userId: userId || null, audience });
       toast.success(`Successfully sent ${data.data?.sentCount ?? data.sentCount ?? 0} notifications!`);
       setTitle("");
       setMessage("");
       setUserId("");
+      setAudience("all");
       queryClient.invalidateQueries({ queryKey: ["push-history"] });
     } catch (err: any) {
       toast.error(err.message);
@@ -48,7 +50,7 @@ const PushNotificationsPage = () => {
   const columns = [
     { key: "title", label: "Title" },
     { key: "message", label: "Message", render: (row: any) => <div className="text-truncate" style={{maxWidth: '300px'}}>{row.message}</div> },
-    { key: "target", label: "Target", render: (row: any) => row.target_user_id ? <span className="badge bg-info">User {row.target_user_id}</span> : <span className="badge bg-primary">Broadcast</span> },
+    { key: "target", label: "Target", render: (row: any) => row.target_user_id ? <span className="badge bg-info">User {row.target_user_id}</span> : <span className="badge bg-primary">{row.audience || 'Broadcast'}</span> },
     { key: "sent_count", label: "Sent Count", render: (row: any) => `${row.sent_count} devices` },
     { key: "created_at", label: "Date", render: (row: any) => new Date(row.created_at).toLocaleString() },
   ];
@@ -68,9 +70,21 @@ const PushNotificationsPage = () => {
                 <input type="text" className="form-control radius-8" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Special Offer!" required />
               </div>
               <div className="col-md-6">
-                <label className="form-label fw-semibold text-primary-light text-sm mb-8">Target User ID (Optional)</label>
-                <input type="text" className="form-control radius-8" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="Leave blank to send to ALL users" />
+                <label className="form-label fw-semibold text-primary-light text-sm mb-8">Target Audience</label>
+                <select className="form-select radius-8" value={audience} onChange={(e) => setAudience(e.target.value)}>
+                  <option value="all">All Users</option>
+                  <option value="male">Males Only</option>
+                  <option value="female">Females Only</option>
+                  <option value="verified">Verified Users Only</option>
+                  <option value="specific">Specific User ID</option>
+                </select>
               </div>
+              {audience === 'specific' && (
+                <div className="col-md-6">
+                  <label className="form-label fw-semibold text-primary-light text-sm mb-8">Target User ID</label>
+                  <input type="text" className="form-control radius-8" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="e.g. uuid-..." required />
+                </div>
+              )}
               <div className="col-12">
                 <label className="form-label fw-semibold text-primary-light text-sm mb-8">Message Body</label>
                 <textarea className="form-control radius-8" rows={4} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="e.g. Get 50% off on your next recharge..." required />
