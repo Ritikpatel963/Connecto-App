@@ -7,6 +7,7 @@ import AdminDataTable from "../components/AdminDataTable";
 import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import { packagesApi } from "../api/packages";
+import { settingsApi } from "../api/settings";
 import { ColumnDef, SelectFilter, CallRatePackage } from "../types";
 
 const filters: SelectFilter[] = [
@@ -25,6 +26,14 @@ const columns: ColumnDef<CallRatePackage>[] = [
 
 const SubscriptionsPage = () => {
   const queryClient = useQueryClient();
+  const { data: defaultPackageId } = useQuery({ queryKey: ["default_girl_package_id"], queryFn: () => settingsApi.get("default_girl_package_id") });
+  
+  const setDefaultMutation = useMutation({
+    mutationFn: (id: string | number) => settingsApi.set("default_girl_package_id", String(id)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["default_girl_package_id"] });
+    }
+  });
   
   const deleteMutation = useMutation({
     mutationFn: (id: string | number) => packagesApi.remove(id),
@@ -45,7 +54,19 @@ const SubscriptionsPage = () => {
       <AdminDataTable<CallRatePackage>
         queryKey={["packages"]}
         queryFn={packagesApi.list}
-        columns={columns}
+        columns={[
+          ...columns.filter(c => c.key !== 'name'),
+          { 
+            key: "name", 
+            label: "Package Name", 
+            render: (row) => (
+              <div className="d-flex align-items-center gap-2">
+                <span>{row.name}</span>
+                {String(row.id) === String(defaultPackageId) && <span className="badge bg-primary-100 text-primary-600 rounded-pill text-xs">Default</span>}
+              </div>
+            )
+          }
+        ]}
         filters={filters}
         initialSort={{ key: "created_at", direction: "desc" }}
         toolbar={
@@ -55,6 +76,11 @@ const SubscriptionsPage = () => {
         }
         renderActions={(row) => (
           <>
+            {String(row.id) !== String(defaultPackageId) && (
+              <button className="btn btn-sm btn-outline-success me-2" title="Set as Default for Girls" onClick={() => setDefaultMutation.mutate(row.id)}>
+                <Icon icon="solar:star-outline" />
+              </button>
+            )}
             <Link to={`/packages/edit/${row.id}`} className="btn btn-sm btn-outline-primary" title="Edit">
               <Icon icon="solar:pen-outline" />
             </Link>

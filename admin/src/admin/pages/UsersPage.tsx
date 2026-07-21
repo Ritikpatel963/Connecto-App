@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { usersApi } from "../api/users";
 import { packagesApi } from "../api/packages";
+import { settingsApi } from "../api/settings";
 import AdminDataTable from "../components/AdminDataTable";
 import ActionModal from "../components/ActionModal";
 import { DateCell, IconButton, PersonCell, RatingCell } from "../components/Cells";
@@ -63,12 +64,16 @@ const UsersPage = () => {
     queryKey: ["packages"],
     queryFn: () => packagesApi.list({ page: 1, pageSize: 100 }),
   });
+  const { data: defaultPackageId } = useQuery({ 
+    queryKey: ["default_girl_package_id"], 
+    queryFn: () => settingsApi.get("default_girl_package_id") 
+  });
   const packages = packagesData?.data || [];
 
   const refreshUsers = () => client.invalidateQueries({ queryKey: ["users"] });
   const openEditor = (user?: User) => {
     setEditing(user || "new");
-    setForm(user ? formFromUser(user) : { ...emptyUser });
+    setForm(user ? formFromUser(user) : { ...emptyUser, call_package_id: defaultPackageId || "" });
   };
 
   const save = useMutation({
@@ -143,7 +148,10 @@ const UsersPage = () => {
         <div className="col-md-6"><label className="form-label">Full name</label><input className="form-control" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Enter full name" /></div>
         <div className="col-md-6"><label className="form-label">Phone number <span className="text-danger">*</span></label><input type="tel" className="form-control" value={form.phone_number} onChange={(event) => setForm({ ...form, phone_number: event.target.value.replace(/[^\d+]/g, "") })} placeholder="+919876543210" maxLength={16} required /></div>
         <div className="col-md-3"><label className="form-label">Age</label><input type="number" min={18} className="form-control" value={form.age} onChange={(event) => setForm({ ...form, age: Number(event.target.value) })} /></div>
-        <div className="col-md-3"><label className="form-label">Gender</label><select className="form-select" value={form.gender} onChange={(event) => setForm({ ...form, gender: event.target.value as User["gender"] })}><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>
+        <div className="col-md-3"><label className="form-label">Gender</label><select className="form-select" value={form.gender} onChange={(event) => {
+          const newGender = event.target.value as User["gender"];
+          setForm({ ...form, gender: newGender, call_package_id: newGender !== 'male' ? (form.call_package_id || defaultPackageId || "") : "" });
+        }}><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>
         {form.gender !== 'male' && (
           <div className="col-md-6">
             <label className="form-label">Call Package</label>
