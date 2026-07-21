@@ -304,7 +304,7 @@ const UserProfilePage = () => {
       </div>}
     </ThemeModal>
 
-    <ThemeModal open={adjusting} title="Adjust Balance" onClose={() => setAdjusting(false)} size="md" footer={<><button className="btn btn-outline-secondary" onClick={() => setAdjusting(false)}>Cancel</button><button className="btn btn-primary-600" disabled={!adjustForm.amount} onClick={handleAdjustBalanceSubmit}>Confirm Adjustment</button></>}>
+    <ThemeModal open={adjusting} title="Adjust Balance" onClose={() => setAdjusting(false)} footer={<><button className="btn btn-outline-secondary" onClick={() => setAdjusting(false)}>Cancel</button><button className="btn btn-primary-600" disabled={!adjustForm.amount} onClick={handleAdjustBalanceSubmit}>Confirm Adjustment</button></>}>
       <div className="row gy-3">
         <div className="col-12">
           <label className="form-label">Amount of coins to add <span className="text-sm text-secondary-light fw-normal">(use negative to remove)</span></label>
