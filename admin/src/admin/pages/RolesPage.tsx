@@ -41,6 +41,9 @@ const permissionModules = [
   { key: "chat", label: "Chat", icon: "solar:chat-round-dots-outline", disabled: ["create", "approve"] },
   { key: "ratings", label: "Ratings & Reviews", icon: "solar:star-outline", disabled: ["create", "approve"] },
   { key: "admin_roles", label: "Admin & Roles", icon: "solar:user-shield-outline" },
+  { key: "packages", label: "Packages", icon: "solar:crown-star-outline" },
+  { key: "cms", label: "Content (CMS)", icon: "solar:document-text-outline" },
+  { key: "settings", label: "Settings", icon: "solar:settings-outline" },
 ];
 
 const emptyPermissions = (): PermissionMatrix => Object.fromEntries(

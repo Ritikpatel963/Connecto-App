@@ -39,36 +39,48 @@ const AppRoutes = () => (
       <Route element={<AdminLayout />}>
         <Route index element={<DashboardPage />} />
 
-        {/* Users — manage_users */}
-        <Route element={<PermissionRoute require="manage_users" />}>
+        {/* Users */}
+        <Route element={<PermissionRoute require="users.view" />}>
           <Route path="/users" element={<UsersPage />} />
           <Route path="/users/create" element={<CreateUserPage />} />
           <Route path="/users/:id" element={<UserProfilePage />} />
         </Route>
 
-        {/* Verifications — verify_id / verify_voice */}
-        <Route element={<PermissionRoute require="verify_id" />}>
+        {/* Verifications */}
+        <Route element={<PermissionRoute require="id_verifications.view" />}>
           <Route path="/verifications/id" element={<VerificationsPage type="id" />} />
         </Route>
-        <Route element={<PermissionRoute require="verify_voice" />}>
+        <Route element={<PermissionRoute require="voice_verifications.view" />}>
           <Route path="/verifications/voice" element={<VerificationsPage type="voice" />} />
         </Route>
 
-        {/* Calls & Chat — open to all authenticated admins */}
-        <Route path="/calls" element={<CallsPage />} />
-        <Route path="/chat" element={<ChatPage />} />
-        <Route path="/chat/profile" element={<ChatProfilePage />} />
-        <Route path="/ratings" element={<RatingsPage />} />
+        {/* Calls & Chat */}
+        <Route element={<PermissionRoute require="calls.view" />}>
+          <Route path="/calls" element={<CallsPage />} />
+        </Route>
+        <Route element={<PermissionRoute require="chat.view" />}>
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/chat/profile" element={<ChatProfilePage />} />
+        </Route>
 
-        {/* Packages — open to all authenticated admins */}
-        <Route path="/subscriptions" element={<SubscriptionsPage />} />
-        <Route path="/packages/create" element={<CreatePackagePage />} />
-        <Route path="/packages/edit/:id" element={<EditPackagePage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/push-notifications" element={<PushNotificationsPage />} />
+        <Route element={<PermissionRoute require="ratings.view" />}>
+          <Route path="/ratings" element={<RatingsPage />} />
+        </Route>
 
-        {/* Wallet — approve_wallet_recharge */}
-        <Route element={<PermissionRoute require="approve_wallet_recharge" />}>
+        {/* Packages */}
+        <Route element={<PermissionRoute require="packages.view" />}>
+          <Route path="/subscriptions" element={<SubscriptionsPage />} />
+          <Route path="/packages/create" element={<CreatePackagePage />} />
+          <Route path="/packages/edit/:id" element={<EditPackagePage />} />
+        </Route>
+
+        <Route element={<PermissionRoute require="dashboard.view" />}>
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/push-notifications" element={<PushNotificationsPage />} />
+        </Route>
+
+        {/* Wallet */}
+        <Route element={<PermissionRoute require="wallet.view" />}>
           <Route path="/wallet/transactions" element={<WalletTransactionsPage />} />
           <Route path="/wallet/manual-approvals" element={<ManualRechargePage />} />
           <Route path="/recharge-packages" element={<RechargePackagesPage />} />
@@ -77,21 +89,26 @@ const AppRoutes = () => (
           <Route path="/withdrawals" element={<WithdrawalsPage />} />
         </Route>
 
-        {/* Referrals — approve_referral_redemption */}
-        <Route path="/referrals" element={<ReferralsPage />} />
-        <Route path="/referrals/tiers" element={<ReferralTiersPage />} />
-        <Route element={<PermissionRoute require="approve_referral_redemption" />}>
+        {/* Referrals */}
+        <Route element={<PermissionRoute require="referrals.view" />}>
+          <Route path="/referrals" element={<ReferralsPage />} />
+          <Route path="/referrals/tiers" element={<ReferralTiersPage />} />
           <Route path="/referrals/redemptions" element={<RedemptionsPage />} />
         </Route>
 
-        {/* Admin & Roles — manage_admins */}
-        <Route element={<PermissionRoute require="manage_admins" />}>
+        {/* Admin & Roles */}
+        <Route element={<PermissionRoute require="admin_roles.view" />}>
           <Route path="/admin-access/admins" element={<AdminsPage />} />
           <Route path="/admin-access/roles" element={<RolesPage />} />
         </Route>
 
-        <Route path="/cms" element={<CMSPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route element={<PermissionRoute require="cms.view" />}>
+          <Route path="/cms" element={<CMSPage />} />
+        </Route>
+        
+        <Route element={<PermissionRoute require="settings.view" />}>
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
       </Route>
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />

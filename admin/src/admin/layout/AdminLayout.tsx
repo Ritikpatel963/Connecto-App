@@ -7,22 +7,29 @@ import { AdminNotification, notificationsApi } from "../api/notifications";
 import { useAuth } from "../auth/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { usePushNotifications } from "../hooks/usePushNotifications";
+import { isSuperAdmin, hasPermission, AdminPermission } from "../auth/PermissionRoute";
 
 interface NavItem { label: string; to: string; }
-interface NavGroup { id: string; label: string; icon: string; items: NavItem[]; permission?: string; }
+interface NavGroup {
+  id: string;
+  label: string;
+  icon: string;
+  permission?: AdminPermission | string;
+  items: NavItem[];
+}
 
 const groups: NavGroup[] = [
-  { id: "users", label: "Users", icon: "solar:users-group-rounded-outline", items: [{ label: "All Users", to: "/users" }] },
-  { id: "verifications", label: "Verifications", icon: "solar:shield-check-outline", items: [{ label: "ID Verifications", to: "/verifications/id" }, { label: "Voice Verifications", to: "/verifications/voice" }] },
-  { id: "calls", label: "Calls", icon: "solar:phone-calling-outline", items: [{ label: "Call Log", to: "/calls" }] },
-  { id: "chat", label: "Chat", icon: "solar:chat-round-dots-outline", items: [{ label: "Chat", to: "/chat" }] },
-  { id: "notifications", label: "Notifications", icon: "solar:bell-bing-outline", items: [{ label: "Push Notifications", to: "/push-notifications" }] },
-  { id: "ratings", label: "Ratings & Reviews", icon: "solar:star-outline", items: [{ label: "All Reviews", to: "/ratings" }] },
-  { id: "subscriptions", label: "Packages", icon: "solar:crown-star-outline", items: [{ label: "All Packages", to: "/subscriptions" }] },
-  { id: "wallet", label: "Wallet", icon: "solar:wallet-2-outline", items: [{ label: "Recharge Transactions", to: "/wallet/transactions" }, { label: "Manual Approvals", to: "/wallet/manual-approvals" }, { label: "Recharge Packages", to: "/recharge-packages" }, { label: "Withdraw Rules", to: "/settings#withdrawal" }, { label: "Withdrawals", to: "/withdrawals" }] },
-  { id: "referrals", label: "Referral Program", icon: "solar:share-circle-outline", items: [{ label: "Referrals", to: "/referrals" }, { label: "Referral Tiers", to: "/referrals/tiers" }] },
-  { id: "cms", label: "Content (CMS)", icon: "solar:document-text-outline", items: [{ label: "Manage Content", to: "/cms" }] },
-  { id: "rbac", label: "Admin & Roles", icon: "solar:user-shield-outline", permission: "manage_admins", items: [{ label: "Staff Members", to: "/admin-access/admins" }, { label: "Roles & Permissions", to: "/admin-access/roles" }] },
+  { id: "dashboard", label: "Dashboard", icon: "solar:widget-5-outline", permission: "dashboard.view", items: [{ label: "Overview", to: "/" }] },
+  { id: "users", label: "Users", icon: "solar:users-group-rounded-outline", permission: "users.view", items: [{ label: "All Users", to: "/users" }] },
+  { id: "verifications", label: "Verifications", icon: "solar:shield-check-outline", permission: "id_verifications.view", items: [{ label: "ID Verifications", to: "/verifications/id" }, { label: "Voice Verifications", to: "/verifications/voice" }] },
+  { id: "calls", label: "Calls", icon: "solar:phone-calling-outline", permission: "calls.view", items: [{ label: "Call Log", to: "/calls" }] },
+  { id: "chat", label: "Chat", icon: "solar:chat-round-dots-outline", permission: "chat.view", items: [{ label: "Chat", to: "/chat" }] },
+  { id: "ratings", label: "Ratings & Reviews", icon: "solar:star-outline", permission: "ratings.view", items: [{ label: "All Reviews", to: "/ratings" }] },
+  { id: "packages", label: "Packages", icon: "solar:crown-star-outline", permission: "packages.view", items: [{ label: "All Packages", to: "/subscriptions" }] },
+  { id: "wallet", label: "Wallet", icon: "solar:wallet-money-outline", permission: "wallet.view", items: [{ label: "Transactions", to: "/wallet/transactions" }, { label: "Manual Approvals", to: "/wallet/manual-approvals" }, { label: "Recharge Packages", to: "/recharge-packages" }, { label: "Withdrawals", to: "/withdrawals" }] },
+  { id: "referrals", label: "Referral Program", icon: "solar:gift-outline", permission: "referrals.view", items: [{ label: "Referrals", to: "/referrals" }, { label: "Referral Tiers", to: "/referrals/tiers" }, { label: "Redemptions", to: "/referrals/redemptions" }] },
+  { id: "cms", label: "Content (CMS)", icon: "solar:document-text-outline", permission: "cms.view", items: [{ label: "Manage Content", to: "/cms" }] },
+  { id: "rbac", label: "Admin & Roles", icon: "solar:user-shield-outline", permission: "admin_roles.view", items: [{ label: "Staff Members", to: "/admin-access/admins" }, { label: "Roles & Permissions", to: "/admin-access/roles" }] },
 ];
 
 const itemClass = ({ isActive }: { isActive: boolean }) => isActive ? "active-page" : "";
@@ -46,8 +53,8 @@ const AdminLayout = () => {
 
   usePushNotifications(currentAdmin?.id);
 
-  const isSuperAdmin = currentAdmin?.role?.toLowerCase().includes("super") ?? false;
-  const visibleGroups = groups.filter((group) => !group.permission || isSuperAdmin || currentAdmin?.permissions.includes(group.permission as never));
+  const superAdmin = isSuperAdmin(currentAdmin?.role || "");
+  const visibleGroups = groups.filter((group) => !group.permission || superAdmin || hasPermission(currentAdmin?.permissions || [], group.permission as AdminPermission));
   const matchingGroup = useMemo(() => visibleGroups.find((group) => group.items.some((item) => matchesPath(location.pathname, item.to)))?.id, [location.pathname, visibleGroups]);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 

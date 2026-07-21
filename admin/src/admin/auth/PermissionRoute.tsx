@@ -18,9 +18,9 @@ const permissionAliases: Record<string, string[]> = {
   approve_referral_redemption:["referrals.approve"],
 };
 
-const isSuperAdmin = (role: string) => role.toLowerCase().includes("super");
+export const isSuperAdmin = (role: string) => role.toLowerCase().includes("super");
 
-const hasPermission = (permissions: AdminPermission[], require: AdminPermission): boolean => {
+export const hasPermission = (permissions: AdminPermission[], require: AdminPermission): boolean => {
   if (permissions.includes(require)) return true;
   // Check matrix aliases
   const aliases = permissionAliases[require as string] || [];
