@@ -144,7 +144,6 @@ const RolesPage = () => {
   const savePayload = () => ({
     name: form.name.trim(),
     description: form.description.trim(),
-    is_active: form.is_active,
     permissions: permissionCount(form.permissions),
   });
 
