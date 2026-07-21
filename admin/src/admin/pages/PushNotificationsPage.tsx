@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Icon } from "@iconify/react";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import PageHeader from "../components/PageHeader";
 import AdminDataTable from "../components/AdminDataTable";
 import { toast } from "react-toastify";

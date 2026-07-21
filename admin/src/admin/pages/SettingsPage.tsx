@@ -5,7 +5,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import { settingsApi } from "../api/settings";
-import api from "../api/http";
 
 const SettingsPage = () => {
   const location = useLocation();
@@ -74,10 +73,7 @@ const SettingsPage = () => {
   const { data: autoVerifyData } = useQuery({ queryKey: ["settings", "auto_verify_profiles"], queryFn: () => settingsApi.get("auto_verify_profiles") });
 
 
-  // Push Notification State
-  const [pushTitle, setPushTitle] = useState("");
-  const [pushBody, setPushBody] = useState("");
-  const [pushTargetId, setPushTargetId] = useState("");
+
 
   // OTP Settings
   const [otpMethod, setOtpMethod] = useState("firebase");

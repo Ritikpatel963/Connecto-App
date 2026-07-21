@@ -10,7 +10,7 @@ export const walletTransactionsApi = {
   ...base,
   list: async (params: any) => {
     const result = await base.list(params);
-    const userIds = [...new Set(result.data.map(t => t.wallet_id))];
+    const userIds = result.data.map(t => t.wallet_id).filter((val, idx, arr) => arr.indexOf(val) === idx);
     if (userIds.length > 0) {
       const { data: users } = await supabase.from('users').select('id, name').in('id', userIds);
       const userMap = (users || []).reduce((acc: any, u: any) => ({...acc, [u.id]: u.name}), {});
