@@ -50,7 +50,18 @@ const WalletTransactionsPage = () => {
           </div>
         );
     }},
-    { key: "payment_method", label: "Method" },
+    { key: "payment_method", label: "Method / Txn ID", render: (row: WalletTransaction) => {
+      if (!row.payment_method) return "-";
+      const parts = String(row.payment_method).split(':');
+      const gateway = parts[0].replace('_', ' ');
+      const txnId = parts.slice(1).join(':'); // In case txnId has colons
+      return (
+        <div className="d-flex flex-column gap-1">
+          <span className="text-capitalize">{gateway}</span>
+          {txnId && <span className="text-secondary text-xs font-monospace">{txnId}</span>}
+        </div>
+      );
+    }},
     { key: "verification_status", label: "Verification", render: (row: WalletTransaction) => <StatusBadge value={row.verification_status} /> },
     { key: "created_at", label: "Created", render: (row: WalletTransaction) => <DateCell value={row.created_at} /> },
   ];
