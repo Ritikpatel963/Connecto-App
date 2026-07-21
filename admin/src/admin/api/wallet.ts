@@ -47,4 +47,26 @@ export const walletTransactionsApi = {
     return result;
   },
   reject: (id: string | number, rejection_reason: string) => resourceAction<WalletTransaction>("wallet-transactions", id, "reject", { rejection_reason }, { verification_status: "rejected", reviewed_at: new Date().toISOString(), rejection_reason }),
+  adjust: async (walletId: string | number, amountCoins: number, reason: string) => {
+    const { data: wallet } = await supabase.from('wallets').select('id, balance').or(`id.eq.${walletId},user_id.eq.${walletId}`).maybeSingle();
+    const currentBalance = wallet?.balance || 0;
+    const targetId = wallet?.id || walletId;
+    
+    const { error: txError } = await supabase.from("wallet_transactions").insert({
+      wallet_id: targetId,
+      amount: Math.abs(amountCoins),
+      transaction_type: amountCoins > 0 ? "admin_credit" : "admin_debit",
+      payment_method: "system",
+      verification_status: "verified",
+      rejection_reason: reason || "Admin adjustment"
+    });
+
+    if (txError) throw new Error(txError.message);
+
+    if (wallet?.id) {
+      await supabase.from('wallets').update({ balance: Math.max(0, currentBalance + amountCoins) }).eq('id', wallet.id);
+    } else {
+      await supabase.from('wallets').insert({ id: targetId, user_id: walletId, balance: Math.max(0, currentBalance + amountCoins) });
+    }
+  }
 };

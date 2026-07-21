@@ -89,12 +89,13 @@ export interface CallRecord extends BaseRecord {
 
 export interface WalletTransaction extends BaseRecord {
   wallet_id: Id;
-  transaction_type: "recharge" | "call_deduction" | "refund" | "referral_reward";
+  transaction_type: "recharge" | "call_deduction" | "refund" | "referral_reward" | "admin_credit" | "admin_debit";
   amount: number;
-  payment_method?: "razorpay" | "manual_upload";
+  payment_method?: "razorpay" | "manual_upload" | "system";
   payment_screenshot_url?: string;
   verification_status: "pending" | "verified" | "rejected";
   reviewed_by_admin_id?: number;
+  rejection_reason?: string;
   reviewed_at?: string;
   created_at: string;
 }

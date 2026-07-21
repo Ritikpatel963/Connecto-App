@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { usersApi } from "../api/users";
 import { packagesApi } from "../api/packages";
+import { walletTransactionsApi } from "../api/wallet";
 import AdminDataTable from "../components/AdminDataTable";
 import { DateCell, MoneyCell, PersonCell, RatingCell } from "../components/Cells";
 import { ErrorState, LoadingState } from "../components/PageStates";
@@ -119,6 +120,7 @@ const walletColumns = [
   { key: "transaction_type", label: "Type", render: (row: BaseRecord) => humanize(String(row.transaction_type || "-")) },
   { key: "amount", label: "Amount", render: (row: BaseRecord) => <MoneyCell value={row.amount} /> },
   { key: "payment_method", label: "Method", render: (row: BaseRecord) => humanize(String(row.payment_method || "-")) },
+  { key: "details", label: "Details", render: (row: BaseRecord) => <span className="text-secondary-light">{String(row.rejection_reason || "-")}</span> },
   { key: "verification_status", label: "Status", render: (row: BaseRecord) => <StatusBadge value={String(row.verification_status || "pending")} /> },
   { key: "created_at", label: "Created", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
 ];
@@ -163,6 +165,23 @@ const UserProfilePage = () => {
   const query = useQuery({ queryKey: ["user-detail", id], queryFn: () => usersApi.detail(id) });
   const { data: packagesData } = useQuery({ queryKey: ["packages"], queryFn: () => packagesApi.list({ page: 1, pageSize: 100 }) });
   const packages = packagesData?.data || [];
+  
+  const handleAdjustBalance = async () => {
+    const amountStr = window.prompt("Enter amount of coins to add (use negative to remove):");
+    if (!amountStr) return;
+    const amount = parseInt(amountStr, 10);
+    if (isNaN(amount)) return toast.error("Invalid amount");
+    const reason = window.prompt("Enter reason for adjustment:") || "Admin adjustment";
+    
+    try {
+      await walletTransactionsApi.adjust(id, amount, reason);
+      toast.success("Balance adjusted successfully");
+      client.invalidateQueries({ queryKey: ["user-detail", id] });
+      client.invalidateQueries({ queryKey: ["user-wallet-transactions", id] });
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
 
   const save = useMutation({
     mutationFn: () => usersApi.update(id, { ...form!, phone_number: normalizePhoneNumber(form!.phone_number) }),
@@ -224,7 +243,7 @@ const UserProfilePage = () => {
   const tabContent: Record<Tab, React.ReactNode> = {
     Profile: profileContent,
     Verifications: <div className="row g-3"><div className="col-12"><section className="profile-section-card"><h5 className="mb-16">ID verification submissions</h5><MiniTable rows={detail.idVerifications} emptyLabel="ID submissions" hasImage={true} /></section></div>{user.gender !== 'male' && <div className="col-12"><section className="profile-section-card"><h5 className="mb-16">Voice verification submissions</h5><MiniTable rows={detail.voiceVerifications} emptyLabel="voice submissions" /></section></div>}</div>,
-    Wallet: <div><div className="profile-table-heading d-flex justify-content-between align-items-center"><div><h5>Wallet transactions</h5><p className="mb-0">Review this member's wallet activity and payment status.</p></div><div className="text-end"><span className="text-sm text-secondary-light d-block mb-1">Current Balance</span><h4 className="mb-0 text-primary-600">{detail.wallet?.balance || 0} Coins</h4></div></div><AdminDataTable<BaseRecord> queryKey={["user-wallet-transactions", id]} queryFn={localList(detail.transactions)} columns={walletColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search wallet transactions..." /></div>,
+    Wallet: <div><div className="profile-table-heading d-flex justify-content-between align-items-center"><div><h5>Wallet transactions</h5><p className="mb-0">Review this member's wallet activity and payment status.</p></div><div className="text-end"><span className="text-sm text-secondary-light d-block mb-1">Current Balance</span><div className="d-flex align-items-center gap-2 justify-content-end"><h4 className="mb-0 text-primary-600">{detail.wallet?.balance || 0} Coins</h4><button className="btn btn-sm btn-outline-primary ms-2" onClick={handleAdjustBalance}>Adjust</button></div></div></div><AdminDataTable<BaseRecord> queryKey={["user-wallet-transactions", id]} queryFn={localList(detail.transactions)} columns={walletColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search wallet transactions..." /></div>,
     Calls: <div><div className="profile-table-heading"><h5>Call history</h5><p>Search, filter and review this member's calls.</p></div><AdminDataTable<CallRecord> queryKey={["user-calls", id]} queryFn={localList(callRows)} columns={callColumns} filters={callFilters} initialSort={{ key: "created_at", direction: "desc" }} defaultVisibleColumns={["caller", "receiver", "duration_seconds", "total_cost", "status", "created_at"]} searchPlaceholder="Search call history..." /></div>,
     Ratings: <div className="d-flex flex-column gap-4"><div><div className="profile-table-heading"><h5>Reviews received</h5><p>Feedback this member received from others.</p></div><AdminDataTable<BaseRecord> queryKey={["user-ratings-received", id]} queryFn={localList(detail.ratings.filter((r: BaseRecord) => String(r.rated_user_id) === String(id)))} columns={receivedColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search received reviews..." /></div><div><div className="profile-table-heading"><h5>Reviews given</h5><p>Feedback this member gave to others.</p></div><AdminDataTable<BaseRecord> queryKey={["user-ratings-given", id]} queryFn={localList(detail.ratings.filter((r: BaseRecord) => String(r.rater_user_id) === String(id)))} columns={givenColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search given reviews..." /></div></div>,
     Referrals: <div><div className="profile-table-heading"><h5>Referral history</h5><p>Track users referred by or connected to this member.</p></div><AdminDataTable<BaseRecord> queryKey={["user-referrals", id]} queryFn={localList(detail.referrals)} columns={referralColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search referral history..." /></div>,

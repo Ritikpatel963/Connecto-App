@@ -62,6 +62,7 @@ const WalletTransactionsPage = () => {
         </div>
       );
     }},
+    { key: "details", label: "Details", render: (row: WalletTransaction) => <span className="text-secondary-light">{row.rejection_reason || "-"}</span> },
     { key: "verification_status", label: "Verification", render: (row: WalletTransaction) => <StatusBadge value={row.verification_status} /> },
     { key: "created_at", label: "Created", render: (row: WalletTransaction) => <DateCell value={row.created_at} /> },
   ];
