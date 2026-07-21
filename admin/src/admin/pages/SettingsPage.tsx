@@ -62,6 +62,11 @@ const SettingsPage = () => {
   const { data: inAppEnabledData } = useQuery({ queryKey: ["settings", "in_app_enabled"], queryFn: () => settingsApi.get("in_app_enabled") });
   const { data: manualEnabledData } = useQuery({ queryKey: ["settings", "manual_enabled"], queryFn: () => settingsApi.get("manual_enabled") });
 
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const { data: emailEnabledData } = useQuery({ queryKey: ["settings", "email_notifications_enabled"], queryFn: () => settingsApi.get("email_notifications_enabled") });
+  const { data: pushEnabledData } = useQuery({ queryKey: ["settings", "push_notifications_enabled"], queryFn: () => settingsApi.get("push_notifications_enabled") });
+
   const [defaultBios, setDefaultBios] = useState("Hi, I am new here!");
   const { data: defaultBiosData } = useQuery({ queryKey: ["settings", "default_bios"], queryFn: () => settingsApi.get("default_bios") });
 
@@ -96,7 +101,9 @@ const SettingsPage = () => {
     if (manualEnabledData !== undefined) setManualEnabled(manualEnabledData === 'true');
     if (defaultBiosData !== undefined) setDefaultBios(defaultBiosData);
     if (autoVerifyData !== undefined) setAutoVerify(autoVerifyData === 'true');
-  }, [configData, qrData, rzpKeyData, rzpSecretData, otpMethodData, f2sKeyData, f2sSenderData, rzpEnabledData, inAppEnabledData, manualEnabledData, defaultBiosData, autoVerifyData]);
+    if (emailEnabledData !== undefined) setEmailEnabled(emailEnabledData !== 'false');
+    if (pushEnabledData !== undefined) setPushEnabled(pushEnabledData !== 'false');
+  }, [configData, qrData, rzpKeyData, rzpSecretData, otpMethodData, f2sKeyData, f2sSenderData, rzpEnabledData, inAppEnabledData, manualEnabledData, defaultBiosData, autoVerifyData, emailEnabledData, pushEnabledData]);
 
   const saveRules = useMutation({
     mutationFn: (config: any) => settingsApi.set("withdrawal_config", config),
@@ -133,6 +140,14 @@ const SettingsPage = () => {
       await settingsApi.set("razorpay_enabled", razorpayEnabled ? "true" : "false");
       await settingsApi.set("in_app_enabled", inAppEnabled ? "true" : "false");
       await settingsApi.set("manual_enabled", manualEnabled ? "true" : "false");
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
+  });
+
+  const saveNotifications = useMutation({
+    mutationFn: async () => {
+      await settingsApi.set("email_notifications_enabled", emailEnabled ? "true" : "false");
+      await settingsApi.set("push_notifications_enabled", pushEnabled ? "true" : "false");
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
   });
@@ -192,6 +207,9 @@ const SettingsPage = () => {
     } else if (activeTab === 'general') {
       saveGeneral.mutate();
       toast.success("General settings saved successfully!");
+    } else if (activeTab === 'notifications') {
+      saveNotifications.mutate();
+      toast.success("Notification settings saved successfully!");
     } else {
       toast.success("Settings saved successfully!");
     }
@@ -508,7 +526,7 @@ const SettingsPage = () => {
                       <span className="text-sm text-secondary-light">Send system emails to users</span>
                     </div>
                     <div className="form-switch switch-primary">
-                      <input className="form-check-input" type="checkbox" role="switch" defaultChecked />
+                      <input className="form-check-input" type="checkbox" role="switch" checked={emailEnabled} onChange={(e) => setEmailEnabled(e.target.checked)} />
                     </div>
                   </div>
                   <div className="d-flex align-items-center justify-content-between border-bottom pb-16 mb-16">
@@ -517,7 +535,7 @@ const SettingsPage = () => {
                       <span className="text-sm text-secondary-light">Send push notifications to mobile apps</span>
                     </div>
                     <div className="form-switch switch-primary">
-                      <input className="form-check-input" type="checkbox" role="switch" defaultChecked />
+                      <input className="form-check-input" type="checkbox" role="switch" checked={pushEnabled} onChange={(e) => setPushEnabled(e.target.checked)} />
                     </div>
                   </div>
                 </div>

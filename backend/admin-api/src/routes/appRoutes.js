@@ -279,7 +279,7 @@ export async function appRoute(req, res, url) {
           const { sendPushNotification } = await import("../lib/firebase.js");
           const fcmRes = await fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${referrerId}&select=fcm_token`, { headers: serviceHeaders });
           const fcmData = await fcmRes.json();
-          if (fcmData?.[0]?.fcm_token) {
+          if (fcmData?.[0]?.fcm_token && settings.push_notifications_enabled !== 'false') {
             sendPushNotification(fcmData[0].fcm_token, "Referral Successful! 🎉", `Your friend completed their first purchase and you earned ${parseInt(settings.referral_reward_coins) || 50} coins!`);
           }
         }
