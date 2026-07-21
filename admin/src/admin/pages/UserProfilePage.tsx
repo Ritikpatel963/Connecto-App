@@ -106,8 +106,8 @@ const Metric = ({ icon, label, value, tone }: { icon: string; label: string; val
 </div>;
 
 const callColumns = [
-  { key: "caller", label: "Caller", render: (row: CallRecord) => <PersonCell name={row.caller} userId={row.caller_user_id} /> },
-  { key: "receiver", label: "Receiver", render: (row: CallRecord) => <PersonCell name={row.receiver} userId={row.receiver_user_id} /> },
+  { key: "caller", label: "Caller", render: (row: CallRecord) => <PersonCell name={row.caller} userId={row.caller_user_id as number} /> },
+  { key: "receiver", label: "Receiver", render: (row: CallRecord) => <PersonCell name={row.receiver} userId={row.receiver_user_id as number} /> },
   { key: "duration_seconds", label: "Duration", render: (row: CallRecord) => <span className="font-monospace">{formatDuration(row.duration_seconds)}</span> },
   { key: "rate_per_min_charged", label: "Rate/min", render: (row: CallRecord) => <MoneyCell value={row.rate_per_min_charged} /> },
   { key: "total_cost", label: "Total cost", render: (row: CallRecord) => <MoneyCell value={row.total_cost} /> },
@@ -129,7 +129,7 @@ const receivedColumns = [
   { key: "created_at", label: "Date", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
 ];
 
-const ratingsReceivedColumns = [
+const givenColumns = [
   { key: "rated", label: "To", render: (row: BaseRecord) => <PersonCell name={row.rated} userId={row.rated_user_id as number} /> },
   { key: "rating", label: "Rating", render: (row: BaseRecord) => <RatingCell value={row.rating} /> },
   { key: "review_text", label: "Review", sortable: false, className: "profile-review-cell" },
@@ -149,7 +149,7 @@ const favoriteColumns = [
   { key: "created_at", label: "Date", render: (row: FavoriteRecord) => <DateCell value={row.created_at} /> },
 ];
 
-const fansColumns = [
+const fanColumns = [
   { key: "user", label: "Fan", render: (row: FavoriteRecord) => <PersonCell name={row.user_name || `User #${row.user_id}`} userId={row.user_id} /> },
   { key: "created_at", label: "Date", render: (row: FavoriteRecord) => <DateCell value={row.created_at} /> },
 ];
