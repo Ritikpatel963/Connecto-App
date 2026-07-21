@@ -65,6 +65,7 @@ export interface User extends BaseRecord {
 
 export interface Verification extends BaseRecord {
   user: string;
+  phone_number?: string;
   status: "pending" | "approved" | "rejected";
   submitted_at: string;
   rejection_reason?: string;

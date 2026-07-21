@@ -65,7 +65,7 @@ const VerificationsPage = ({ type }: { type: "id" | "voice" }) => {
 
   const columns = [
     { key: "id", label: "Request" },
-    { key: "user", label: "User", render: (row: Verification) => <PersonCell name={row.user} subtitle={row.id} /> },
+    { key: "user", label: "User", render: (row: Verification) => <PersonCell name={row.user} subtitle={row.phone_number || row.user_id} userId={row.user_id as number} /> },
     { key: type === "id" ? "document" : "sample", label: type === "id" ? "Document" : "Audio sample", render: (row: Verification) => type === "id" && row.id_image_url && !row.id_image_url.startsWith("/demo/") ? <a href={row.id_image_url} target="_blank" rel="noreferrer" className="text-primary-600 fw-medium">View Document</a> : (row[type === "id" ? "document" : "sample"] || "-") },
     { key: "status", label: "Status", render: (row: Verification) => <StatusBadge value={row.status} /> },
     { key: "submitted_at", label: "Submitted", render: (row: Verification) => <DateCell value={row.submitted_at} /> },

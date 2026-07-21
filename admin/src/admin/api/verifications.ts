@@ -17,7 +17,7 @@ const enrichedList = (
   const userIds = Array.from(new Set(result.data.map((row) => row.user_id).filter(Boolean)));
   const adminIds = Array.from(new Set(result.data.map((row) => row.reviewed_by_admin_id).filter(Boolean)));
   const [{ data: users, error: usersError }, { data: admins, error: adminsError }] = await Promise.all([
-    userIds.length ? supabase.from("users").select("id, name").in("id", userIds) : Promise.resolve({ data: [], error: null }),
+    userIds.length ? supabase.from("users").select("id, name, phone_number").in("id", userIds) : Promise.resolve({ data: [], error: null }),
     adminIds.length ? supabase.from("admins").select("id, name").in("id", adminIds) : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -25,12 +25,14 @@ const enrichedList = (
   if (adminsError) throw new Error(adminsError.message);
 
   const userNames = new Map((users || []).map((row) => [String(row.id), row.name]));
+  const userPhones = new Map((users || []).map((row) => [String(row.id), row.phone_number]));
   const adminNames = new Map((admins || []).map((row) => [String(row.id), row.name]));
   return {
     ...result,
     data: result.data.map((row) => ({
       ...row,
       user: userNames.get(String(row.user_id)) || `User #${row.user_id}`,
+      phone_number: userPhones.get(String(row.user_id)),
       reviewed_by_admin: row.reviewed_by_admin_id
         ? adminNames.get(String(row.reviewed_by_admin_id)) || `Admin #${row.reviewed_by_admin_id}`
         : undefined,
