@@ -161,9 +161,14 @@ const RolesPage = () => {
     });
 
     // Delete old, insert new
-    await supabase.from("role_permissions").delete().eq("role_id", roleId);
+    const { error: delError } = await supabase.from("role_permissions").delete().eq("role_id", roleId);
+    if (delError) throw new Error("Failed to clear old permissions: " + delError.message);
+
     const inserts = checked.filter((name) => permMap.has(name)).map((name) => ({ role_id: roleId, permission_id: permMap.get(name) }));
-    if (inserts.length) await supabase.from("role_permissions").insert(inserts);
+    if (inserts.length) {
+      const { error: insError } = await supabase.from("role_permissions").insert(inserts);
+      if (insError) throw new Error("Failed to save new permissions: " + insError.message);
+    }
   };
 
   const refreshRoles = () => {
