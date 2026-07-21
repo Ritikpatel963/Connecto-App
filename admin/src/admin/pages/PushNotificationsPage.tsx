@@ -13,15 +13,21 @@ const PushNotificationsPage = () => {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [userIds, setUserIds] = useState<string[]>([]);
-  const [audience, setAudience] = useState("all");
   const [loading, setLoading] = useState(false);
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [userSearch, setUserSearch] = useState("");
+  const [modalGender, setModalGender] = useState("all");
+  
   const { data: usersData, isFetching: usersLoading } = useQuery({
-    queryKey: ["users-search", userSearch],
-    queryFn: () => usersApi.list({ page: 1, pageSize: 20, search: userSearch }),
+    queryKey: ["users-search", userSearch, modalGender],
+    queryFn: () => usersApi.list({ 
+      page: 1, 
+      pageSize: 100, 
+      search: userSearch,
+      filters: modalGender !== 'all' ? { gender: modalGender } : undefined
+    }),
     enabled: showUserModal,
   });
 
@@ -40,12 +46,12 @@ const PushNotificationsPage = () => {
   const confirmSend = async () => {
     setLoading(true);
     try {
-      const { data } = await api.post("/push/dispatch", { title, message, userIds: userIds.length > 0 ? userIds : null, audience: userIds.length > 0 ? 'specific' : audience });
+      const { data } = await api.post("/push/dispatch", { title, message, userIds: userIds.length > 0 ? userIds : null, audience: userIds.length > 0 ? 'specific' : 'all' });
       toast.success(`Successfully sent ${data.data?.sentCount ?? data.sentCount ?? 0} notifications!`);
       setTitle("");
       setMessage("");
       setUserIds([]);
-      setAudience("all");
+      setModalGender("all");
       setShowConfirmModal(false);
       queryClient.invalidateQueries({ queryKey: ["push-history"] });
     } catch (err: any) {
@@ -68,7 +74,7 @@ const PushNotificationsPage = () => {
   const columns = [
     { key: "title", label: "Title" },
     { key: "message", label: "Message", render: (row: any) => <div className="text-truncate" style={{maxWidth: '300px'}}>{row.message}</div> },
-    { key: "target", label: "Target", render: (row: any) => row.target_user_id ? <span className="badge bg-info">User {row.target_user_id}</span> : <span className="badge bg-primary">{row.audience || 'Broadcast'}</span> },
+    { key: "target", label: "Target", render: (row: any) => row.target_user_id ? <span className="badge bg-info">User {row.target_user_id}</span> : <span className="badge bg-primary">Broadcast</span> },
     { key: "sent_count", label: "Sent Count", render: (row: any) => `${row.sent_count} devices` },
     { key: "created_at", label: "Date", render: (row: any) => new Date(row.created_at).toLocaleString() },
   ];
@@ -87,26 +93,17 @@ const PushNotificationsPage = () => {
                 <label className="form-label fw-semibold text-primary-light text-sm mb-8">Notification Title</label>
                 <input type="text" className="form-control radius-8" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Special Offer!" required />
               </div>
-              <div className="col-md-6">
-                <label className="form-label fw-semibold text-primary-light text-sm mb-8">Target Audience</label>
-                <select className="form-select radius-8" value={audience} onChange={(e) => setAudience(e.target.value)} disabled={userIds.length > 0}>
-                  <option value="all">All Users</option>
-                  <option value="male">Males Only</option>
-                  <option value="female">Females Only</option>
-                  <option value="verified">Verified Users Only</option>
-                </select>
-              </div>
-              <div className="col-md-6">
-                <label className="form-label fw-semibold text-primary-light text-sm mb-8">Or Select Specific Users</label>
+              <div className="col-12">
+                <label className="form-label fw-semibold text-primary-light text-sm mb-8">Target Users</label>
                 <div className="input-group">
-                  <input type="text" className="form-control" readOnly value={userIds.length > 0 ? `${userIds.length} users selected` : ''} placeholder="Overrides audience if set..." />
+                  <input type="text" className="form-control" readOnly value={userIds.length > 0 ? `${userIds.length} users selected` : 'Broadcast to ALL users'} placeholder="Leave blank to send to all..." />
                   {userIds.length > 0 && (
                     <button type="button" className="btn btn-outline-danger" onClick={() => setUserIds([])}>
                       Clear
                     </button>
                   )}
                   <button type="button" className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShowUserModal(true)}>
-                    <Icon icon="solar:users-group-rounded-outline" /> Browse
+                    <Icon icon="solar:users-group-rounded-outline" /> Browse Users
                   </button>
                 </div>
               </div>
@@ -141,13 +138,20 @@ const PushNotificationsPage = () => {
                 <button type="button" className="btn-close" onClick={() => setShowUserModal(false)}></button>
               </div>
               <div className="modal-body">
-                <input 
-                  type="text" 
-                  className="form-control mb-3" 
-                  placeholder="Search by name..." 
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                />
+                <div className="d-flex gap-2 mb-3">
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="Search by name..." 
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                  />
+                  <select className="form-select" style={{ width: '150px' }} value={modalGender} onChange={e => setModalGender(e.target.value)}>
+                    <option value="all">All Genders</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
                 {usersLoading ? (
                   <div className="text-center py-4"><span className="spinner-border text-primary" /></div>
                 ) : (
@@ -195,7 +199,7 @@ const PushNotificationsPage = () => {
               </div>
               <div className="modal-body">
                 <p>You are about to send <strong>{title}</strong>.</p>
-                <p>Target Audience: <span className="badge bg-primary">{userIds.length > 0 ? `${userIds.length} Specific User(s)` : audience.toUpperCase()}</span></p>
+                <p>Target Audience: <span className="badge bg-primary">{userIds.length > 0 ? `${userIds.length} Specific User(s)` : 'ALL USERS'}</span></p>
                 <p>Are you sure you want to proceed?</p>
               </div>
               <div className="modal-footer">
