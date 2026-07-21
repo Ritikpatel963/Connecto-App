@@ -87,14 +87,17 @@ export async function listResource<T extends BaseRecord>(resource: string, param
       }
 
       if (userIds.size > 0) {
-        const { data: users } = await supabase.from('users').select('id, name').in('id', Array.from(userIds));
+        const { data: users } = await supabase.from('users').select('id, name, phone_number').in('id', Array.from(userIds));
         if (users) {
-          const userMap = new Map(users.map((u: any) => [u.id, u.name]));
+          const userMap = new Map(users.map((u: any) => [u.id, u]));
           rows = rows.map((row) => {
             const newRow = { ...row };
             for (const col of userCols) {
-              if (newRow[col.idCol] && !newRow[col.nameCol]) {
-                newRow[col.nameCol] = userMap.get(newRow[col.idCol]) || "Unknown";
+              if (newRow[col.idCol]) {
+                const u = userMap.get(newRow[col.idCol]);
+                if (!newRow[col.nameCol] || !newRow[col.nameCol].includes(':::')) {
+                  newRow[col.nameCol] = `${u?.name || "Unknown"}:::${u?.phone_number || ""}`;
+                }
               }
             }
             return newRow;

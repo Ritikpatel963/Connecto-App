@@ -79,23 +79,26 @@ const liveDetail = async (id: string | number): Promise<UserDetail> => {
 
   const [transactions, relatedUsers, tiers] = await Promise.all([
     queryRows(supabase.from("wallet_transactions").select("*").or(`wallet_id.eq.${wallet?.id || userId},wallet_id.eq.${userId}`)),
-    queryRows(supabase.from("users").select("id, name").in("id", relatedUserIds)),
+    queryRows(supabase.from("users").select("id, name, phone_number").in("id", relatedUserIds)),
     queryRows(supabase.from("referral_tiers").select("id, tier_name")),
   ]);
 
   const names = new Map(relatedUsers.map((row) => [String(row.id), String(row.name)]));
+  const phones = new Map(relatedUsers.map((row) => [String(row.id), String(row.phone_number)]));
   const tierNames = new Map(tiers.map((row) => [String(row.id), String(row.tier_name)]));
-  const nameFor = (value: unknown) => names.get(String(value)) || `User #${value}`;
+  const nameFor = (value: unknown) => `${names.get(String(value)) || `User #${value}`}:::${phones.get(String(value)) || ""}`;
+  
   const enrichedCalls = calls.map((row) => ({ ...row, caller: nameFor(row.caller_user_id), receiver: nameFor(row.receiver_user_id) }));
   const enrichedRatings = ratings.map((row) => ({ ...row, rater: nameFor(row.rater_user_id), rated: nameFor(row.rated_user_id) }));
   const enrichedReferrals = referrals.map((row) => ({ ...row, referrer: nameFor(row.referrer_user_id), referred: nameFor(row.referred_user_id) }));
+  const enrichedFavourites = favourites.map((row) => ({ ...row, user_name: nameFor(row.user_id), target_user_name: nameFor(row.favourite_user_id) }));
   const enrichedRedemptions = redemptions.map((row) => ({ ...row, tier: tierNames.get(String(row.tier_id)) || `Tier #${row.tier_id}` }));
 
   return {
     user,
     languages,
     interests,
-    favourites,
+    favourites: enrichedFavourites,
     ratings: enrichedRatings,
     calls: enrichedCalls,
     wallet: wallet || ({ id: "no-wallet", balance: 0 } as any),

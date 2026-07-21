@@ -13,8 +13,8 @@ const filters: SelectFilter[] = [{ key: "status", label: "Status", options: ["in
 const CallsPage = () => {
   const columns = [
     { key: "id", label: "Call ID" },
-    { key: "caller", label: "Caller", render: (row: CallRecord) => <PersonCell name={row.caller} /> },
-    { key: "receiver", label: "Receiver", render: (row: CallRecord) => <PersonCell name={row.receiver} /> },
+    { key: "caller", label: "Caller", render: (row: CallRecord) => <PersonCell name={row.caller} userId={row.caller_user_id as number} /> },
+    { key: "receiver", label: "Receiver", render: (row: CallRecord) => <PersonCell name={row.receiver} userId={row.receiver_user_id as number} /> },
     { key: "duration_seconds", label: "Duration", render: (row: CallRecord) => <span className="font-monospace">{formatDuration(row.duration_seconds)}</span> },
     { key: "rate_per_min_charged", label: "Rate/min", render: (row: CallRecord) => <MoneyCell value={row.rate_per_min_charged} /> },
     { key: "total_cost", label: "Total cost", render: (row: CallRecord) => <MoneyCell value={row.total_cost} /> },

@@ -4,16 +4,17 @@ import { Icon } from "@iconify/react";
 import StatusBadge from "./StatusBadge";
 
 export const PersonCell = ({ name, subtitle, online, userId }: { name: unknown; subtitle?: unknown; online?: boolean, userId?: number | string }) => {
-  const text = String(name || "Unknown");
-  const initials = text.split(" ").map((part) => part[0]).slice(0, 2).join("");
+  const [realName, injectedPhone] = String(name || "Unknown").split(':::');
+  const actualSubtitle = subtitle ?? (injectedPhone || undefined);
+  const initials = realName.split(" ").map((part) => part[0]).slice(0, 2).join("");
   const content = (
     <div className="d-flex align-items-center gap-10 min-w-160-px">
       <span className="position-relative w-36-px h-36-px rounded-circle bg-primary-50 text-primary-600 d-flex align-items-center justify-content-center fw-bold text-sm flex-shrink-0">
         {initials}{online !== undefined && <span className={`position-absolute end-0 bottom-0 w-8-px h-8-px rounded-circle border border-white ${online ? "bg-success-main" : "bg-neutral-400"}`} />}
       </span>
       <div>
-        <span className={`d-block fw-semibold ${userId ? 'text-primary-main' : 'text-primary-light'}`}>{text}</span>
-        {subtitle !== undefined && subtitle !== null && <span className="d-block text-xs text-secondary-light">{String(subtitle)}</span>}
+        <span className={`d-block fw-semibold ${userId ? 'text-primary-main' : 'text-primary-light'}`}>{realName}</span>
+        {actualSubtitle !== undefined && actualSubtitle !== null && <span className="d-block text-xs text-secondary-light">{String(actualSubtitle)}</span>}
       </div>
     </div>
   );

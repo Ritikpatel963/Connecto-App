@@ -98,7 +98,7 @@ const UsersPage = () => {
   });
 
   const columns = [
-    { key: "name", label: "User", hideable: false, render: (row: User) => <PersonCell name={row.name} subtitle={row.phone_number} online={row.is_online} /> },
+    { key: "name", label: "User", hideable: false, render: (row: User) => <PersonCell name={row.name} subtitle={row.phone_number} online={row.is_online} userId={row.id} /> },
     { key: "phone_number", label: "Phone number" },
     { key: "age", label: "Age" }, { key: "gender", label: "Gender" },
     { key: "country", label: "Country" }, { key: "state", label: "State" }, { key: "city", label: "City" },

@@ -10,8 +10,8 @@ const ConversationsPage = () => {
   const navigate = useNavigate();
   const columns = [
     { key: "id", label: "Conversation" },
-    { key: "user_one", label: "Participant one", render: (row: BaseRecord) => <PersonCell name={row.user_one} /> },
-    { key: "user_two", label: "Participant two", render: (row: BaseRecord) => <PersonCell name={row.user_two} /> },
+    { key: "user_one", label: "Participant one", render: (row: BaseRecord) => <PersonCell name={row.user_one} userId={row.user_one_id as number} /> },
+    { key: "user_two", label: "Participant two", render: (row: BaseRecord) => <PersonCell name={row.user_two} userId={row.user_two_id as number} /> },
     { key: "messages", label: "Messages" },
     { key: "last_message_at", label: "Last activity", render: (row: BaseRecord) => <DateCell value={row.last_message_at} /> },
   ];

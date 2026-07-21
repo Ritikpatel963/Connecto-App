@@ -106,8 +106,8 @@ const Metric = ({ icon, label, value, tone }: { icon: string; label: string; val
 </div>;
 
 const callColumns = [
-  { key: "caller", label: "Caller", render: (row: CallRecord) => <PersonCell name={row.caller} /> },
-  { key: "receiver", label: "Receiver", render: (row: CallRecord) => <PersonCell name={row.receiver} /> },
+  { key: "caller", label: "Caller", render: (row: CallRecord) => <PersonCell name={row.caller} userId={row.caller_user_id} /> },
+  { key: "receiver", label: "Receiver", render: (row: CallRecord) => <PersonCell name={row.receiver} userId={row.receiver_user_id} /> },
   { key: "duration_seconds", label: "Duration", render: (row: CallRecord) => <span className="font-monospace">{formatDuration(row.duration_seconds)}</span> },
   { key: "rate_per_min_charged", label: "Rate/min", render: (row: CallRecord) => <MoneyCell value={row.rate_per_min_charged} /> },
   { key: "total_cost", label: "Total cost", render: (row: CallRecord) => <MoneyCell value={row.total_cost} /> },
@@ -123,13 +123,14 @@ const walletColumns = [
   { key: "created_at", label: "Created", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
 ];
 const receivedColumns = [
-  { key: "rater", label: "From", render: (row: BaseRecord) => <PersonCell name={row.rater} /> },
-  { key: "rating", label: "Rating", render: (row: BaseRecord) => <RatingCell value={row.rating} /> },
-  { key: "review_text", label: "Review", sortable: false, className: "profile-review-cell" },
+  { key: "rater", label: "From", render: (row: BaseRecord) => <PersonCell name={row.rater} userId={row.rater_user_id as number} /> },
+  { key: "rating", label: "Rating", render: (row: BaseRecord) => <RatingCell value={row.rating as number} /> },
+  { key: "review", label: "Review", render: (row: BaseRecord) => <span>{String(row.review || "-")}</span> },
   { key: "created_at", label: "Date", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
 ];
-const givenColumns = [
-  { key: "rated", label: "To", render: (row: BaseRecord) => <PersonCell name={row.rated} /> },
+
+const ratingsReceivedColumns = [
+  { key: "rated", label: "To", render: (row: BaseRecord) => <PersonCell name={row.rated} userId={row.rated_user_id as number} /> },
   { key: "rating", label: "Rating", render: (row: BaseRecord) => <RatingCell value={row.rating} /> },
   { key: "review_text", label: "Review", sortable: false, className: "profile-review-cell" },
   { key: "created_at", label: "Date", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
@@ -144,12 +145,12 @@ const referralColumns = [
 ];
 const favoriteColumns = [
   { key: "id", label: "ID" },
-  { key: "target_user", label: "Liked User", render: (row: FavoriteRecord) => <PersonCell name={row.target_user?.name || `User #${row.target_user_id}`} /> },
+  { key: "target_user", label: "Liked User", render: (row: FavoriteRecord) => <PersonCell name={row.target_user_name || `User #${row.target_user_id}`} userId={row.target_user_id} /> },
   { key: "created_at", label: "Date", render: (row: FavoriteRecord) => <DateCell value={row.created_at} /> },
 ];
-const fanColumns = [
-  { key: "id", label: "ID" },
-  { key: "user", label: "Fan", render: (row: FavoriteRecord) => <PersonCell name={row.user?.name || `User #${row.user_id}`} /> },
+
+const fansColumns = [
+  { key: "user", label: "Fan", render: (row: FavoriteRecord) => <PersonCell name={row.user_name || `User #${row.user_id}`} userId={row.user_id} /> },
   { key: "created_at", label: "Date", render: (row: FavoriteRecord) => <DateCell value={row.created_at} /> },
 ];
 

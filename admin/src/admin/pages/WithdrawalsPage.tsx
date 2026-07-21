@@ -68,7 +68,7 @@ const WithdrawalsPage = () => {
 
   const columns = [
     { key: "id", label: "Request ID" }, 
-    { key: "user", label: "Creator", render: (row: WithdrawalRequest) => <PersonCell name={row.user} /> }, 
+    { key: "user", label: "Creator", render: (row: WithdrawalRequest) => <PersonCell name={row.user} userId={row.user_id as number} /> }, 
     { key: "amount_coins", label: "Coins", render: (row: WithdrawalRequest) => <span>{row.amount_coins} coins</span> },
     { key: "amount_fiat", label: "Payout", render: (row: WithdrawalRequest) => <span>{row.currency || "INR"} {row.amount_fiat}</span> },
     { key: "payment_method", label: "Payment Method" },

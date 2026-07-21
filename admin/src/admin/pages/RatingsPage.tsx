@@ -97,8 +97,8 @@ const RatingsPage = () => {
 
   const columns = [
     { key: "id", label: "ID" },
-    { key: "rater", label: "Rater", render: (row: BaseRecord) => <PersonCell name={row.rater} /> },
-    { key: "rated", label: "Rated user", render: (row: BaseRecord) => <PersonCell name={row.rated} /> },
+    { key: "rater", label: "Rater", render: (row: BaseRecord) => <PersonCell name={row.rater} userId={row.rater_user_id as number} /> },
+    { key: "rated", label: "Rated user", render: (row: BaseRecord) => <PersonCell name={row.rated} userId={row.rated_user_id as number} /> },
     { key: "rating", label: "Rating", render: (row: BaseRecord) => <RatingCell value={row.rating} /> },
     { key: "review_text", label: "Review", className: "min-w-240-px", render: (row: BaseRecord) => <span>{getReviewText(row)}</span> },
     { key: "status", label: "Status", render: (row: BaseRecord) => <StatusBadge value={isRowApproved(row) ? "approved" : "pending"} /> },

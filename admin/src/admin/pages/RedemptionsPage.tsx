@@ -53,7 +53,7 @@ const RedemptionsPage = () => {
     },
   });
   const columns = [
-    { key: "id", label: "Request" }, { key: "user", label: "User", render: (row: ReferralRedemption) => <PersonCell name={row.user} /> }, { key: "tier", label: "Tier" },
+    { key: "id", label: "Request" }, { key: "user", label: "User", render: (row: ReferralRedemption) => <PersonCell name={row.user} userId={row.user_id as number} /> }, { key: "tier", label: "Tier" },
     { key: "qualified_referrals_at_request", label: "Qualified snapshot" },
     { key: "reward_amount", label: "Reward snapshot", render: (row: ReferralRedemption) => <MoneyCell value={row.reward_amount} /> },
     { key: "status", label: "Status", render: (row: ReferralRedemption) => <StatusBadge value={row.status} /> },
