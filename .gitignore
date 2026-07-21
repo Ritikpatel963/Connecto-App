@@ -2,3 +2,14 @@ docs/
 node_modules/
 .env*
 backend/admin-api/firebase-service-account.json
+
+# Standard ignores
+*.zip
+*.tar.gz
+*.log
+.DS_Store
+dist/
+build/
+coverage/
+.expo/
+.next/
