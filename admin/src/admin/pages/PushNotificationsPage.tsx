@@ -42,7 +42,7 @@ const PushNotificationsPage = () => {
     
     setLoading(true);
     try {
-      const { data } = await api.post("/push/dispatch", { title, message, userId: userId || null, audience });
+      const { data } = await api.post("/push/dispatch", { title, message, userId: userId || null, audience: userId ? 'specific' : audience });
       toast.success(`Successfully sent ${data.data?.sentCount ?? data.sentCount ?? 0} notifications!`);
       setTitle("");
       setMessage("");
@@ -80,25 +80,22 @@ const PushNotificationsPage = () => {
               </div>
               <div className="col-md-6">
                 <label className="form-label fw-semibold text-primary-light text-sm mb-8">Target Audience</label>
-                <select className="form-select radius-8" value={audience} onChange={(e) => setAudience(e.target.value)}>
+                <select className="form-select radius-8" value={audience} onChange={(e) => setAudience(e.target.value)} disabled={!!userId}>
                   <option value="all">All Users</option>
                   <option value="male">Males Only</option>
                   <option value="female">Females Only</option>
                   <option value="verified">Verified Users Only</option>
-                  <option value="specific">Specific User ID</option>
                 </select>
               </div>
-              {audience === 'specific' && (
-                <div className="col-md-6">
-                  <label className="form-label fw-semibold text-primary-light text-sm mb-8">Target User ID</label>
-                  <div className="input-group">
-                    <input type="text" className="form-control" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="e.g. uuid-..." required />
-                    <button type="button" className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShowUserModal(true)}>
-                      <Icon icon="solar:users-group-rounded-outline" /> Browse
-                    </button>
-                  </div>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold text-primary-light text-sm mb-8">Or Select Specific User</label>
+                <div className="input-group">
+                  <input type="text" className="form-control" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="Overrides audience if set..." />
+                  <button type="button" className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShowUserModal(true)}>
+                    <Icon icon="solar:users-group-rounded-outline" /> Browse
+                  </button>
                 </div>
-              )}
+              </div>
               <div className="col-12">
                 <label className="form-label fw-semibold text-primary-light text-sm mb-8">Message Body</label>
                 <textarea className="form-control radius-8" rows={4} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="e.g. Get 50% off on your next recharge..." required />
