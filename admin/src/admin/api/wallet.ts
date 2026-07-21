@@ -54,7 +54,7 @@ export const walletTransactionsApi = {
     
     const { error: txError } = await supabase.from("wallet_transactions").insert({
       wallet_id: targetId,
-      amount: Math.abs(amountCoins),
+      amount: amountCoins,
       transaction_type: amountCoins > 0 ? "recharge" : "refund",
       payment_method: null,
       payment_screenshot_url: "admin_note:" + (reason || "Admin adjustment"),
