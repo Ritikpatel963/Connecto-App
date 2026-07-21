@@ -12,7 +12,7 @@ interface NavItem { label: string; to: string; }
 interface NavGroup { id: string; label: string; icon: string; items: NavItem[]; permission?: string; }
 
 const groups: NavGroup[] = [
-  { id: "users", label: "Users", icon: "solar:users-group-rounded-outline", items: [{ label: "All Users", to: "/users" }, { label: "Create User", to: "/users/create" }] },
+  { id: "users", label: "Users", icon: "solar:users-group-rounded-outline", items: [{ label: "All Users", to: "/users" }] },
   { id: "verifications", label: "Verifications", icon: "solar:shield-check-outline", items: [{ label: "ID Verifications", to: "/verifications/id" }, { label: "Voice Verifications", to: "/verifications/voice" }] },
   { id: "calls", label: "Calls", icon: "solar:phone-calling-outline", items: [{ label: "Call Log", to: "/calls" }] },
   { id: "chat", label: "Chat", icon: "solar:chat-round-dots-outline", items: [{ label: "Chat", to: "/chat" }] },
@@ -22,7 +22,7 @@ const groups: NavGroup[] = [
   { id: "wallet", label: "Wallet", icon: "solar:wallet-2-outline", items: [{ label: "Recharge Transactions", to: "/wallet/transactions" }, { label: "Manual Approvals", to: "/wallet/manual-approvals" }, { label: "Recharge Packages", to: "/recharge-packages" }, { label: "Withdraw Rules", to: "/settings#withdrawal" }, { label: "Withdrawals", to: "/withdrawals" }] },
   { id: "referrals", label: "Referral Program", icon: "solar:share-circle-outline", items: [{ label: "Referrals", to: "/referrals" }, { label: "Referral Tiers", to: "/referrals/tiers" }] },
   { id: "cms", label: "Content (CMS)", icon: "solar:document-text-outline", items: [{ label: "Manage Content", to: "/cms" }] },
-  { id: "rbac", label: "Admin & Roles", icon: "solar:user-shield-outline", permission: "manage_admins", items: [{ label: "Admins", to: "/admin-access/admins" }, { label: "Roles", to: "/admin-access/roles" }] },
+  { id: "rbac", label: "Admin & Roles", icon: "solar:user-shield-outline", permission: "manage_admins", items: [{ label: "Staff Members", to: "/admin-access/admins" }, { label: "Roles & Permissions", to: "/admin-access/roles" }] },
 ];
 
 const itemClass = ({ isActive }: { isActive: boolean }) => isActive ? "active-page" : "";
