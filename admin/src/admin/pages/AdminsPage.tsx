@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { adminsApi, rolesApi } from "../api/rbac";
-import { supabase } from "../../lib/supabase";
+import api from "../api/http";
 import ActionModal from "../components/ActionModal";
 import AdminDataTable from "../components/AdminDataTable";
 import { DateCell, IconButton, PersonCell } from "../components/Cells";
@@ -33,13 +33,9 @@ const AdminsPage = () => {
   const save = useMutation({
     mutationFn: async () => {
       if (editing === "new") {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: form.email,
-          password: form.password,
-          options: { emailRedirectTo: window.location.origin }
-        });
-        if (authError) throw authError;
-        const authUserId = authData.user?.id;
+        // Use backend endpoint which calls Supabase Admin API — auto-confirms email so staff can login immediately
+        const res = await api.post("/staff/create", { email: form.email, password: form.password });
+        const authUserId = res.data?.data?.id;
         if (!authUserId) throw new Error("Failed to create auth user");
         return adminsApi.create({ name: form.name, email: form.email, role_id: form.role_id, is_active: form.is_active, auth_user_id: authUserId });
       }

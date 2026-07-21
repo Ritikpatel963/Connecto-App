@@ -106,5 +106,25 @@ export async function route(req, res, url) {
     return ok(res, history);
   }
 
+  // Create a staff auth user with email pre-confirmed (service role bypasses email confirmation)
+  if (req.method === "POST" && path === "/staff/create") {
+    await requireAdmin(req);
+    const { email, password } = await readJson(req);
+    if (!email || !password) throw new HttpError(400, "email and password required");
+
+    const createRes = await fetch(`${config.supabaseUrl}/auth/v1/admin/users`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: config.supabaseServiceRoleKey,
+        Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
+      },
+      body: JSON.stringify({ email, password, email_confirm: true }),
+    });
+    const createData = await createRes.json();
+    if (!createRes.ok) throw new HttpError(createRes.status, createData?.message || "Failed to create auth user");
+    return ok(res, { id: createData.id, email: createData.email });
+  }
+
   throw new HttpError(404, "Route not found");
 }
