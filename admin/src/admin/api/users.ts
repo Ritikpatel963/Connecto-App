@@ -77,10 +77,16 @@ const liveDetail = async (id: string | number): Promise<UserDetail> => {
     ...favourites.flatMap((row) => [row.user_id, row.favourite_user_id]),
   ].filter((value) => value !== undefined && value !== null)));
 
-  const [transactions, relatedUsers, tiers] = await Promise.all([
+  const relatedAdminIds = Array.from(new Set([
+    ...idVerifications.map((row) => row.reviewed_by_admin_id),
+    ...voiceVerifications.map((row) => row.reviewed_by_admin_id),
+  ].filter((value) => value !== undefined && value !== null)));
+
+  const [transactions, relatedUsers, tiers, admins] = await Promise.all([
     queryRows(supabase.from("wallet_transactions").select("*").or(`wallet_id.eq.${wallet?.id || userId},wallet_id.eq.${userId}`)),
     queryRows(supabase.from("users").select("id, name, phone_number").in("id", relatedUserIds)),
     queryRows(supabase.from("referral_tiers").select("id, tier_name")),
+    relatedAdminIds.length ? queryRows(supabase.from("admins").select("id, name").in("id", relatedAdminIds)) : Promise.resolve([]),
   ]);
 
   const names = new Map(relatedUsers.map((row) => [String(row.id), String(row.name)]));
@@ -94,6 +100,12 @@ const liveDetail = async (id: string | number): Promise<UserDetail> => {
   const enrichedFavourites = favourites.map((row) => ({ ...row, user_name: nameFor(row.user_id), target_user_name: nameFor(row.favourite_user_id) }));
   const enrichedRedemptions = redemptions.map((row) => ({ ...row, tier: tierNames.get(String(row.tier_id)) || `Tier #${row.tier_id}` }));
 
+  const adminNames = new Map(admins.map((row) => [String(row.id), String(row.name)]));
+  const enrichVerification = (row: any) => {
+    const { reviewed_by_admin_id, ...rest } = row;
+    return { ...rest, reviewed_by_staff: reviewed_by_admin_id ? (adminNames.get(String(reviewed_by_admin_id)) || `Staff #${reviewed_by_admin_id}`) : "-" };
+  };
+
   return {
     user,
     languages,
@@ -105,8 +117,8 @@ const liveDetail = async (id: string | number): Promise<UserDetail> => {
     transactions,
     referrals: enrichedReferrals,
     redemptions: enrichedRedemptions,
-    idVerifications,
-    voiceVerifications,
+    idVerifications: idVerifications.map(enrichVerification),
+    voiceVerifications: voiceVerifications.map(enrichVerification),
   };
 };
 

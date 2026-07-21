@@ -69,7 +69,7 @@ const VerificationsPage = ({ type }: { type: "id" | "voice" }) => {
     { key: type === "id" ? "document" : "sample", label: type === "id" ? "Document" : "Audio sample", render: (row: Verification) => type === "id" && row.id_image_url && !row.id_image_url.startsWith("/demo/") ? <a href={row.id_image_url} target="_blank" rel="noreferrer" className="text-primary-600 fw-medium">View Document</a> : (row[type === "id" ? "document" : "sample"] || "-") },
     { key: "status", label: "Status", render: (row: Verification) => <StatusBadge value={row.status} /> },
     { key: "submitted_at", label: "Submitted", render: (row: Verification) => <DateCell value={row.submitted_at} /> },
-    { key: "reviewed_by_admin", label: "Reviewed by" },
+    { key: "reviewed_by_staff", label: "Reviewed by" },
     { key: "reviewed_at", label: "Reviewed at", render: (row: Verification) => <DateCell value={row.reviewed_at} /> },
   ];
 

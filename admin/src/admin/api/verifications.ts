@@ -33,8 +33,8 @@ const enrichedList = (
       ...row,
       user: userNames.get(String(row.user_id)) || `User #${row.user_id}`,
       phone_number: userPhones.get(String(row.user_id)),
-      reviewed_by_admin: row.reviewed_by_admin_id
-        ? adminNames.get(String(row.reviewed_by_admin_id)) || `Admin #${row.reviewed_by_admin_id}`
+      reviewed_by_staff: row.reviewed_by_admin_id
+        ? adminNames.get(String(row.reviewed_by_admin_id)) || `Staff #${row.reviewed_by_admin_id}`
         : undefined,
       document: type === "id" ? row.document || "Identity document" : row.document,
       sample: type === "voice" ? row.sample || "Voice recording" : row.sample,
