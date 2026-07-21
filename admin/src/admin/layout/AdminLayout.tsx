@@ -46,7 +46,8 @@ const AdminLayout = () => {
 
   usePushNotifications(currentAdmin?.id);
 
-  const visibleGroups = groups.filter((group) => !group.permission || currentAdmin?.permissions.includes(group.permission as never));
+  const isSuperAdmin = currentAdmin?.role?.toLowerCase().includes("super") ?? false;
+  const visibleGroups = groups.filter((group) => !group.permission || isSuperAdmin || currentAdmin?.permissions.includes(group.permission as never));
   const matchingGroup = useMemo(() => visibleGroups.find((group) => group.items.some((item) => matchesPath(location.pathname, item.to)))?.id, [location.pathname, visibleGroups]);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
