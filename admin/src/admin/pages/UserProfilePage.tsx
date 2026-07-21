@@ -120,6 +120,10 @@ const walletColumns = [
   { key: "transaction_type", label: "Type", render: (row: BaseRecord) => humanize(String(row.transaction_type || "-")) },
   { key: "amount", label: "Amount", render: (row: BaseRecord) => <MoneyCell value={row.amount} /> },
   { key: "payment_method", label: "Method / Details", render: (row: BaseRecord) => {
+    const url = String(row.payment_screenshot_url || "");
+    if (url.startsWith("admin_note:")) {
+      return <div className="d-flex flex-column gap-1"><span className="text-capitalize text-secondary">System Adjustment</span><span className="text-primary-600 text-xs fw-medium">{url.replace("admin_note:", "").trim()}</span></div>;
+    }
     const parts = String(row.payment_method || "-").split(':');
     return <div className="d-flex flex-column gap-1"><span className="text-capitalize">{parts[0].replace('_', ' ')}</span>{parts[1] && <span className="text-secondary text-xs">{parts.slice(1).join(':').trim()}</span>}</div>;
   }},

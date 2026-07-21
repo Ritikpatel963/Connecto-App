@@ -55,8 +55,9 @@ export const walletTransactionsApi = {
     const { error: txError } = await supabase.from("wallet_transactions").insert({
       wallet_id: targetId,
       amount: Math.abs(amountCoins),
-      transaction_type: amountCoins > 0 ? "admin_credit" : "admin_debit",
-      payment_method: "system: " + (reason || "Admin adjustment"),
+      transaction_type: amountCoins > 0 ? "recharge" : "refund",
+      payment_method: null,
+      payment_screenshot_url: "admin_note:" + (reason || "Admin adjustment"),
       verification_status: "verified",
     });
 

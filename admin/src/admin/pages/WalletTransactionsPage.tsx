@@ -51,6 +51,15 @@ const WalletTransactionsPage = () => {
         );
     }},
     { key: "payment_method", label: "Method / Txn ID", render: (row: WalletTransaction) => {
+      const url = String(row.payment_screenshot_url || "");
+      if (url.startsWith("admin_note:")) {
+        return (
+          <div className="d-flex flex-column gap-1">
+            <span className="text-capitalize text-secondary">System Adjustment</span>
+            <span className="text-primary-600 text-xs fw-medium">{url.replace("admin_note:", "").trim()}</span>
+          </div>
+        );
+      }
       if (!row.payment_method) return "-";
       const parts = String(row.payment_method).split(':');
       const gateway = parts[0].replace('_', ' ');
