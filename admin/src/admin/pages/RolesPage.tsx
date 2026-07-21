@@ -144,7 +144,6 @@ const RolesPage = () => {
   const savePayload = () => ({
     name: form.name.trim(),
     description: form.description.trim(),
-    permissions: permissionCount(form.permissions),
   });
 
   const savePermissionMatrix = async (roleId: string | number) => {
