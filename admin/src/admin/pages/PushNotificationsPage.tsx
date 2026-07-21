@@ -38,7 +38,6 @@ const PushNotificationsPage = () => {
       setTitle("");
       setMessage("");
       setUserIds([]);
-      setModalGender("all");
       setShowConfirmModal(false);
       queryClient.invalidateQueries({ queryKey: ["push-history"] });
     } catch (err: any) {

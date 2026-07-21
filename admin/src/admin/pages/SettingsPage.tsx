@@ -173,25 +173,7 @@ const SettingsPage = () => {
     onError: (error: Error) => toast.error(error.message)
   });
 
-  const sendPushNotification = useMutation({
-    mutationFn: async () => {
-      const { data } = await api.post("/push/dispatch", {
-        title: pushTitle,
-        message: pushBody,
-        userId: pushTargetId || undefined,
-      });
-      return data;
-    },
-    onSuccess: (data: any) => {
-      toast.success(`Push notification sent successfully! (${data.data?.sentCount || data.sentCount || 0} devices)`);
-      setPushTitle("");
-      setPushBody("");
-      setPushTargetId("");
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error?.message || error.message || "Failed to send notification");
-    }
-  });
+
 
 
   const handleSave = () => {
