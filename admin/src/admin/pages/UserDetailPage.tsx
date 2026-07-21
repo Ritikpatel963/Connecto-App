@@ -3,7 +3,7 @@ import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { usersApi } from "../api/users";
-import { MoneyCell, PersonCell } from "../components/Cells";
+import { MoneyCell, PersonCell, DateCell } from "../components/Cells";
 import PageHeader from "../components/PageHeader";
 import { ErrorState, LoadingState } from "../components/PageStates";
 import StatusBadge, { humanize } from "../components/StatusBadge";
@@ -13,7 +13,7 @@ const tabs = ["Profile", "Verifications", "Wallet", "Calls", "Ratings", "Referra
 const MiniTable = ({ rows, hasImage }: { rows: Record<string, unknown>[]; hasImage?: boolean }) => {
   if (!rows.length) return <p className="text-secondary-light mb-0">No records found.</p>;
   const keys = Object.keys(rows[0]).filter((key) => !["id_image_url", "voice_audio_url"].includes(key)).slice(0, 6);
-  return <div className="table-responsive"><table className="table bordered-table mb-0"><thead><tr>{keys.map((key) => <th key={key}>{humanize(key)}</th>)}{hasImage && <th>Image</th>}</tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id ?? index)}>{keys.map((key) => <td key={key}>{String(row[key] ?? "-")}</td>)}{hasImage && <td>{row.id_image_url && !String(row.id_image_url).startsWith("/demo/") ? <a href={String(row.id_image_url)} target="_blank" rel="noreferrer" className="text-primary-600">View Document</a> : "Demo Asset"}</td>}</tr>)}</tbody></table></div>;
+  return <div className="table-responsive"><table className="table bordered-table mb-0"><thead><tr>{keys.map((key) => <th key={key}>{humanize(key)}</th>)}{hasImage && <th>Image</th>}</tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id ?? index)}>{keys.map((key) => <td key={key}>{key.endsWith('_at') ? <DateCell value={row[key]} /> : String(row[key] ?? "-")}</td>)}{hasImage && <td>{row.id_image_url && !String(row.id_image_url).startsWith("/demo/") ? <a href={String(row.id_image_url)} target="_blank" rel="noreferrer" className="text-primary-600">View Document</a> : "Demo Asset"}</td>}</tr>)}</tbody></table></div>;
 };
 
 const UserDetailPage = () => {
