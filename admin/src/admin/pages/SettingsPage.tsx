@@ -315,7 +315,7 @@ const SettingsPage = () => {
                       <Icon icon="solar:add-circle-outline" /> Add Bio
                     </button>
                   </div>
-                  <div className="d-flex flex-column gap-2">
+                  <div className="d-flex flex-column gap-2 pe-2" style={{ maxHeight: '300px', overflowY: 'auto', overflowX: 'hidden' }}>
                     {defaultBios.map((bio, index) => (
                       <div key={index} className="d-flex align-items-center gap-2">
                         <input 
