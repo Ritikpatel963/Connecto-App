@@ -17,19 +17,6 @@ const PushNotificationsPage = () => {
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
-  const [userSearch, setUserSearch] = useState("");
-  const [modalGender, setModalGender] = useState("all");
-  
-  const { data: usersData, isFetching: usersLoading } = useQuery({
-    queryKey: ["users-search", userSearch, modalGender],
-    queryFn: () => usersApi.list({ 
-      page: 1, 
-      pageSize: 100, 
-      search: userSearch,
-      filters: modalGender !== 'all' ? { gender: modalGender } : undefined
-    }),
-    enabled: showUserModal,
-  });
 
   const fetchHistory = async (params: ListParams) => {
     const { data } = await api.get("/push/history");
@@ -77,6 +64,31 @@ const PushNotificationsPage = () => {
     { key: "target", label: "Target", render: (row: any) => row.target_user_id ? <span className="badge bg-info">User {row.target_user_id}</span> : <span className="badge bg-primary">Broadcast</span> },
     { key: "sent_count", label: "Sent Count", render: (row: any) => `${row.sent_count} devices` },
     { key: "created_at", label: "Date", render: (row: any) => new Date(row.created_at).toLocaleString() },
+  ];
+
+  const userModalColumns = [
+    { key: "select", label: "", hideable: false, sortable: false, render: (row: any) => (
+      <input 
+        type="checkbox" 
+        className="form-check-input mt-0" 
+        checked={userIds.includes(row.id)}
+        onChange={() => toggleUser(row.id)} 
+      />
+    )},
+    { key: "name", label: "Name" },
+    { key: "id", label: "User ID" },
+    { key: "phone_number", label: "Phone" },
+    { key: "gender", label: "Gender" },
+    { key: "country", label: "Country" },
+    { key: "state", label: "State" },
+    { key: "city", label: "City" },
+  ];
+
+  const userModalFilters = [
+    { key: "gender", label: "Gender", options: ["male", "female", "other"].map(v => ({ label: v.toUpperCase(), value: v })) },
+    { key: "country", label: "Country", options: [{ label: "India", value: "India" }] },
+    { key: "is_active", label: "Status", options: [{ label: "Active", value: "true" }, { label: "Inactive", value: "false" }] },
+    { key: "is_id_verified", label: "Verified", options: [{ label: "ID verified", value: "true" }, { label: "Not verified", value: "false" }] },
   ];
 
   return (
@@ -131,55 +143,20 @@ const PushNotificationsPage = () => {
 
       {showUserModal && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-scrollable">
+          <div className="modal-dialog modal-xl modal-dialog-scrollable">
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Select Users</h5>
                 <button type="button" className="btn-close" onClick={() => setShowUserModal(false)}></button>
               </div>
-              <div className="modal-body">
-                <div className="d-flex gap-2 mb-3">
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="Search by name..." 
-                    value={userSearch}
-                    onChange={(e) => setUserSearch(e.target.value)}
-                  />
-                  <select className="form-select" style={{ width: '150px' }} value={modalGender} onChange={e => setModalGender(e.target.value)}>
-                    <option value="all">All Genders</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </select>
-                </div>
-                {usersLoading ? (
-                  <div className="text-center py-4"><span className="spinner-border text-primary" /></div>
-                ) : (
-                  <ul className="list-group">
-                    {usersData?.data?.length ? usersData.data.map((u: any) => (
-                      <label 
-                        key={u.id} 
-                        className="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <div className="d-flex align-items-center gap-3">
-                          <input 
-                            type="checkbox" 
-                            className="form-check-input mt-0" 
-                            checked={userIds.includes(u.id)}
-                            onChange={() => toggleUser(u.id)} 
-                          />
-                          <div>
-                            <div className="fw-semibold">{u.name}</div>
-                            <small className="text-secondary-light">ID: {u.id}</small>
-                          </div>
-                        </div>
-                      </label>
-                    )) : (
-                      <div className="text-center py-4 text-secondary-light">No users found</div>
-                    )}
-                  </ul>
-                )}
+              <div className="modal-body p-0">
+                <AdminDataTable 
+                  queryKey={["modal-users"]}
+                  queryFn={usersApi.list}
+                  columns={userModalColumns}
+                  filters={userModalFilters}
+                  searchPlaceholder="Search by name, phone, city..."
+                />
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-primary" onClick={() => setShowUserModal(false)}>Done</button>
