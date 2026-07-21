@@ -67,7 +67,7 @@ const SettingsPage = () => {
   const { data: emailEnabledData } = useQuery({ queryKey: ["settings", "email_notifications_enabled"], queryFn: () => settingsApi.get("email_notifications_enabled") });
   const { data: pushEnabledData } = useQuery({ queryKey: ["settings", "push_notifications_enabled"], queryFn: () => settingsApi.get("push_notifications_enabled") });
 
-  const [defaultBios, setDefaultBios] = useState("Hi, I am new here!");
+  const [defaultBios, setDefaultBios] = useState<string[]>(["Hi, I am new here!"]);
   const { data: defaultBiosData } = useQuery({ queryKey: ["settings", "default_bios"], queryFn: () => settingsApi.get("default_bios") });
 
   const [autoVerify, setAutoVerify] = useState(false);
@@ -99,7 +99,7 @@ const SettingsPage = () => {
     if (rzpEnabledData !== undefined) setRazorpayEnabled(rzpEnabledData === 'true');
     if (inAppEnabledData !== undefined) setInAppEnabled(inAppEnabledData === 'true');
     if (manualEnabledData !== undefined) setManualEnabled(manualEnabledData === 'true');
-    if (defaultBiosData !== undefined) setDefaultBios(defaultBiosData);
+    if (defaultBiosData !== undefined) setDefaultBios(defaultBiosData.split('\n'));
     if (autoVerifyData !== undefined) setAutoVerify(autoVerifyData === 'true');
     if (emailEnabledData !== undefined) setEmailEnabled(emailEnabledData !== 'false');
     if (pushEnabledData !== undefined) setPushEnabled(pushEnabledData !== 'false');
@@ -154,7 +154,7 @@ const SettingsPage = () => {
 
   const saveGeneral = useMutation({
     mutationFn: async () => {
-      await settingsApi.set("default_bios", defaultBios);
+      await settingsApi.set("default_bios", defaultBios.filter(b => b.trim()).join('\n'));
       await settingsApi.set("auto_verify_profiles", autoVerify ? "true" : "false");
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
@@ -309,8 +309,39 @@ const SettingsPage = () => {
                   </select>
                 </div>
                 <div className="col-12">
-                  <label className="form-label fw-semibold">Auto-Generated Bios (One per line)</label>
-                  <textarea className="form-control" rows={5} value={defaultBios} onChange={(e) => setDefaultBios(e.target.value)} placeholder="Hi, I am new here!&#10;Looking to make friends!" />
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <label className="form-label fw-semibold mb-0">Auto-Generated Bios</label>
+                    <button type="button" className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" onClick={() => setDefaultBios([...defaultBios, ""])}>
+                      <Icon icon="solar:add-circle-outline" /> Add Bio
+                    </button>
+                  </div>
+                  <div className="d-flex flex-column gap-2">
+                    {defaultBios.map((bio, index) => (
+                      <div key={index} className="d-flex align-items-center gap-2">
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          value={bio} 
+                          onChange={(e) => {
+                            const newBios = [...defaultBios];
+                            newBios[index] = e.target.value;
+                            setDefaultBios(newBios);
+                          }} 
+                          placeholder="Enter a bio..."
+                        />
+                        <button 
+                          type="button" 
+                          className="btn btn-light text-danger-600 border px-3"
+                          onClick={() => {
+                            const newBios = defaultBios.filter((_, i) => i !== index);
+                            setDefaultBios(newBios);
+                          }}
+                        >
+                          <Icon icon="solar:trash-bin-trash-outline" className="text-lg" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                   <p className="text-sm text-secondary-light mb-0 mt-2">
                     When a user registers without providing a bio, one of these will be chosen at random.
                   </p>

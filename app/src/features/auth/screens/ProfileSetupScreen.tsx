@@ -144,7 +144,7 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             }
 
             if (!finalBio && bioSetting && bioSetting.value) {
-              const biosList = bioSetting.value.split('\\n').map((b: string) => b.trim()).filter(Boolean);
+              const biosList = bioSetting.value.split('\n').map((b: string) => b.trim()).filter(Boolean);
               if (biosList.length > 0) {
                 finalBio = biosList[Math.floor(Math.random() * biosList.length)];
               }
