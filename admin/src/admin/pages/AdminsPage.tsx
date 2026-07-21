@@ -41,8 +41,12 @@ const AdminsPage = () => {
       }
       return adminsApi.update((editing as BaseRecord).id, { name: form.name, role_id: form.role_id, is_active: form.is_active });
     },
-    onSuccess: () => { toast.success("Admin saved"); setEditing(null); client.invalidateQueries({ queryKey: ["admins"] }); },
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => {
+      toast.success(editing === "new" ? "Admin created successfully" : "Admin updated");
+      setEditing(null);
+      client.invalidateQueries({ queryKey: ["admins"] });
+    },
+    onError: (e: any) => toast.error(e.response?.data?.error?.message || e.message),
   });
 
   const remove = useMutation({

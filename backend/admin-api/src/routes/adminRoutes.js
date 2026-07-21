@@ -122,7 +122,7 @@ export async function route(req, res, url) {
       body: JSON.stringify({ email, password, email_confirm: true }),
     });
     const createData = await createRes.json();
-    if (!createRes.ok) throw new HttpError(createRes.status, createData?.message || "Failed to create auth user");
+    if (!createRes.ok) throw new HttpError(createRes.status, createData?.msg || createData?.message || createData?.error?.message || "Failed to create auth user");
     return ok(res, { id: createData.id, email: createData.email });
   }
 
