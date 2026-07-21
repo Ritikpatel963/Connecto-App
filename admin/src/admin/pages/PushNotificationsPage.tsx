@@ -3,6 +3,7 @@ import { Icon } from "@iconify/react";
 import { useQueryClient } from "@tanstack/react-query";
 import PageHeader from "../components/PageHeader";
 import AdminDataTable from "../components/AdminDataTable";
+import { DateCell } from "../components/Cells";
 import { toast } from "react-toastify";
 import api from "../api/http";
 import { ListParams } from "../types";
@@ -62,7 +63,7 @@ const PushNotificationsPage = () => {
     { key: "message", label: "Message", render: (row: any) => <div className="text-truncate" style={{maxWidth: '300px'}}>{row.message}</div> },
     { key: "target", label: "Target", render: (row: any) => row.target_user_id ? <span className="badge bg-info">User {row.target_user_id}</span> : <span className="badge bg-primary">Broadcast</span> },
     { key: "sent_count", label: "Sent Count", render: (row: any) => `${row.sent_count} devices` },
-    { key: "created_at", label: "Date", render: (row: any) => new Date(row.created_at).toLocaleString() },
+    { key: "created_at", label: "Date", render: (row: any) => <DateCell value={row.created_at} /> },
   ];
 
   const userModalColumns = [

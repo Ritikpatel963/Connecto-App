@@ -22,7 +22,21 @@ export const RatingCell = ({ value }: { value: unknown }) => <span className="d-
 
 export const BooleanBadge = ({ value, yes = "Yes", no = "No" }: { value: unknown; yes?: string; no?: string }) => <StatusBadge value={value ? yes : no} />;
 
-export const DateCell = ({ value }: { value: unknown }) => <span className="text-nowrap text-sm">{value ? String(value) : "-"}</span>;
+export const DateCell = ({ value }: { value: unknown }) => {
+  if (!value) return <span className="text-nowrap text-sm">-</span>;
+  const d = new Date(String(value));
+  if (isNaN(d.getTime())) return <span className="text-nowrap text-sm">{String(value)}</span>;
+  
+  const dateStr = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const timeStr = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true });
+  
+  return (
+    <span className="text-nowrap text-sm">
+      <span className="fw-medium text-secondary-light">{dateStr}</span>
+      <span className="ms-2 fw-semibold">{timeStr}</span>
+    </span>
+  );
+};
 
 export const IconButton = ({ icon, title, tone = "primary", onClick }: { icon: string; title: string; tone?: "primary" | "success" | "danger" | "warning"; onClick: () => void }) => (
   <button type="button" title={title} aria-label={title} onClick={onClick} className={`w-32-px h-32-px border-0 rounded-circle d-inline-flex align-items-center justify-content-center bg-${tone === "primary" ? "primary-50" : tone + "-focus"} text-${tone === "primary" ? "primary-600" : tone + "-main"}`}><Icon icon={icon} /></button>
