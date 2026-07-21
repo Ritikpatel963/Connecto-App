@@ -12,10 +12,11 @@ const PushNotificationsPage = () => {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [userId, setUserId] = useState("");
+  const [userIds, setUserIds] = useState<string[]>([]);
   const [audience, setAudience] = useState("all");
   const [loading, setLoading] = useState(false);
 
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [userSearch, setUserSearch] = useState("");
   const { data: usersData, isFetching: usersLoading } = useQuery({
@@ -36,24 +37,32 @@ const PushNotificationsPage = () => {
     };
   };
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !message.trim()) return toast.error("Title and message are required.");
-    
+  const confirmSend = async () => {
     setLoading(true);
     try {
-      const { data } = await api.post("/push/dispatch", { title, message, userId: userId || null, audience: userId ? 'specific' : audience });
+      const { data } = await api.post("/push/dispatch", { title, message, userIds: userIds.length > 0 ? userIds : null, audience: userIds.length > 0 ? 'specific' : audience });
       toast.success(`Successfully sent ${data.data?.sentCount ?? data.sentCount ?? 0} notifications!`);
       setTitle("");
       setMessage("");
-      setUserId("");
+      setUserIds([]);
       setAudience("all");
+      setShowConfirmModal(false);
       queryClient.invalidateQueries({ queryKey: ["push-history"] });
     } catch (err: any) {
       toast.error(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !message.trim()) return toast.error("Title and message are required.");
+    setShowConfirmModal(true);
+  };
+
+  const toggleUser = (id: string) => {
+    setUserIds(prev => prev.includes(id) ? prev.filter(uid => uid !== id) : [...prev, id]);
   };
 
   const columns = [
@@ -80,7 +89,7 @@ const PushNotificationsPage = () => {
               </div>
               <div className="col-md-6">
                 <label className="form-label fw-semibold text-primary-light text-sm mb-8">Target Audience</label>
-                <select className="form-select radius-8" value={audience} onChange={(e) => setAudience(e.target.value)} disabled={!!userId}>
+                <select className="form-select radius-8" value={audience} onChange={(e) => setAudience(e.target.value)} disabled={userIds.length > 0}>
                   <option value="all">All Users</option>
                   <option value="male">Males Only</option>
                   <option value="female">Females Only</option>
@@ -88,9 +97,14 @@ const PushNotificationsPage = () => {
                 </select>
               </div>
               <div className="col-md-6">
-                <label className="form-label fw-semibold text-primary-light text-sm mb-8">Or Select Specific User</label>
+                <label className="form-label fw-semibold text-primary-light text-sm mb-8">Or Select Specific Users</label>
                 <div className="input-group">
-                  <input type="text" className="form-control" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="Overrides audience if set..." />
+                  <input type="text" className="form-control" readOnly value={userIds.length > 0 ? `${userIds.length} users selected` : ''} placeholder="Overrides audience if set..." />
+                  {userIds.length > 0 && (
+                    <button type="button" className="btn btn-outline-danger" onClick={() => setUserIds([])}>
+                      Clear
+                    </button>
+                  )}
                   <button type="button" className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShowUserModal(true)}>
                     <Icon icon="solar:users-group-rounded-outline" /> Browse
                   </button>
@@ -123,7 +137,7 @@ const PushNotificationsPage = () => {
           <div className="modal-dialog modal-dialog-scrollable">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Select a User</h5>
+                <h5 className="modal-title">Select Users</h5>
                 <button type="button" className="btn-close" onClick={() => setShowUserModal(false)}></button>
               </div>
               <div className="modal-body">
@@ -139,23 +153,57 @@ const PushNotificationsPage = () => {
                 ) : (
                   <ul className="list-group">
                     {usersData?.data?.length ? usersData.data.map((u: any) => (
-                      <button 
+                      <label 
                         key={u.id} 
                         className="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                        onClick={() => { setUserId(u.id); setShowUserModal(false); }}
-                        type="button"
+                        style={{ cursor: 'pointer' }}
                       >
-                        <div>
-                          <div className="fw-semibold">{u.name}</div>
-                          <small className="text-secondary-light">ID: {u.id}</small>
+                        <div className="d-flex align-items-center gap-3">
+                          <input 
+                            type="checkbox" 
+                            className="form-check-input mt-0" 
+                            checked={userIds.includes(u.id)}
+                            onChange={() => toggleUser(u.id)} 
+                          />
+                          <div>
+                            <div className="fw-semibold">{u.name}</div>
+                            <small className="text-secondary-light">ID: {u.id}</small>
+                          </div>
                         </div>
-                        <Icon icon="solar:arrow-right-outline" />
-                      </button>
+                      </label>
                     )) : (
                       <div className="text-center py-4 text-secondary-light">No users found</div>
                     )}
                   </ul>
                 )}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-primary" onClick={() => setShowUserModal(false)}>Done</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmModal && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Confirm Push Notification</h5>
+                <button type="button" className="btn-close" onClick={() => setShowConfirmModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <p>You are about to send <strong>{title}</strong>.</p>
+                <p>Target Audience: <span className="badge bg-primary">{userIds.length > 0 ? `${userIds.length} Specific User(s)` : audience.toUpperCase()}</span></p>
+                <p>Are you sure you want to proceed?</p>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowConfirmModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-primary d-flex align-items-center gap-2" onClick={confirmSend} disabled={loading}>
+                  {loading ? <span className="spinner-border spinner-border-sm" /> : <Icon icon="solar:plain-bold" />}
+                  {loading ? "Sending..." : "Confirm & Send"}
+                </button>
               </div>
             </div>
           </div>

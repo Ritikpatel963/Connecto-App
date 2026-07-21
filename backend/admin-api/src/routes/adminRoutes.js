@@ -50,15 +50,16 @@ export async function route(req, res, url) {
   if (req.method === "POST" && (path === "/push/dispatch" || path === "/notifications/send")) {
     await requireAdmin(req);
     const body = await readJson(req);
-    const { userId, title, message, audience } = body;
+    const { userId, userIds, title, message, audience } = body;
+    const targetIds = userIds || (userId ? [userId] : []);
     
     const { sendPushNotification } = await import("../lib/firebase.js");
     
     let tokens = [];
-    if (audience === 'specific' && userId) {
-      const dbRes = await fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${userId}&select=fcm_token`, { headers: { apikey: config.supabaseServiceRoleKey, Authorization: `Bearer ${config.supabaseServiceRoleKey}` }});
+    if (audience === 'specific' && targetIds.length > 0) {
+      const dbRes = await fetch(`${config.supabaseUrl}/rest/v1/users?id=in.(${targetIds.join(',')})&select=fcm_token`, { headers: { apikey: config.supabaseServiceRoleKey, Authorization: `Bearer ${config.supabaseServiceRoleKey}` }});
       const data = await dbRes.json();
-      if (data[0] && data[0].fcm_token) tokens.push(data[0].fcm_token);
+      tokens = data.map(u => u.fcm_token).filter(Boolean);
     } else {
       let query = `${config.supabaseUrl}/rest/v1/users?select=fcm_token&fcm_token=not.is.null`;
       if (audience === 'male') query += '&gender=eq.male';
