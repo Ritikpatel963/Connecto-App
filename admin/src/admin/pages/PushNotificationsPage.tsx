@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Icon } from "@iconify/react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import PageHeader from "../components/PageHeader";
 import AdminDataTable from "../components/AdminDataTable";
 import { toast } from "react-toastify";
 import api from "../api/http";
 import { ListParams } from "../types";
+import { usersApi } from "../api/users";
 
 const PushNotificationsPage = () => {
   const queryClient = useQueryClient();
@@ -14,6 +15,14 @@ const PushNotificationsPage = () => {
   const [userId, setUserId] = useState("");
   const [audience, setAudience] = useState("all");
   const [loading, setLoading] = useState(false);
+
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const { data: usersData, isFetching: usersLoading } = useQuery({
+    queryKey: ["users-search", userSearch],
+    queryFn: () => usersApi.list({ page: 1, pageSize: 20, search: userSearch }),
+    enabled: showUserModal,
+  });
 
   const fetchHistory = async (params: ListParams) => {
     const { data } = await api.get("/push/history");
@@ -82,7 +91,12 @@ const PushNotificationsPage = () => {
               {audience === 'specific' && (
                 <div className="col-md-6">
                   <label className="form-label fw-semibold text-primary-light text-sm mb-8">Target User ID</label>
-                  <input type="text" className="form-control radius-8" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="e.g. uuid-..." required />
+                  <div className="input-group">
+                    <input type="text" className="form-control" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="e.g. uuid-..." required />
+                    <button type="button" className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShowUserModal(true)}>
+                      <Icon icon="solar:users-group-rounded-outline" /> Browse
+                    </button>
+                  </div>
                 </div>
               )}
               <div className="col-12">
@@ -106,6 +120,50 @@ const PushNotificationsPage = () => {
         columns={columns} 
         searchPlaceholder="Search notifications..." 
       />
+
+      {showUserModal && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-scrollable">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Select a User</h5>
+                <button type="button" className="btn-close" onClick={() => setShowUserModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <input 
+                  type="text" 
+                  className="form-control mb-3" 
+                  placeholder="Search by name..." 
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                />
+                {usersLoading ? (
+                  <div className="text-center py-4"><span className="spinner-border text-primary" /></div>
+                ) : (
+                  <ul className="list-group">
+                    {usersData?.data?.length ? usersData.data.map((u: any) => (
+                      <button 
+                        key={u.id} 
+                        className="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                        onClick={() => { setUserId(u.id); setShowUserModal(false); }}
+                        type="button"
+                      >
+                        <div>
+                          <div className="fw-semibold">{u.name}</div>
+                          <small className="text-secondary-light">ID: {u.id}</small>
+                        </div>
+                        <Icon icon="solar:arrow-right-outline" />
+                      </button>
+                    )) : (
+                      <div className="text-center py-4 text-secondary-light">No users found</div>
+                    )}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
