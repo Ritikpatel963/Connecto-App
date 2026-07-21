@@ -7,7 +7,8 @@ import { AdminNotification, notificationsApi } from "../api/notifications";
 import { useAuth } from "../auth/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { usePushNotifications } from "../hooks/usePushNotifications";
-import { isSuperAdmin, hasPermission, AdminPermission } from "../auth/PermissionRoute";
+import { isSuperAdmin, hasPermission } from "../auth/PermissionRoute";
+import { AdminPermission } from "../types";
 
 interface NavItem { label: string; to: string; }
 interface NavGroup {

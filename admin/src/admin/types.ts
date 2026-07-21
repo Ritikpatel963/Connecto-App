@@ -45,6 +45,9 @@ export type AdminPermission =
   | "calls.view"
   | "chat.view" | "chat.edit"
   | "ratings.view" | "ratings.edit" | "ratings.delete"
+  | "packages.view" | "packages.edit"
+  | "cms.view" | "cms.edit"
+  | "settings.view" | "settings.edit"
   | "admin_roles.view" | "admin_roles.create" | "admin_roles.edit" | "admin_roles.delete";
 
 export interface CurrentAdmin {
