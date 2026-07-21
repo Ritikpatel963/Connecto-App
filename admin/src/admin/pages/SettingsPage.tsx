@@ -258,14 +258,7 @@ const SettingsPage = () => {
                 Notifications
               </button>
             </li>
-            <li className="nav-item">
-              <button
-                className={`nav-link fw-semibold text-lg ${activeTab === 'company' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
-                onClick={() => handleTabChange('company')}
-              >
-                Company Profile
-              </button>
-            </li>
+
             <li className="nav-item">
               <button
                 className={`nav-link fw-semibold text-lg ${activeTab === 'withdrawal' ? 'active text-primary-600 border-bottom border-2 border-primary-600' : 'text-secondary-light'}`}
@@ -544,23 +537,6 @@ const SettingsPage = () => {
               </div>
             )}
 
-            {/* COMPANY TAB */}
-            {activeTab === 'company' && (
-              <div className="row gy-4">
-                <div className="col-lg-6">
-                  <label className="form-label fw-semibold">Company Name</label>
-                  <input className="form-control" defaultValue="Snappo LLC" />
-                </div>
-                <div className="col-lg-6">
-                  <label className="form-label fw-semibold">Tax ID / VAT</label>
-                  <input className="form-control" placeholder="e.g. US123456789" />
-                </div>
-                <div className="col-12">
-                  <label className="form-label fw-semibold">Address</label>
-                  <textarea className="form-control" rows={3} defaultValue="123 Platform St, Tech City" />
-                </div>
-              </div>
-            )}
 
             {/* WITHDRAWAL RULES TAB */}
             {activeTab === 'withdrawal' && (
