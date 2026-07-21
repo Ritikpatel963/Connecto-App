@@ -8,6 +8,16 @@ const base = createResourceApi<WalletTransaction>("wallet-transactions");
 
 export const walletTransactionsApi = {
   ...base,
+  list: async (params: any) => {
+    const result = await base.list(params);
+    const userIds = [...new Set(result.data.map(t => t.wallet_id))];
+    if (userIds.length > 0) {
+      const { data: users } = await supabase.from('users').select('id, name').in('id', userIds);
+      const userMap = (users || []).reduce((acc: any, u: any) => ({...acc, [u.id]: u.name}), {});
+      result.data = result.data.map((t: any) => ({...t, user_name: userMap[t.wallet_id]}));
+    }
+    return result;
+  },
   approve: async (row: WalletTransaction) => {
     // 1. Mark transaction as verified
     const result = await resourceAction<WalletTransaction>("wallet-transactions", row.id, "approve", {}, { verification_status: "verified", reviewed_at: new Date().toISOString() });

@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
 import { walletTransactionsApi } from "../api/wallet";
@@ -28,7 +29,12 @@ const WalletTransactionsPage = () => {
   }, [queryClient]);
 
   const columns = [
-    { key: "id", label: "Transaction" }, { key: "wallet_id", label: "Wallet" },
+    { key: "id", label: "Transaction", render: (row: any) => <span className="text-secondary fw-medium">#TRX-{row.id}</span> }, 
+    { key: "wallet_id", label: "User", render: (row: any) => (
+      <Link to={`/users/${row.wallet_id}`} className="fw-semibold text-primary text-decoration-none">
+        {row.user_name || `User ${row.wallet_id}`}
+      </Link>
+    )},
     { key: "transaction_type", label: "Type", render: (row: WalletTransaction) => <StatusBadge value={row.transaction_type} /> },
     { key: "amount", label: "Amount", render: (row: WalletTransaction) => {
         if (row.transaction_type !== "recharge") return <MoneyCell value={row.amount} />;
