@@ -10,9 +10,9 @@ import { BaseRecord, SelectFilter } from "../types";
 
 const ReferralsPage = () => {
   const columns = [
-    { key: "id", label: "Referral" },
-    { key: "referrer", label: "Referrer", render: (row: BaseRecord) => <PersonCell name={row.referrer} /> },
-    { key: "referred", label: "Referred user", render: (row: BaseRecord) => <PersonCell name={row.referred} /> },
+    { key: "id", label: "S.No", render: (row: any) => <span className="text-secondary fw-medium">#REF-{row.id}</span> },
+    { key: "referrer", label: "Referrer", render: (row: any) => <PersonCell name={row.referrer} userId={row.referrer_user_id} /> },
+    { key: "referred", label: "Referred user", render: (row: any) => <PersonCell name={row.referred} userId={row.referred_user_id} /> },
     { key: "status", label: "Status", render: (row: BaseRecord) => <StatusBadge value={row.status} /> },
     { key: "qualified_at", label: "Qualified", render: (row: BaseRecord) => <DateCell value={row.qualified_at} /> },
     { key: "created_at", label: "Joined", render: (row: BaseRecord) => <DateCell value={row.created_at} /> },
