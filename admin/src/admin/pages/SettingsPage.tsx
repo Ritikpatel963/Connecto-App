@@ -522,36 +522,7 @@ const SettingsPage = () => {
                   </div>
                 </div>
 
-                <div className="col-12 mt-24">
-                  <h6 className="mb-4">Send Custom Push Notification</h6>
-                  <div className="card shadow-none border">
-                    <div className="card-body p-24">
-                      <div className="row gy-3">
-                        <div className="col-md-12">
-                          <label className="form-label fw-semibold">Target User ID (Leave blank for all users)</label>
-                          <input className="form-control" placeholder="Optional User UUID" value={pushTargetId} onChange={(e) => setPushTargetId(e.target.value)} />
-                        </div>
-                        <div className="col-md-12">
-                          <label className="form-label fw-semibold">Title</label>
-                          <input className="form-control" placeholder="Notification Title" value={pushTitle} onChange={(e) => setPushTitle(e.target.value)} />
-                        </div>
-                        <div className="col-md-12">
-                          <label className="form-label fw-semibold">Message</label>
-                          <textarea className="form-control" rows={3} placeholder="Notification Body" value={pushBody} onChange={(e) => setPushBody(e.target.value)} />
-                        </div>
-                        <div className="col-12 text-end">
-                          <button
-                            className="btn btn-primary"
-                            disabled={sendPushNotification.isPending || !pushTitle || !pushBody}
-                            onClick={() => sendPushNotification.mutate()}
-                          >
-                            {sendPushNotification.isPending ? "Sending..." : "Send Push Notification"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+
               </div>
             )}
 
