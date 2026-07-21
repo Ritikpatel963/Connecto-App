@@ -46,7 +46,7 @@ export const walletTransactionsApi = {
 
     return result;
   },
-  reject: (id: string | number, rejection_reason: string) => resourceAction<WalletTransaction>("wallet-transactions", id, "reject", { rejection_reason }, { verification_status: "rejected", reviewed_at: new Date().toISOString(), rejection_reason }),
+  reject: (id: string | number, rejection_reason: string) => resourceAction<WalletTransaction>("wallet-transactions", id, "reject", { rejection_reason }, { verification_status: "rejected", reviewed_at: new Date().toISOString() }),
   adjust: async (walletId: string | number, amountCoins: number, reason: string) => {
     const { data: wallet } = await supabase.from('wallets').select('id, balance').or(`id.eq.${walletId},user_id.eq.${walletId}`).maybeSingle();
     const currentBalance = wallet?.balance || 0;
@@ -56,9 +56,8 @@ export const walletTransactionsApi = {
       wallet_id: targetId,
       amount: Math.abs(amountCoins),
       transaction_type: amountCoins > 0 ? "admin_credit" : "admin_debit",
-      payment_method: "system",
+      payment_method: "system: " + (reason || "Admin adjustment"),
       verification_status: "verified",
-      rejection_reason: reason || "Admin adjustment"
     });
 
     if (txError) throw new Error(txError.message);
