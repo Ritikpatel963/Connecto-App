@@ -5,6 +5,7 @@ import AdminsPage from "./pages/AdminsPage";
 import CallsPage from "./pages/CallsPage";
 import ChatPage from "./pages/ChatPage";
 import ChatProfilePage from "./pages/ChatProfilePage";
+import CreateUserPage from "./pages/CreateUserPage";
 import DashboardPage from "./pages/DashboardPage";
 import ManualRechargePage from "./pages/ManualRechargePage";
 import NotificationsPage from "./pages/NotificationsPage";
@@ -41,6 +42,7 @@ const AppRoutes = () => (
         {/* Users — manage_users */}
         <Route element={<PermissionRoute require="manage_users" />}>
           <Route path="/users" element={<UsersPage />} />
+          <Route path="/users/create" element={<CreateUserPage />} />
           <Route path="/users/:id" element={<UserProfilePage />} />
         </Route>
 

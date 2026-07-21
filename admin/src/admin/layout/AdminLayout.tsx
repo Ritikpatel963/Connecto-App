@@ -12,7 +12,7 @@ interface NavItem { label: string; to: string; }
 interface NavGroup { id: string; label: string; icon: string; items: NavItem[]; permission?: string; }
 
 const groups: NavGroup[] = [
-  { id: "users", label: "Users", icon: "solar:users-group-rounded-outline", items: [{ label: "All Users", to: "/users" }] },
+  { id: "users", label: "Users", icon: "solar:users-group-rounded-outline", items: [{ label: "All Users", to: "/users" }, { label: "Create User", to: "/users/create" }] },
   { id: "verifications", label: "Verifications", icon: "solar:shield-check-outline", items: [{ label: "ID Verifications", to: "/verifications/id" }, { label: "Voice Verifications", to: "/verifications/voice" }] },
   { id: "calls", label: "Calls", icon: "solar:phone-calling-outline", items: [{ label: "Call Log", to: "/calls" }] },
   { id: "chat", label: "Chat", icon: "solar:chat-round-dots-outline", items: [{ label: "Chat", to: "/chat" }] },
