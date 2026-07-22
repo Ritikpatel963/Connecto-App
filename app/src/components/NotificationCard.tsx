@@ -34,6 +34,11 @@ const NotificationCard: React.FC<{ notification: Notification }> = ({ notificati
   const colors = colorMap[notification.type] || colorMap.system;
   const timeAgo = getTimeAgo(notification.timestamp);
 
+  // ponytail: extract image url from body to avoid DB migrations
+  const hasImage = notification.body?.includes('||IMG:');
+  const bodyText = hasImage ? notification.body.split('||IMG:')[0] : notification.body;
+  const imageUrl = hasImage ? notification.body.split('||IMG:')[1] : null;
+
   return (
     <View style={[styles.card, !notification.isRead && styles.unread]}>
       {notification.avatar ? (
@@ -45,7 +50,8 @@ const NotificationCard: React.FC<{ notification: Notification }> = ({ notificati
       )}
       <View style={styles.info}>
         <Text style={styles.title}>{notification.title}</Text>
-        <Text style={styles.body}>{notification.body}</Text>
+        <Text style={styles.body}>{bodyText}</Text>
+        {imageUrl && <Image source={{ uri: imageUrl }} style={styles.notificationImage} resizeMode="cover" />}
         <Text style={styles.time}>{timeAgo}</Text>
       </View>
       {!notification.isRead && <View style={styles.unreadDot} />}
@@ -89,10 +95,16 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   time: {
-    ...Typography.caption,
+    ...Typography.bodySmall,
     color: Colors.mutedForeground,
-    opacity: 0.6,
     marginTop: 4,
+  },
+  notificationImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: Radius.md,
+    marginTop: 8,
+    backgroundColor: Colors.muted,
   },
   unreadDot: {
     width: 8,

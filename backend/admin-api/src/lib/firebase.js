@@ -27,16 +27,19 @@ export function getFirebaseAdmin() {
   }
 }
 
-export async function sendPushNotification(fcmToken, title, body, data = {}) {
+export async function sendPushNotification(fcmToken, title, body, data = {}, imageUrl = null) {
   const adminApp = getFirebaseAdmin();
   if (!adminApp || !fcmToken) return false;
 
   try {
-    await getMessaging(adminApp).send({
+    const payload = {
       token: fcmToken,
       notification: { title, body },
       data
-    });
+    };
+    if (imageUrl) payload.notification.imageUrl = imageUrl;
+
+    await getMessaging(adminApp).send(payload);
     return true;
   } catch (error) {
     console.error("Failed to send push notification:", error);

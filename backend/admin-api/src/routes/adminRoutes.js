@@ -50,7 +50,7 @@ export async function route(req, res, url) {
   if (req.method === "POST" && (path === "/push/dispatch" || path === "/notifications/send")) {
     await requireAdmin(req);
     const body = await readJson(req);
-    const { userId, userIds, title, message, audience } = body;
+    const { userId, userIds, title, message, audience, imageUrl } = body;
     const targetIds = userIds || (userId ? [userId] : []);
     
     const { sendPushNotification } = await import("../lib/firebase.js");
@@ -73,10 +73,12 @@ export async function route(req, res, url) {
     
     let sentCount = 0;
     for (const token of tokens) {
-      if (await sendPushNotification(token, title, message)) sentCount++;
+      if (await sendPushNotification(token, title, message, {}, imageUrl)) sentCount++;
     }
 
     // Ponytail: Lazy log push notification directly via fetch
+    // Encode imageUrl into the message so we don't have to alter the DB schema
+    const dbMessage = imageUrl ? `${message}||IMG:${imageUrl}` : message;
     const dbRes2 = await fetch(`${config.supabaseUrl}/rest/v1/push_notifications`, {
       method: 'POST',
       headers: {
@@ -84,13 +86,35 @@ export async function route(req, res, url) {
         Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ title, message, target_user_id: userId || null, sent_count: sentCount })
+      body: JSON.stringify({ title, message: dbMessage, target_user_id: userId || null, sent_count: sentCount })
     });
     if (!dbRes2.ok) {
       console.error("DB Save Error:", await dbRes2.text());
     }
     
     return ok(res, { success: true, sentCount });
+  }
+
+  if (req.method === "POST" && path === "/push/upload-image") {
+    await requireAdmin(req);
+    const { base64, filename } = await readJson(req);
+    const buffer = Buffer.from(base64.split(",")[1] || base64, "base64");
+    const mime = base64.split(";")[0].split(":")[1] || "image/jpeg";
+    
+    const dbRes = await fetch(`${config.supabaseUrl}/storage/v1/object/images/${filename}`, {
+      method: "POST",
+      headers: {
+        apikey: config.supabaseServiceRoleKey,
+        Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
+        "Content-Type": mime,
+      },
+      body: buffer
+    });
+    
+    if (!dbRes.ok) throw new HttpError(500, "Storage Upload Failed: " + await dbRes.text());
+    
+    const publicUrl = `${config.supabaseUrl}/storage/v1/object/public/images/${filename}`;
+    return ok(res, { url: publicUrl });
   }
 
   if (req.method === "GET" && path === "/push/history") {

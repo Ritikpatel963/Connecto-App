@@ -13,6 +13,7 @@ const PushNotificationsPage = () => {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [userIds, setUserIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -34,10 +35,11 @@ const PushNotificationsPage = () => {
   const confirmSend = async () => {
     setLoading(true);
     try {
-      const { data } = await api.post("/push/dispatch", { title, message, userIds: userIds.length > 0 ? userIds : null, audience: userIds.length > 0 ? 'specific' : 'all' });
+      const { data } = await api.post("/push/dispatch", { title, message, imageUrl: imageUrl || undefined, userIds: userIds.length > 0 ? userIds : null, audience: userIds.length > 0 ? 'specific' : 'all' });
       toast.success(`Successfully sent ${data.data?.sentCount ?? data.sentCount ?? 0} notifications!`);
       setTitle("");
       setMessage("");
+      setImageUrl("");
       setUserIds([]);
       setShowConfirmModal(false);
       queryClient.invalidateQueries({ queryKey: ["push-history"] });
@@ -60,7 +62,7 @@ const PushNotificationsPage = () => {
 
   const columns = [
     { key: "title", label: "Title" },
-    { key: "message", label: "Message", render: (row: any) => <div className="text-truncate" style={{maxWidth: '300px'}}>{row.message}</div> },
+    { key: "message", label: "Message", render: (row: any) => <div className="text-truncate" style={{maxWidth: '300px'}}>{row.message.split('||IMG:')[0]}</div> },
     { key: "target", label: "Target", render: (row: any) => row.target_user_id ? <span className="badge bg-info">User {row.target_user_id}</span> : <span className="badge bg-primary">Broadcast</span> },
     { key: "sent_count", label: "Sent Count", render: (row: any) => `${row.sent_count} devices` },
     { key: "created_at", label: "Date", render: (row: any) => <DateCell value={row.created_at} /> },
@@ -104,6 +106,35 @@ const PushNotificationsPage = () => {
               <div className="col-md-6">
                 <label className="form-label fw-semibold text-primary-light text-sm mb-8">Notification Title</label>
                 <input type="text" className="form-control radius-8" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Special Offer!" required />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold text-primary-light text-sm mb-8">Image URL (Optional)</label>
+                <div className="input-group">
+                  <input type="text" className="form-control radius-8" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" />
+                  <input type="file" accept="image/*" style={{ display: 'none' }} id="upload-image-push" onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    toast.info("Uploading image...");
+                    
+                    const reader = new FileReader();
+                    reader.onloadend = async () => {
+                      try {
+                        const ext = file.name.split('.').pop();
+                        const fileName = `push_${Date.now()}.${ext}`;
+                        const base64 = reader.result as string;
+                        const { data } = await api.post("/push/upload-image", { filename: fileName, base64 });
+                        setImageUrl(data.url || data.data?.url);
+                        toast.success("Image uploaded!");
+                      } catch (err: any) {
+                        toast.error("Upload failed: " + err.message);
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }} />
+                  <button type="button" className="btn btn-outline-primary" onClick={() => document.getElementById('upload-image-push')?.click()}>
+                    <Icon icon="solar:upload-outline" /> Upload
+                  </button>
+                </div>
               </div>
               <div className="col-12">
                 <label className="form-label fw-semibold text-primary-light text-sm mb-8">Target Users</label>
