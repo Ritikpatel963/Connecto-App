@@ -109,15 +109,64 @@ const WithdrawalsPage = () => {
       />
       <ActionModal 
         open={Boolean(action)} 
-        title={action?.mode === "complete" ? "Mark withdrawal complete" : action?.mode === "approve" ? "Approve withdrawal" : "Reject withdrawal"} 
-        description={action ? `${action.row.user} requested ${action.row.currency} ${action.row.amount_fiat} (${action.row.amount_coins} coins) via ${action.row.payment_method}.` : ""} 
+        title={
+          action?.mode === "complete" ? "Mark Withdrawal Complete" 
+          : action?.mode === "approve" ? "Approve Withdrawal" 
+          : "Reject Withdrawal"
+        } 
+        description=""
         confirmLabel={action?.mode === "complete" ? "Mark Paid" : action?.mode === "approve" ? "Approve" : "Reject"} 
         tone={action?.mode === "reject" ? "danger" : "success"} 
         requireReason={action?.mode === "reject"} 
         onClose={() => setAction(null)} 
         onConfirm={(reason) => mutation.mutate({ reason, action: action! })} 
         loading={mutation.isPending} 
-      />
+      >
+        {action && (
+          <div className="card shadow-none border mb-4" style={{ borderRadius: 12 }}>
+            <div className="card-body p-20">
+              {/* Header row */}
+              <div className="d-flex align-items-center gap-12 mb-16">
+                <span className="w-44-px h-44-px rounded-circle bg-primary-100 text-primary-600 d-flex align-items-center justify-content-center fs-5 fw-bold flex-shrink-0">
+                  {(action.row.user || "?")[0].toUpperCase()}
+                </span>
+                <div>
+                  <div className="fw-bold text-neutral-900">{action.row.user}</div>
+                </div>
+                <div className="ms-auto">
+                  <span className={`badge ${action.row.status === "pending" ? "bg-warning-100 text-warning-600" : "bg-success-100 text-success-600"} px-12 py-6`}>
+                    {action.row.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Stats row */}
+              <div className="row g-3 mb-16">
+                <div className="col-4">
+                  <div className="text-xs text-secondary-light mb-4">Coins</div>
+                  <div className="fw-bold text-neutral-800">{action.row.amount_coins} 🪙</div>
+                </div>
+                <div className="col-4">
+                  <div className="text-xs text-secondary-light mb-4">Payout</div>
+                  <div className="fw-bold text-success">{action.row.currency || "INR"} {action.row.amount_fiat}</div>
+                </div>
+                <div className="col-4">
+                  <div className="text-xs text-secondary-light mb-4">Method</div>
+                  <div className="fw-semibold text-neutral-800 text-sm">
+                    {action.row.payment_method?.includes("UPI") ? "📲 UPI" : "🏦 Bank"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment details */}
+              <div className="bg-neutral-50 rounded-2 p-12" style={{ wordBreak: "break-all" }}>
+                <div className="text-xs text-secondary-light mb-4">Payment Details</div>
+                <div className="text-sm fw-medium text-primary-600">{action.row.payment_method}</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </ActionModal>
     </div>
   );
 };

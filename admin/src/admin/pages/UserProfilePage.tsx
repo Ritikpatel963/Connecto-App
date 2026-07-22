@@ -174,6 +174,8 @@ const UserProfilePage = () => {
   const query = useQuery({ queryKey: ["user-detail", id], queryFn: () => usersApi.detail(id) });
   const { data: packagesData } = useQuery({ queryKey: ["packages"], queryFn: () => packagesApi.list({ page: 1, pageSize: 100 }) });
   const { data: defaultPackageId } = useQuery({ queryKey: ["default_girl_package_id"], queryFn: () => settingsApi.get("default_girl_package_id") });
+  const { data: payoutCoinRate } = useQuery({ queryKey: ["settings", "payout_coin_rate"], queryFn: () => settingsApi.get("payout_coin_rate") });
+  const { data: boyCoinRate } = useQuery({ queryKey: ["settings", "boy_coin_rate"], queryFn: () => settingsApi.get("boy_coin_rate") });
   const packages = packagesData?.data || [];
   
   const handleAdjustBalanceSubmit = async () => {
@@ -251,7 +253,53 @@ const UserProfilePage = () => {
   const tabContent: Record<Tab, React.ReactNode> = {
     Profile: profileContent,
     Verifications: <div className="row g-3"><div className="col-12"><section className="profile-section-card"><h5 className="mb-16">ID verification submissions</h5><MiniTable rows={detail.idVerifications} emptyLabel="ID submissions" hasImage={true} /></section></div>{user.gender !== 'male' && <div className="col-12"><section className="profile-section-card"><h5 className="mb-16">Voice verification submissions</h5><MiniTable rows={detail.voiceVerifications} emptyLabel="voice submissions" /></section></div>}</div>,
-    Wallet: <div><div className="profile-table-heading d-flex justify-content-between align-items-center"><div><h5>Wallet transactions</h5><p className="mb-0">Review this member's wallet activity and payment status.</p></div><div className="text-end"><span className="text-sm text-secondary-light d-block mb-1">Current Balance</span><div className="d-flex align-items-center gap-2 justify-content-end"><h4 className="mb-0 text-primary-600">{detail.wallet?.balance || 0} Coins</h4><button className="btn btn-sm btn-primary-600 ms-2 d-inline-flex align-items-center gap-2" onClick={() => { setAdjustForm({ amount: 0, reason: "" }); setAdjusting(true); }}><Icon icon="solar:pen-outline" /> Adjust</button></div></div></div><AdminDataTable<BaseRecord> queryKey={["user-wallet-transactions", id]} queryFn={localList(detail.transactions)} columns={walletColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search wallet transactions..." /></div>,
+    Wallet: (() => {
+      const balance = detail.wallet?.balance || 0;
+      const isBoy = user.gender === 'male';
+      const rate = Number(isBoy ? boyCoinRate : payoutCoinRate) || 0;
+      const equivalentRs = rate > 0 ? (balance / rate).toFixed(2) : null;
+      return (
+        <div>
+          {/* Top row: title + balance + adjust */}
+          <div className="profile-table-heading d-flex justify-content-between align-items-center">
+            <div><h5>Wallet transactions</h5><p className="mb-0">Review this member's wallet activity and payment status.</p></div>
+            <div className="text-end">
+              <span className="text-sm text-secondary-light d-block mb-1">Current Balance</span>
+              <div className="d-flex align-items-center gap-2 justify-content-end">
+                <h4 className="mb-0 text-primary-600">{balance} Coins</h4>
+                <button className="btn btn-sm btn-primary-600 ms-2 d-inline-flex align-items-center gap-2" onClick={() => { setAdjustForm({ amount: 0, reason: "" }); setAdjusting(true); }}><Icon icon="solar:pen-outline" /> Adjust</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Conversion banner — always visible */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 18px", marginBottom: 16, border: "1px solid #e2e8f0", borderRadius: 8, background: "#f8fafc" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ width: 40, height: 40, borderRadius: "50%", background: "#eff6ff", color: "#4361ee", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Icon icon={isBoy ? "solar:coin-outline" : "solar:hand-money-outline"} style={{ fontSize: 20 }} />
+              </span>
+              <div>
+                <div style={{ fontWeight: 600, color: "#1e293b" }}>
+                  {isBoy ? "Recharge Value Equivalent" : "Payout Estimate"}
+                </div>
+                <div style={{ fontSize: 13, color: "#64748b", marginTop: 2 }}>
+                  {rate > 0 ? `Rate: 1 ₹ = ${rate} coins` : `${isBoy ? "Recharge" : "Payout"} rate not configured yet`}
+                </div>
+              </div>
+            </div>
+            <div>
+              {rate > 0 ? (
+                <span style={{ fontSize: 22, fontWeight: 700, color: "#22c55e" }}>≈ ₹{equivalentRs}</span>
+              ) : (
+                <a href={isBoy ? "/boy-recharge-rate" : "/payout-packages"} className="btn btn-sm btn-outline-primary">Set Rate</a>
+              )}
+            </div>
+          </div>
+
+          <AdminDataTable<BaseRecord> queryKey={["user-wallet-transactions", id]} queryFn={localList(detail.transactions)} columns={walletColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search wallet transactions..." />
+        </div>
+      );
+    })(),
     Calls: <div><div className="profile-table-heading"><h5>Call history</h5><p>Search, filter and review this member's calls.</p></div><AdminDataTable<CallRecord> queryKey={["user-calls", id]} queryFn={localList(callRows)} columns={callColumns} filters={callFilters} initialSort={{ key: "created_at", direction: "desc" }} defaultVisibleColumns={["caller", "receiver", "duration_seconds", "total_cost", "status", "created_at"]} searchPlaceholder="Search call history..." /></div>,
     Ratings: <div className="d-flex flex-column gap-4"><div><div className="profile-table-heading"><h5>Reviews received</h5><p>Feedback this member received from others.</p></div><AdminDataTable<BaseRecord> queryKey={["user-ratings-received", id]} queryFn={localList(detail.ratings.filter((r: BaseRecord) => String(r.rated_user_id) === String(id)))} columns={receivedColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search received reviews..." /></div><div><div className="profile-table-heading"><h5>Reviews given</h5><p>Feedback this member gave to others.</p></div><AdminDataTable<BaseRecord> queryKey={["user-ratings-given", id]} queryFn={localList(detail.ratings.filter((r: BaseRecord) => String(r.rater_user_id) === String(id)))} columns={givenColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search given reviews..." /></div></div>,
     Referrals: <div><div className="profile-table-heading"><h5>Referral history</h5><p>Track users referred by or connected to this member.</p></div><AdminDataTable<BaseRecord> queryKey={["user-referrals", id]} queryFn={localList(detail.referrals)} columns={referralColumns} initialSort={{ key: "created_at", direction: "desc" }} searchPlaceholder="Search referral history..." /></div>,

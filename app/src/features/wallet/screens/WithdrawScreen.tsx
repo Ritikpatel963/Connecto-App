@@ -54,6 +54,9 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
   const withdrawConfig = settings.withdrawal_config || { min: 100, max: 10000 };
   const min = Number(withdrawConfig.min);
   const max = Number(withdrawConfig.max);
+  const payoutRate = Number(settings.payout_coin_rate) || 0; // 1 ₹ = payoutRate coins
+  const enteredCoins = Number(amountStr) || 0;
+  const estimatedRs = payoutRate > 0 && enteredCoins > 0 ? (enteredCoins / payoutRate).toFixed(2) : null;
 
   const handleWithdraw = async () => {
     const amount = Number(amountStr);
@@ -153,6 +156,11 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
           value={amountStr}
           onChangeText={setAmountStr}
         />
+        {payoutRate > 0 && (
+          <Text style={{ ...Typography.small, color: Colors.primary, marginTop: 6, textAlign: 'right' }}>
+            {estimatedRs ? `≈ ₹${estimatedRs}` : `Rate: 1 ₹ = ${payoutRate} coins`}
+          </Text>
+        )}
 
         <Text style={styles.inputLabel}>Select Payout Method</Text>
         <View style={styles.methodRow}>

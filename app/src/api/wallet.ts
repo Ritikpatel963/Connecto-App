@@ -12,6 +12,8 @@ export const useTransactions = () => {
 
   return useQuery({
     queryKey: ['transactions', id, role],
+    staleTime: 0,
+    refetchInterval: 15_000, // poll every 15s as realtime fallback for withdrawals table
     queryFn: async () => {
       const userId = id || 1; 
       
@@ -219,10 +221,14 @@ export const useWalletRealtime = () => {
 
   useEffect(() => {
     const channel = supabase
-      .channel('public:wallet_transactions')
+      .channel('public:wallet_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions' }, () => {
         queryClient.invalidateQueries({ queryKey: ['transactions'] });
         queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'withdrawals' }, () => {
+        // Refresh when admin approves / rejects / completes a withdrawal
+        queryClient.invalidateQueries({ queryKey: ['transactions'] });
       })
       .subscribe();
 

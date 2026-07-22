@@ -6,7 +6,7 @@ import { Radius } from '../../../theme/spacing';
 import { useUser } from '../../../context/UserContext';
 import WalletCard from '../../../components/WalletCard';
 import TransactionRow from '../../../components/TransactionRow';
-import { useTransactions, useWalletBalance, useCoinPackages, useWalletRealtime } from '../../../api/wallet';
+import { useTransactions, useWalletBalance, useCoinPackages, useWalletRealtime, useSettings } from '../../../api/wallet';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 import type { CompositeScreenProps } from '@react-navigation/native';
@@ -26,16 +26,29 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
   const { role, walletBalance } = useUser();
   const { data: transactions = [], isLoading } = useTransactions();
   const { data: coinPackages = [] } = useCoinPackages();
-  
-  const baseRule = coinPackages[0];
-  const conversionRate = (baseRule && baseRule.coins > 0) ? (baseRule.price / baseRule.coins) : 1;
-  const paginatedTransactions = transactions.slice(0, 10);
-  
+
   // Fetch actual wallet balance from API to sync with context
   useWalletBalance();
-  
+
   // Realtime Supabase sync for transactions & balance
   useWalletRealtime();
+
+  // Settings (payout rate etc.) — called last, after all original hooks
+  const { data: settings = {} } = useSettings();
+
+  const payoutRate = Number(settings.payout_coin_rate) || 0;
+  const boyRechargeRate = Number(settings.boy_coin_rate) || 0;
+  
+  let conversionRate = 1;
+  if (role === 'girl') {
+    conversionRate = payoutRate > 0 ? (1 / payoutRate) : 1;
+  } else {
+    conversionRate = boyRechargeRate > 0 ? (1 / boyRechargeRate) : 1;
+  }
+
+  const payoutRs = payoutRate > 0 ? (walletBalance / payoutRate).toFixed(2) : null;
+  const boyRs = boyRechargeRate > 0 ? (walletBalance / boyRechargeRate).toFixed(2) : null;
+  const paginatedTransactions = transactions.slice(0, 10);
 
   return (
     <ScrollView
@@ -50,26 +63,38 @@ const WalletScreen: React.FC<Props> = ({ navigation }) => {
         onWithdraw={() => navigation.navigate('Withdraw')}
       />
 
+      {/* Payout rate info — only for girls */}
+      {role === 'girl' && payoutRate > 0 && (
+        <View style={styles.payoutBanner}>
+          <View style={styles.payoutBannerLeft}>
+            <Text style={styles.payoutBannerTitle}>💰 Payout Rate</Text>
+            <Text style={styles.payoutBannerSub}>1 ₹ = {payoutRate} coins</Text>
+          </View>
+          <View style={styles.payoutBannerRight}>
+            <Text style={styles.payoutBannerLabel}>Your balance equals</Text>
+            <Text style={styles.payoutBannerValue}>₹{payoutRs}</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Recharge rate info — only for boys */}
+      {role !== 'girl' && boyRechargeRate > 0 && (
+        <View style={styles.payoutBanner}>
+          <View style={styles.payoutBannerLeft}>
+            <Text style={styles.payoutBannerTitle}>💰 Recharge Rate</Text>
+            <Text style={styles.payoutBannerSub}>1 ₹ = {boyRechargeRate} coins</Text>
+          </View>
+          <View style={styles.payoutBannerRight}>
+            <Text style={styles.payoutBannerLabel}>Your balance equals</Text>
+            <Text style={styles.payoutBannerValue}>₹{boyRs}</Text>
+          </View>
+        </View>
+      )}
+
       {role !== 'girl' && (
         <View style={styles.rechargeSection}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>QUICK RECHARGE</Text>
-            {baseRule && (
-              <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                backgroundColor: 'rgba(245,158,11,0.15)',
-                paddingHorizontal: 10, 
-                paddingVertical: 4, 
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: 'rgba(245,158,11,0.3)'
-              }}>
-                <Text style={{ ...Typography.smallSemibold, color: '#D97706' }}>
-                  💰 {baseRule.coins} Coins = ₹{baseRule.price}
-                </Text>
-              </View>
-            )}
           </View>
           <View style={styles.rechargeGrid}>
             {rechargeAmounts.map(amt => (
@@ -155,6 +180,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
+  payoutBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.card,
+    borderRadius: Radius.xl,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(233,64,87,0.2)',
+  },
+  payoutBannerLeft: { gap: 2 },
+  payoutBannerTitle: { ...Typography.bodyBold, color: Colors.foreground },
+  payoutBannerSub: { ...Typography.small, color: Colors.mutedForeground },
+  payoutBannerRight: { alignItems: 'flex-end', gap: 2 },
+  payoutBannerLabel: { ...Typography.small, color: Colors.mutedForeground },
+  payoutBannerValue: { ...Typography.h3, color: Colors.primary },
 });
 
 export default WalletScreen;

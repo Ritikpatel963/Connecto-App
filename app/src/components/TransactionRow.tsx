@@ -128,7 +128,8 @@ const TransactionRow: React.FC<{ tx: Transaction; conversionRate?: number }> = (
       </View>
       <View style={styles.amountCol}>
         <Text style={[styles.amount, { color: tx.status === 'pending' ? Colors.secondary : (isPositive ? Colors.accent : Colors.primary) }]}>
-          {isPositive ? '+' : '-'}{tx.type === 'recharge' ? '₹' : ''}{Math.abs(tx.amount)}{tx.type !== 'recharge' ? ' Coins' : ''}
+          {/* ponytail: .toFixed(2) handles float math slop, no complex library needed */}
+          {isPositive ? '+' : '-'}{tx.type === 'recharge' ? '₹' : ''}{tx.type === 'recharge' ? Math.abs(tx.amount).toFixed(2) : Math.abs(tx.amount)}{tx.type !== 'recharge' ? ' Coins' : ''}
         </Text>
         {tx.type === 'recharge' && (tx.status === 'completed' || tx.status === 'verified') && (
           <Text style={[styles.status, { color: Colors.accent }]}>

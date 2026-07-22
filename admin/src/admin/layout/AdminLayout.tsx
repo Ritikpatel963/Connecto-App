@@ -26,7 +26,7 @@ const groups: NavGroup[] = [
   { id: "calls", label: "Calls", icon: "solar:phone-calling-outline", permission: "calls.view", items: [{ label: "Call Log", to: "/calls" }] },
   { id: "chat", label: "Chat", icon: "solar:chat-round-dots-outline", permission: "chat.view", items: [{ label: "Chat", to: "/chat" }] },
   { id: "ratings", label: "Ratings & Reviews", icon: "solar:star-outline", permission: "ratings.view", items: [{ label: "All Reviews", to: "/ratings" }] },
-  { id: "packages", label: "Packages", icon: "solar:crown-star-outline", permission: "packages.view", items: [{ label: "All Packages", to: "/subscriptions" }] },
+  { id: "packages", label: "Packages", icon: "solar:crown-star-outline", permission: "packages.view", items: [{ label: "Call Packages", to: "/subscriptions" }, { label: "Payout Packages", to: "/payout-packages" }, { label: "Recharge Rate", to: "/boy-recharge-rate" }] },
   { id: "wallet", label: "Wallet", icon: "solar:wallet-money-outline", permission: "wallet.view", items: [{ label: "Transactions", to: "/wallet/transactions" }, { label: "Manual Approvals", to: "/wallet/manual-approvals" }, { label: "Recharge Packages", to: "/recharge-packages" }, { label: "Withdrawals", to: "/withdrawals" }] },
   { id: "referrals", label: "Referral Program", icon: "solar:gift-outline", permission: "referrals.view", items: [{ label: "Referrals", to: "/referrals" }, { label: "Referral Tiers", to: "/referrals/tiers" }, { label: "Redemptions", to: "/referrals/redemptions" }] },
   { id: "cms", label: "Content (CMS)", icon: "solar:document-text-outline", permission: "cms.view", items: [{ label: "Manage Content", to: "/cms" }] },
@@ -124,11 +124,6 @@ const AdminLayout = () => {
         <div className="sidebar-menu-area">
           <ul className="sidebar-menu">
             <li className="sidebar-menu-group-title">Control centre</li>
-            <li>
-              <NavLink to="/" end className={itemClass} onClick={closeMobile}>
-                <Icon icon="solar:chart-2-outline" className="menu-icon" /><span>Dashboard</span>
-              </NavLink>
-            </li>
 
             {visibleGroups.map((group) => {
               const active = matchingGroup === group.id;

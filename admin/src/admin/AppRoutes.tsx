@@ -31,6 +31,8 @@ import RechargePackagesPage from "./pages/RechargePackagesPage";
 import CreateRechargePackagePage from "./pages/CreateRechargePackagePage";
 import EditRechargePackagePage from "./pages/EditRechargePackagePage";
 import WithdrawalsPage from "./pages/WithdrawalsPage";
+import PayoutPackagesPage from "./pages/PayoutPackagesPage";
+import BoyRechargeRatePage from "./pages/BoyRechargeRatePage";
 
 const AppRoutes = () => (
   <Routes>
@@ -72,6 +74,8 @@ const AppRoutes = () => (
           <Route path="/subscriptions" element={<SubscriptionsPage />} />
           <Route path="/packages/create" element={<CreatePackagePage />} />
           <Route path="/packages/edit/:id" element={<EditPackagePage />} />
+          <Route path="/payout-packages" element={<PayoutPackagesPage />} />
+          <Route path="/boy-recharge-rate" element={<BoyRechargeRatePage />} />
         </Route>
 
         <Route element={<PermissionRoute require="dashboard.view" />}>
