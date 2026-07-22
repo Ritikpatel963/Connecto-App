@@ -16,11 +16,12 @@ interface NavGroup {
   label: string;
   icon: string;
   permission?: AdminPermission | string;
-  items: NavItem[];
+  to?: string;
+  items?: NavItem[];
 }
 
 const groups: NavGroup[] = [
-  { id: "dashboard", label: "Dashboard", icon: "solar:widget-5-outline", permission: "dashboard.view", items: [{ label: "Overview", to: "/" }] },
+  { id: "dashboard", label: "Dashboard", icon: "solar:widget-5-outline", permission: "dashboard.view", to: "/" },
   { id: "users", label: "Users", icon: "solar:users-group-rounded-outline", permission: "users.view", items: [{ label: "All Users", to: "/users" }] },
   { id: "verifications", label: "Verifications", icon: "solar:shield-check-outline", permission: "id_verifications.view", items: [{ label: "ID Verifications", to: "/verifications/id" }, { label: "Voice Verifications", to: "/verifications/voice" }] },
   { id: "calls", label: "Calls", icon: "solar:phone-calling-outline", permission: "calls.view", items: [{ label: "Call Log", to: "/calls" }] },
@@ -30,7 +31,7 @@ const groups: NavGroup[] = [
   { id: "wallet", label: "Wallet", icon: "solar:wallet-money-outline", permission: "wallet.view", items: [{ label: "Transactions", to: "/wallet/transactions" }, { label: "Manual Approvals", to: "/wallet/manual-approvals" }, { label: "Recharge Packages", to: "/recharge-packages" }, { label: "Withdrawals", to: "/withdrawals" }] },
   { id: "referrals", label: "Referral Program", icon: "solar:gift-outline", permission: "referrals.view", items: [{ label: "Referrals", to: "/referrals" }, { label: "Referral Tiers", to: "/referrals/tiers" }, { label: "Redemptions", to: "/referrals/redemptions" }] },
   { id: "cms", label: "Content (CMS)", icon: "solar:document-text-outline", permission: "cms.view", items: [{ label: "Manage Content", to: "/cms" }] },
-  { id: "rbac", label: "Admin & Roles", icon: "solar:user-shield-outline", permission: "admin_roles.view", items: [{ label: "Staff Members", to: "/admin-access/admins" }, { label: "Roles & Permissions", to: "/admin-access/roles" }] },
+  { id: "rbac", label: "Admin & Roles", icon: "solar:shield-user-outline", permission: "admin_roles.view", items: [{ label: "Staff Members", to: "/admin-access/admins" }, { label: "Roles & Permissions", to: "/admin-access/roles" }] },
 ];
 
 const itemClass = ({ isActive }: { isActive: boolean }) => isActive ? "active-page" : "";
@@ -56,7 +57,7 @@ const AdminLayout = () => {
 
   const superAdmin = isSuperAdmin(currentAdmin?.role || "");
   const visibleGroups = groups.filter((group) => !group.permission || superAdmin || hasPermission(currentAdmin?.permissions || [], group.permission as AdminPermission));
-  const matchingGroup = useMemo(() => visibleGroups.find((group) => group.items.some((item) => matchesPath(location.pathname, item.to)))?.id, [location.pathname, visibleGroups]);
+  const matchingGroup = useMemo(() => visibleGroups.find((group) => (group.to && matchesPath(location.pathname, group.to)) || (group.items || []).some((item) => matchesPath(location.pathname, item.to)))?.id, [location.pathname, visibleGroups]);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   useEffect(() => {
@@ -126,6 +127,16 @@ const AdminLayout = () => {
             <li className="sidebar-menu-group-title">Control centre</li>
 
             {visibleGroups.map((group) => {
+              if (group.to) {
+                return (
+                  <li key={group.id}>
+                    <NavLink to={group.to} className={({ isActive }) => `admin-navigation-group${isActive ? ' active-group' : ''}`} onClick={closeMobile} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', color: 'inherit', textDecoration: 'none' }}>
+                      <Icon icon={group.icon} className="menu-icon" /><span>{group.label}</span>
+                    </NavLink>
+                  </li>
+                );
+              }
+
               const active = matchingGroup === group.id;
               const open = openGroup === group.id;
               return (
@@ -133,8 +144,8 @@ const AdminLayout = () => {
                   <a href={`#${group.id}`} onClick={(event) => { event.preventDefault(); toggle(group.id); }} aria-expanded={open}>
                     <Icon icon={group.icon} className="menu-icon" /><span>{group.label}</span>
                   </a>
-                  <ul className="sidebar-submenu" style={{ display: open ? "block" : "none", maxHeight: open ? `${group.items.length * 52}px` : 0 }}>
-                    {group.items.map((item) => (
+                  <ul className="sidebar-submenu" style={{ display: open ? "block" : "none", maxHeight: open ? `${(group.items || []).length * 52}px` : 0 }}>
+                    {(group.items || []).map((item) => (
                       <li key={item.to}><NavLink to={item.to} className={itemClass} onClick={closeMobile}><i className="ri-circle-fill circle-icon text-primary-600 w-auto" />{item.label}</NavLink></li>
                     ))}
                   </ul>
