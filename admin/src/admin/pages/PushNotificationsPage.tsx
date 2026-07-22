@@ -62,7 +62,17 @@ const PushNotificationsPage = () => {
 
   const columns = [
     { key: "title", label: "Title" },
-    { key: "message", label: "Message", render: (row: any) => <div className="text-truncate" style={{maxWidth: '300px'}}>{row.message.split('||IMG:')[0]}</div> },
+    { key: "message", label: "Message", render: (row: any) => {
+      const hasImg = row.message?.includes('||IMG:');
+      const text = hasImg ? row.message.split('||IMG:')[0] : row.message;
+      const imgUrl = hasImg ? row.message.split('||IMG:')[1] : null;
+      return (
+        <div className="d-flex align-items-center gap-2">
+          {imgUrl && <img src={imgUrl} alt="push" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} />}
+          <div className="text-truncate" style={{maxWidth: '300px'}}>{text}</div>
+        </div>
+      );
+    }},
     { key: "target", label: "Target", render: (row: any) => row.target_user_id ? <span className="badge bg-info">User {row.target_user_id}</span> : <span className="badge bg-primary">Broadcast</span> },
     { key: "sent_count", label: "Sent Count", render: (row: any) => `${row.sent_count} devices` },
     { key: "created_at", label: "Date", render: (row: any) => <DateCell value={row.created_at} /> },
