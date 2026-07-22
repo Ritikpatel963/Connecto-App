@@ -239,14 +239,14 @@ const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
           }));
         }
 
-        // Insert initial wallet with 10 coins (Ponytail fix)
+        // Insert initial wallet with 0 coins
         insertPromises.push(fetch(`${SUPABASE_URL}/rest/v1/wallets`, {
           method: 'POST',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: newUserId,
             user_id: newUserId,
-            balance: 10
+            balance: 0
           })
         }));
 
