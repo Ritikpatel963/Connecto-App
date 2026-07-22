@@ -26,6 +26,7 @@ const groups: NavGroup[] = [
   { id: "verifications", label: "Verifications", icon: "solar:shield-check-outline", permission: "id_verifications.view", items: [{ label: "ID Verifications", to: "/verifications/id" }, { label: "Voice Verifications", to: "/verifications/voice" }] },
   { id: "calls", label: "Calls", icon: "solar:phone-calling-outline", permission: "calls.view", items: [{ label: "Call Log", to: "/calls" }] },
   { id: "chat", label: "Chat", icon: "solar:chat-round-dots-outline", permission: "chat.view", items: [{ label: "Chat", to: "/chat" }] },
+  { id: "notifications", label: "Notifications", icon: "solar:bell-bing-outline", permission: "dashboard.view", items: [{ label: "Push Notifications", to: "/push-notifications" }] },
   { id: "ratings", label: "Ratings & Reviews", icon: "solar:star-outline", permission: "ratings.view", items: [{ label: "All Reviews", to: "/ratings" }] },
   { id: "packages", label: "Packages", icon: "solar:crown-star-outline", permission: "packages.view", items: [{ label: "Call Packages", to: "/subscriptions" }, { label: "Payout Packages", to: "/payout-packages" }, { label: "Recharge Rate", to: "/boy-recharge-rate" }] },
   { id: "wallet", label: "Wallet", icon: "solar:wallet-money-outline", permission: "wallet.view", items: [{ label: "Transactions", to: "/wallet/transactions" }, { label: "Manual Approvals", to: "/wallet/manual-approvals" }, { label: "Recharge Packages", to: "/recharge-packages" }, { label: "Withdrawals", to: "/withdrawals" }] },
